@@ -1,4 +1,4 @@
-use hecs::World;
+// use hecs::World;
 use macroquad::{
     color::{Color, colors},
     math::Rect,
@@ -8,40 +8,54 @@ use crate::{
     context::Context,
     game::Game,
     gnome::Gnome,
-    grid::{Grid, Pos}, job::Job,
+    grid::{Grid, Pos},
+    job::Job,
+    tile::TileBiome,
+    tileset::Sprite,
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, ctx);
-    draw_gnomes(&game.world, ctx);
+    // draw_gnomes(&game.gnomes, ctx);
     draw_jobs(&game.jobs, ctx);
 }
 
 fn draw_tiles(grid: &Grid, ctx: &Context) {
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
-            ctx.tileset.draw_rect(
-                &pos_to_rect((x, y).into()),
-                if grid
-                    .get_tile((x, y).into())
-                    .is_some_and(|tile| tile.is_passable())
-                {
-                    colors::BROWN
-                } else {
-                    colors::GREEN
+            let pos: Pos = (x, y).into();
+            let tile = grid.get_tile(pos).unwrap();
+            ctx.tileset.draw_tile(
+                match tile.biome {
+                    TileBiome::Dirt => Sprite::new(1, 1),
+                    TileBiome::Stone => {
+                        if tile.is_passable() {
+                            Sprite::new(0, 2)
+                        } else {
+                            Sprite::new(0, 3)
+                        }
+                    }
+                    TileBiome::Water => Sprite::new(1, 2),
+                    // _ => Sprite::new(0, 5),
                 },
+                &pos_to_rect((x, y).into()),
+                colors::WHITE,
+                0.,
             );
+            if let Some(_gnome) = tile.gnome {
+                ctx.tileset
+                    .draw_tile(Sprite::new(0, 0), &pos_to_rect(pos), colors::WHITE, 0.);
+            }
         }
     }
 }
 
-fn draw_gnomes(world: &World, ctx: &Context) {
-    for (_entity, (gnome,)) in world.query::<(&mut Gnome,)>().iter() {
-        // gnome.update(&mut self.grid, &mut self.jobs);
-        ctx.tileset
-            .draw_rect(&pos_to_rect(gnome.pos), Color::new(0., 0., 1., 0.5));
-    }
-}
+// fn draw_gnomes(world: &World, ctx: &Context) {
+//     for (_entity, (gnome,)) in world.query::<(&mut Gnome,)>().iter() {
+// gnome.update(&mut self.grid, &mut self.jobs);
+
+//     }
+// }
 
 fn draw_jobs(jobs: &Vec<Job>, ctx: &Context) {
     for job in jobs.iter() {

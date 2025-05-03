@@ -1,22 +1,9 @@
 use crate::tile::Tile;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-pub struct Pos {
-    pub x: i16,
-    pub y: i16,
-}
+mod pos;
+pub use pos::Pos;
+pub use pos::dirs;
 
-impl Pos {
-    pub fn new(x: i16, y: i16) -> Pos {
-        Pos { x, y }
-    }
-}
-
-impl From<(i16, i16)> for Pos {
-    fn from(tuple: (i16, i16)) -> Self {
-        Pos::new(tuple.0, tuple.1)
-    }
-}
 
 pub struct Grid {
     pub size: Pos,
@@ -25,7 +12,7 @@ pub struct Grid {
 
 impl Grid {
     pub fn new(size: Pos) -> Grid {
-        let cells = vec![vec![Tile::new(); size.x as usize]; size.y as usize];
+        let cells = vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid { size, cells }
     }
     // pub fn new(size: Pos) -> Grid {
@@ -39,6 +26,10 @@ impl Grid {
 
     pub fn get_tile(&self, pos: Pos) -> Option<&Tile> {
         self.cells.get(pos.y as usize)?.get(pos.x as usize)
+    }
+
+    pub fn get_tile_mut(&mut self, pos: Pos) -> Option<&mut Tile> {
+        self.cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {

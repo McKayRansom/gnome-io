@@ -32,7 +32,7 @@ impl Gameplay {
         if self.game.grid.is_valid_pos(mouse_pos) {
             self.mouse_pos = Some(mouse_pos);
             if is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
-                self.game.spawn_job(Job::new(mouse_pos, Tile::new()));
+                self.game.mine(mouse_pos);
             }
         } else {
             self.mouse_pos = None;

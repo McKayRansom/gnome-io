@@ -11,17 +11,18 @@ pub enum JobAction {
 pub struct Job {
     pub pos: Pos,
     time: u16,
-    tile: Tile,
+    // tile: Tile,
+    dig_pos: Pos,
 }
 
 const JOB_TIME: u16 = 120;
 
 impl Job {
-    pub fn new(pos: Pos, tile: Tile) -> Job {
+    pub fn new(pos: Pos, dig_pos: Pos) -> Job {
         Job {
             pos,
             time: JOB_TIME,
-            tile,
+            dig_pos,
         }
     }
 
@@ -34,6 +35,7 @@ impl Job {
             return JobAction::Wait;
         }
         // grid.set_tile(pos, self.tile.clone());
+        grid.get_tile_mut(self.dig_pos).unwrap().is_passable = true;
         JobAction::Finished
     }
 

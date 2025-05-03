@@ -1,6 +1,6 @@
 use macroquad::{
     color::{colors, Color, BLACK},
-    math::{vec2, Rect},
+    math::{vec2, Rect, Vec2},
     shapes::{draw_circle, draw_line, draw_rectangle},
     text::{draw_text_ex, measure_text, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, FilterMode, Texture2D},
@@ -9,7 +9,7 @@ use macroquad::{
 
 use crate::{draw::GRID_CELL_SIZE, grid::Pos};
 
-const TILE_SIZE: u32 = 16;
+const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
 
 const MIN_ZOOM: f32 = 0.1;
 const MAX_ZOOM: f32 = 4.;
@@ -93,14 +93,14 @@ impl Tileset {
             // Adding the 0.1 margin helps avoid slight gaps between tiles
             // I'm not totally sure why, it seems to be a floating point error?
             // See: https://github.com/not-fl3/macroquad/blob/master/tiled/src/lib.rs#L80
-            x: (sprite.col as u32 * TILE_SIZE) as f32 + 0.1,
-            y: (sprite.row as u32 * TILE_SIZE) as f32 + 0.1,
-            w: (TILE_SIZE as u32) as f32 - 0.2,
-            h: (TILE_SIZE as u32) as f32 - 0.2,
+            x: (sprite.col as u32 * TILE_SIZE.x as u32) as f32 + 0.1,
+            y: (sprite.row as u32 * TILE_SIZE.y as u32) as f32 + 0.1,
+            w: (TILE_SIZE.x as u32) as f32 - 0.2,
+            h: (TILE_SIZE.y as u32) as f32 - 0.2,
         }
     }
 
-    pub fn draw_tile(&self, sprite: Sprite, color: Color, dest: &Rect, rotation: f32) {
+    pub fn draw_tile(&self, sprite: Sprite, dest: &Rect, color: Color, rotation: f32) {
         self.draw_tile_ex(sprite, color, dest, rotation, false);
     }
 
@@ -116,13 +116,13 @@ impl Tileset {
         rotation: f32,
         flip: bool,
     ) {
-        let dest_size = vec2(dest.w * self.zoom, dest.h * self.zoom);
+        let dest_size = vec2(dest.w * self.zoom, dest.h * self.zoom * 2.);
         let spr_rect = self.sprite_rect(sprite);
 
         draw_texture_ex(
             &self.texture,
             (dest.x - self.camera.0) * self.zoom,
-            (dest.y - self.camera.1) * self.zoom,
+            ((dest.y - self.camera.1) - GRID_CELL_SIZE.1) * self.zoom,
             color,
             DrawTextureParams {
                 dest_size: Some(dest_size),
@@ -213,6 +213,6 @@ impl Tileset {
         shadow_rect.y += 1.;
         // self.draw_tile(sprite, colors::BLACK, &shadow_rect, rotation);
 
-        self.draw_tile(sprite, colors::WHITE, &rect, rotation);
+        self.draw_tile(sprite, &rect, colors::WHITE, rotation);
     }
 }

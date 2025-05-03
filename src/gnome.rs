@@ -1,6 +1,9 @@
 use crate::{grid::Pos, job::Job};
 
+pub type GnomeId = u32;
+
 pub struct Gnome {
+    pub id: GnomeId,
     pub job: Option<Job>,
     pub pos: Pos,
     pub path: Vec<Pos>,
@@ -10,8 +13,10 @@ pub struct Gnome {
 const GNOME_SPEED: u16 = 20;
 
 impl Gnome {
-    pub fn new(pos: Pos) -> Gnome {
+    pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
+        grid.get_tile_mut(pos).unwrap().gnome = Some(id);
         Gnome {
+            id,
             job: None,
             pos,
             path: Vec::new(),
@@ -26,7 +31,9 @@ impl Gnome {
                 self.timer += 1;
                 return; // Wait for the timer to finish
             }
+            grid.get_tile_mut(self.pos).unwrap().gnome = None;
             self.pos = self.path.remove(0);
+            grid.get_tile_mut(self.pos).unwrap().gnome = Some(self.id);
             self.timer = 0;
             return;
         }
