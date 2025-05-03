@@ -1,0 +1,207 @@
+use macroquad::{
+    color::{self, Color},
+    input::is_mouse_button_down,
+    math::{vec2, Rect},
+    shapes::draw_rectangle,
+    text::draw_text,
+    texture::{draw_texture_ex, DrawTextureParams},
+};
+
+use crate::{context::Context, tileset::Sprite};
+
+#[derive(Clone, Copy)]
+pub struct ToolbarItem<V> {
+    pub value: V,
+    pub tooltip: &'static str,
+    pub shortcut: char,
+    pub sprite: Sprite,
+    pub color: Color,
+}
+
+impl<V> ToolbarItem<V> {
+    pub fn new(value: V, tooltip: &'static str, shortcut: char, sprite: Sprite) -> Self {
+        Self {
+            value,
+            tooltip,
+            shortcut,
+            sprite,
+            color: color::WHITE,
+        }
+    }
+}
+
+impl<V> Default for ToolbarItem<V>
+where
+    V: Default,
+{
+    fn default() -> Self {
+        Self {
+            value: Default::default(),
+            tooltip: "",
+            shortcut: Default::default(),
+            sprite: Sprite::new(0, 0),
+            color: color::WHITE,
+        }
+    }
+}
+
+const TOOLBAR_ITEM_WIDTH: f32 = 64.;
+const TOOLBAR_ITEM_HEIGHT: f32 = 64.;
+const TOOLBAR_ITEM_PAD: f32 = 10.;
+
+pub const TOOLBAR_SPACE: f32 = TOOLBAR_ITEM_HEIGHT + TOOLBAR_ITEM_PAD;
+// pub const TOOLBAR_WIDTH: f32 = (TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD) * TOOLBAR_ITEM_COUNT;
+
+#[derive(PartialEq, Eq, PartialOrd, Ord)]
+pub enum ToolbarType {
+    Horizontal,
+    Veritcal,
+}
+
+pub struct Toolbar<V> {
+    kind: ToolbarType,
+    selected: Option<usize>,
+    mouse_down: Option<usize>,
+    pub items: Vec<ToolbarItem<V>>,
+    rect: Rect,
+}
+
+impl<V> Toolbar<V> {
+    pub fn new(kind: ToolbarType, items: Vec<ToolbarItem<V>>) -> Self {
+        Self {
+            kind,
+            selected: None,
+            mouse_down: None,
+            items,
+            rect: Rect::new(0., 0., 0., 0.),
+        }
+    }
+
+    pub fn get_selected(&self) -> Option<&V> {
+        let selected = self.selected?;
+        Some(&self.items[selected].value)
+    }
+
+    pub fn clear_selected(&mut self) {
+        self.selected = None;
+    }
+
+    pub fn draw(&mut self, ctx: &mut Context, x: f32, y: f32) {
+        if self.kind == ToolbarType::Veritcal {
+            self.rect.w = TOOLBAR_SPACE;
+            self.rect.h = self.items.len() as f32 * TOOLBAR_SPACE;
+            self.rect.x = x;
+            self.rect.y = y - self.rect.h / 2.;
+        } else {
+            self.rect.w = self.items.len() as f32 * TOOLBAR_SPACE;
+            self.rect.h = TOOLBAR_SPACE;
+            self.rect.x = x - self.rect.w / 2.;
+            self.rect.y = y;
+        }
+
+        // Old color: Factorio type grey
+        // let window_color = Color::from_hex(0x585858);
+        // New color: Darker Mindustry grey
+        let mut window_color = Color::from_hex(0x181818);
+        window_color.a = 0.8;
+        let mouse_down = is_mouse_button_down(macroquad::input::MouseButton::Left);
+
+        if !mouse_down {
+            self.mouse_down = None;
+        }
+
+        draw_rectangle(
+            self.rect.x,
+            self.rect.y,
+            self.rect.w,
+            self.rect.h,
+            window_color,
+        );
+
+        let mut item_rect = Rect::new(
+            self.rect.x + TOOLBAR_ITEM_PAD / 2.,
+            self.rect.y + TOOLBAR_ITEM_PAD / 2.,
+            TOOLBAR_ITEM_WIDTH,
+            TOOLBAR_ITEM_HEIGHT,
+        );
+        for (i, toolbar_item) in self.items.iter().enumerate() {
+            let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
+
+            draw_texture_ex(
+                &ctx.tileset.texture,
+                item_rect.x,
+                item_rect.y - item_rect.h, // JANK FOR DOUBLE HIGH SPRITES
+                toolbar_item.color,
+                DrawTextureParams {
+                    dest_size: Some(vec2(item_rect.w, item_rect.h * 2.)), // JANK FOR DOUBLE HIGH SPRITES
+                    source: Some(spr_rect),
+                    ..Default::default()
+                },
+            );
+
+            if ctx.key_pressed == Some(toolbar_item.shortcut) {
+                if let Some(selected) = self.selected {
+                    if selected == i {
+                        self.selected = None;
+                    } else {
+                        self.selected = Some(i);
+                    }
+                } else {
+                    self.selected = Some(i);
+                }
+                ctx.key_pressed = None;
+            }
+
+            if self.selected == Some(i) {
+                draw_rectangle(
+                    item_rect.x - 5.,
+                    item_rect.y - 5.,
+                    item_rect.w + 10.,
+                    item_rect.h + 10.,
+                    Color::new(1.0, 1.0, 1.0, 0.2),
+                );
+            }
+
+            if let Some(mouse_pos) = ctx.mouse_pos {
+                if item_rect.contains(mouse_pos) {
+                    draw_text(
+                        toolbar_item.tooltip,
+                        mouse_pos.x,
+                        mouse_pos.y,
+                        24.,
+                        color::WHITE,
+                    );
+
+                    draw_rectangle(
+                        item_rect.x - 5.,
+                        item_rect.y - 5.,
+                        item_rect.w + 10.,
+                        item_rect.h + 10.,
+                        Color::new(1.0, 1.0, 1.0, 0.1),
+                    );
+
+                    if mouse_down && self.mouse_down.is_none() {
+                        if self.selected.is_none() || self.selected != Some(i) {
+                            self.selected = Some(i);
+                        } else {
+                            self.selected = None;
+                        }
+                        self.mouse_down = Some(i);
+                    }
+                }
+            }
+
+            if self.kind == ToolbarType::Horizontal {
+                item_rect.x += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
+            } else {
+                item_rect.y += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
+            }
+        }
+
+        if let Some(mouse_pos) = ctx.mouse_pos {
+            if self.rect.contains(mouse_pos) {
+                ctx.mouse_pos = None;
+            }
+        }
+    }
+}

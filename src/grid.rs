@@ -15,10 +15,6 @@ impl Grid {
         let cells = vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid { size, cells }
     }
-    // pub fn new(size: Pos) -> Grid {
-    //     let cells = vec![vec![Cell::new(); size.x as usize]; size.y as usize];
-    //     Grid { size, cells }
-    // }
 
     pub fn is_valid_pos(&self, pos: Pos) -> bool {
         pos.x >= 0 && pos.x < self.size.x && pos.y >= 0 && pos.y < self.size.y

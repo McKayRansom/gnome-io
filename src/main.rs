@@ -11,6 +11,7 @@ mod tileset;
 mod context;
 mod draw;
 mod gameplay;
+mod toolbar;
 
 const PKG_NAME: &str = "gnome-io";
 
@@ -57,15 +58,16 @@ async fn main() {
             .init();
     }
 
-    let ctx = context::Context::new().await;
+    let mut ctx = context::Context::new().await;
 
-    let mut g = Gameplay::new();
+    let mut g = Gameplay::new(&mut ctx);
 
     log::info!("Finished init");
 
     loop {
-        g.update(&ctx);
-        g.draw(&ctx);
+        ctx.update();
+        g.update(&mut ctx);
+        g.draw(&mut ctx);
         next_frame().await;
     }
 }

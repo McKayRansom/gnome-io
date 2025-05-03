@@ -1,4 +1,4 @@
-use crate::{grid::Pos, tile::Tile};
+use crate::grid::Pos;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JobAction {

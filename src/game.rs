@@ -16,12 +16,14 @@ pub struct Game {
     pub jobs: Vec<Job>,
 }
 
+const DEFAULT_SIZE: Pos = Pos::new(64, 64);
+
 impl Game {
     pub fn new() -> Game {
         Game {
             gnomes: HashMap::new(),
             gnome_id: 1,
-            grid: Grid::new(Pos::new(16, 16)), // Example grid size
+            grid: Grid::new(DEFAULT_SIZE),
             jobs: Vec::new(),
         }
     }
@@ -49,7 +51,7 @@ impl Game {
             }
         }
 
-        game.spawn_gnome(Pos::new(5, 3));
+        game.spawn_gnome(Pos::new(13, 13));
 
         game
     }
