@@ -1,10 +1,8 @@
 use macroquad::{
-    color::{Color, colors},
+    color::Color,
     input::{
-        KeyCode, get_char_pressed, is_key_down, is_mouse_button_pressed, mouse_position,
-        mouse_wheel,
+        KeyCode, is_key_down, is_mouse_button_pressed, mouse_wheel,
     },
-    text::draw_text,
     window::{screen_height, screen_width},
 };
 
@@ -32,7 +30,7 @@ pub struct Gameplay {
 
 const WASD_MOVE_SENSITIVITY: f32 = 20.;
 const SCROLL_SENSITIVITY: f32 = 0.05;
-const PLUS_MINUS_SENSITVITY: f32 = 0.8; // 20% zoom seems pretty standard (I.E. that is also what VSCode does)
+// const PLUS_MINUS_SENSITVITY: f32 = 0.8; // 20% zoom seems pretty standard (I.E. that is also what VSCode does)
 
 impl Gameplay {
     pub fn new(ctx: &mut Context) -> Self {
@@ -92,6 +90,8 @@ impl Gameplay {
             } else {
                 self.mouse_pos = None;
             }
+
+            // draw_selected
             ctx.tileset
                 .draw_rect(&pos_to_rect(mouse_pos), Color::new(1., 1., 1., 0.3));
         }

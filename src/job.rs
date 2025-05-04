@@ -15,7 +15,7 @@ pub struct Job {
     dig_pos: Pos,
 }
 
-const JOB_TIME: u16 = 120;
+const JOB_TIME: u16 = 60;
 
 impl Job {
     pub fn new(pos: Pos, dig_pos: Pos) -> Job {
