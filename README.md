@@ -31,7 +31,7 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
   - Orcs: Can poorly build stuff and farm, mostly have to survive by stealing (nomadic?)
   - Dwarves: Very good at mining, as long as they don't mine too greedily or too deep. Poor at farming and do best trading metals for foods
   - Men: Good at building castles and forts above ground, can mine okay
-  - Modded factins: I.E. Freemen that live only in deserts
+  - Modded factins: I.E. Freemen that live only in deserts, spiders, mants, beetles
   would add replayability in a more interesting way than just more items.
 - Proceduraly generated instead of fixed map size?
 - More interesting terrain: Biomes(Deserts, forests, mountains), water, oceans (boats?)

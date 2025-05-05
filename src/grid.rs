@@ -2,8 +2,6 @@ use crate::tile::Tile;
 
 mod pos;
 pub use pos::Pos;
-pub use pos::dirs;
-
 
 pub struct Grid {
     pub size: Pos,
@@ -12,7 +10,8 @@ pub struct Grid {
 
 impl Grid {
     pub fn new(size: Pos) -> Grid {
-        let cells = vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
+        let cells =
+            vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid { size, cells }
     }
 
@@ -35,6 +34,15 @@ impl Grid {
     }
 
     pub fn find_path(&self, start: Pos, end: Pos) -> Option<Vec<Pos>> {
+        let is_passable = self.get_tile(end)?.is_passable();
+        // let mut dig_pos: Option<Pos> = None;
+        // for dir in dirs::ALL {
+        //     if let Some(tile) = self.grid.get_tile(pos + dir) {
+        //         if tile.is_passable {
+        //             dig_pos = Some(pos + dir);
+        //         }
+        //     }
+        // }
         pathfinding::prelude::bfs(
             &start,
             |pos| {
@@ -48,7 +56,13 @@ impl Grid {
                 .filter(|pos| self.get_tile(*pos).map_or(false, |cell| cell.is_passable()))
                 .collect::<Vec<Pos>>()
             },
-            |pos| pos == &end,
+            |pos| {
+                if is_passable {
+                    pos == &end
+                } else {
+                    pos.diff(end) <= 1
+                }
+            },
         )
     }
 }

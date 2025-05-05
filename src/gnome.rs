@@ -1,16 +1,16 @@
-use crate::{grid::Pos, job::Job};
+use crate::{game::Tick, grid::Pos, job::{GlobalJobManager, Job}};
 
 pub type GnomeId = u32;
 
 pub struct Gnome {
     pub id: GnomeId,
-    pub job: Option<Job>,
+    pub job: Option<Box<dyn Job>>,
     pub pos: Pos,
     pub path: Vec<Pos>,
-    pub timer: u16,
+    pub timer: Tick,
 }
 
-const GNOME_SPEED: u16 = 20;
+const GNOME_SPEED: Tick = 20;
 
 impl Gnome {
     pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
@@ -24,48 +24,47 @@ impl Gnome {
         }
     }
 
-    pub fn update(&mut self, grid: &mut crate::grid::Grid, jobs: &mut Vec<Job>) {
+    pub fn update(&mut self, grid: &mut crate::grid::Grid, job_manager: &mut GlobalJobManager) {
+        if self.timer > 0 {
+            self.timer -= 1;
+            return; 
+        }
+
         if !self.path.is_empty() {
             // Move towards the destination
-            if self.timer < GNOME_SPEED {
-                self.timer += 1;
-                return; // Wait for the timer to finish
-            }
+
             grid.get_tile_mut(self.pos).unwrap().gnome = None;
             self.pos = self.path.remove(0);
             grid.get_tile_mut(self.pos).unwrap().gnome = Some(self.id);
-            self.timer = 0;
+            self.timer = GNOME_SPEED;
             return;
         }
 
         if let Some(job) = &mut self.job {
-            // Perform job-related actions
-            // TODO: Try with fail!
+
             match job.perform(self.pos, grid) {
                 crate::job::JobAction::Move(pos) => {
                     if let Some(path) = grid.find_path(self.pos, pos) {
                         self.path = path;
-                        self.timer = GNOME_SPEED;
+                        self.timer = 0;
                     } else {
-                        job.unreachable();
+                        // job.unreachable();
+                        log::warn!("Job at {:?} is unreachable", pos);
+                        job_manager.failed_job(pos);
                         self.job = None; // Job is unreachable, remove it
                     }
                 }
-                crate::job::JobAction::Finished => self.job = None,
-                crate::job::JobAction::Wait => {},
+                crate::job::JobAction::Finished(pos) => {
+                    job_manager.finished_job(pos);
+                    self.job = None
+                },
+                crate::job::JobAction::Wait(time) => {
+                    self.timer = time;
+                },
             }
         } else {
             // Find a new job
-            for i in 0..jobs.len() {
-                if let Some(job) = jobs.get(i) {
-                    // Check if the job can be assigned to this gnome
-                    if job.can_assign(self) {
-                        log::info!("Assigned job {:?} to self", job.pos);
-                        self.job = Some(jobs.remove(i));
-                        break;
-                    }
-                }
-            }
+            self.job = job_manager.find_job(grid);
         }
     }
 }

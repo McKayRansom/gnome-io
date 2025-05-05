@@ -1,14 +1,12 @@
 use macroquad::{
     color::Color,
-    input::{
-        KeyCode, is_key_down, is_mouse_button_pressed, mouse_wheel,
-    },
+    input::{KeyCode, is_key_down, is_mouse_button_pressed, is_mouse_button_released, mouse_wheel},
     window::{screen_height, screen_width},
 };
 
 use crate::{
     context::Context,
-    draw::{draw_game, pos_to_rect},
+    draw::{draw_game, draw_tile_outline},
     game::Game,
     grid::Pos,
     tileset::Sprite,
@@ -24,7 +22,7 @@ pub enum GameAction {
 
 pub struct Gameplay {
     game: Game,
-    mouse_pos: Option<Pos>,
+    mouse_down_pos: Option<Pos>,
     action_toolbar: Toolbar<GameAction>,
 }
 
@@ -38,7 +36,7 @@ impl Gameplay {
         ctx.tileset.camera = (500., 500.);
         Self {
             game: Game::generate(),
-            mouse_pos: None,
+            mouse_down_pos: None,
             action_toolbar: Toolbar::new(crate::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', Sprite::new(3, 0)),
                 ToolbarItem::new(GameAction::Build, "Build stuff", '2', Sprite::new(3, 1)),
@@ -83,17 +81,30 @@ impl Gameplay {
             // if let Some(pos) =
             let mouse_pos = ctx.tileset.from_screen(mouse_pos.into());
             if self.game.grid.is_valid_pos(mouse_pos) {
-                self.mouse_pos = Some(mouse_pos);
                 if is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
-                    self.game.mine(mouse_pos);
+                    self.mouse_down_pos = Some(mouse_pos);
+                }
+                if is_mouse_button_released(macroquad::input::MouseButton::Left) {
+                    for pos in self.mouse_down_pos.unwrap_or(mouse_pos).iter(mouse_pos) {
+                        if let Some(action) = self.action_toolbar.get_selected() {
+                            match action {
+                                GameAction::Mine => self.game.mine(pos),
+                                GameAction::Build => todo!(),
+                                GameAction::Farm => self.game.farm(pos),
+                                GameAction::Cancel => todo!(),
+                            }
+                        }
+                    }
+                    self.mouse_down_pos = None;
                 }
             } else {
-                self.mouse_pos = None;
+                self.mouse_down_pos = None;
             }
 
             // draw_selected
-            ctx.tileset
-                .draw_rect(&pos_to_rect(mouse_pos), Color::new(1., 1., 1., 0.3));
+            for pos in self.mouse_down_pos.unwrap_or(mouse_pos).iter(mouse_pos) {
+                draw_tile_outline(&self.game.grid, &pos, Color::new(1., 1., 1., 0.3), ctx);
+            }
         }
     }
 }

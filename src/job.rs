@@ -1,51 +1,75 @@
-use crate::grid::Pos;
+use farm::FarmManager;
+use mine::MineManager;
+
+use crate::{
+    block::{BlockId, Blocks},
+    grid::{Grid, Pos},
+};
+
+pub mod farm;
+pub mod mine;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum JobAction {
     Move(Pos),
-    Finished,
-    Wait,
+    Finished(Pos),
+    Wait(u16),
 }
 
-#[derive(Debug, Clone)]
-pub struct Job {
-    pub pos: Pos,
+pub trait Job {
+    fn perform(&mut self, pos: Pos, grid: &mut Grid) -> JobAction;
+}
+
+/// Generic build job, can place any type of block
+pub struct BuildJob {
+    pos: Pos,
     time: u16,
-    // tile: Tile,
-    dig_pos: Pos,
+    block: BlockId,
 }
 
-const JOB_TIME: u16 = 60;
-
-impl Job {
-    pub fn new(pos: Pos, dig_pos: Pos) -> Job {
-        Job {
-            pos,
-            time: JOB_TIME,
-            dig_pos,
-        }
+impl BuildJob {
+    pub fn new(pos: Pos, time: u16, block: BlockId) -> Box<dyn Job> {
+        Box::new(BuildJob { pos, time, block }) as Box<dyn Job>
     }
+}
 
-    pub fn perform(&mut self, pos: Pos, grid: &mut crate::grid::Grid) -> JobAction {
-        if pos != self.pos {
+impl Job for BuildJob {
+    fn perform(&mut self, pos: Pos, grid: &mut Grid) -> JobAction {
+        if self.pos.diff(pos) > 1 { // this may need to be changed?
             return JobAction::Move(self.pos);
         }
         if self.time > 0 {
-            self.time -= 1;
-            return JobAction::Wait;
+            self.time = 0;
+            return JobAction::Wait(self.time);
         }
-        // grid.set_tile(pos, self.tile.clone());
-        grid.get_tile_mut(self.dig_pos).unwrap().is_passable = true;
-        JobAction::Finished
+        grid.get_tile_mut(self.pos).unwrap().block = Some(self.block);
+        JobAction::Finished(self.pos)
+    }
+}
+
+pub struct GlobalJobManager {
+    // TEMP
+    pub mine_manager: MineManager,
+    pub farm_manager: FarmManager,
+    // pub buildManager: BuildManager,
+}
+
+impl GlobalJobManager {
+    pub fn new(blocks: &mut Blocks) -> Self {
+        Self {
+            mine_manager: MineManager::new(),
+            farm_manager: FarmManager::new(blocks),
+        }
+    }
+    pub fn find_job(&mut self, grid: &Grid) -> Option<Box<dyn Job>> {
+        self.mine_manager.find_job().or(self.farm_manager.find_job(grid))
     }
 
-    pub fn can_assign(&self, _gnome: &crate::gnome::Gnome) -> bool {
-        // Check if the job can be assigned to the gnome
-        true // Placeholder logic
+    pub fn finished_job(&mut self, pos: Pos) {
+        self.mine_manager.finished(pos);
     }
 
-    pub fn unreachable(&mut self) {
-        // Handle unreachable job
-        log::warn!("Job at {:?} is unreachable", self.pos);
+    pub fn failed_job(&mut self, pos: Pos) {
+        self.mine_manager.failed(pos);
     }
 }

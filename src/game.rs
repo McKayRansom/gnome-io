@@ -3,28 +3,35 @@ use std::collections::HashMap;
 use noise::NoiseFn;
 
 use crate::{
+    block::{BlockType, Blocks},
     gnome::{Gnome, GnomeId},
-    grid::{Grid, Pos, dirs},
-    job::Job,
+    grid::{Grid, Pos},
+    job::GlobalJobManager,
     tile::{Tile, TileBiome},
+    tileset::Sprite,
 };
+
+pub type Tick = u16;
 
 pub struct Game {
     pub gnomes: HashMap<GnomeId, Gnome>,
     pub gnome_id: GnomeId,
     pub grid: Grid,
-    pub jobs: Vec<Job>,
+    pub blocks: Blocks,
+    pub job_manager: GlobalJobManager,
 }
 
 const DEFAULT_SIZE: Pos = Pos::new(64, 64);
 
 impl Game {
     pub fn new() -> Game {
+        let mut blocks = Blocks::new();
         Game {
             gnomes: HashMap::new(),
             gnome_id: 1,
             grid: Grid::new(DEFAULT_SIZE),
-            jobs: Vec::new(),
+            job_manager: GlobalJobManager::new(&mut blocks),
+            blocks,
         }
     }
 
@@ -32,6 +39,10 @@ impl Game {
         let mut game = Game::new();
 
         let perlin_noise = noise::Perlin::new(5554);
+
+        let stone_id = game.blocks.add_block(BlockType::new(Sprite::new(0, 3)));
+        // ore?
+        let _ore_id = game.blocks.add_block(BlockType::new(Sprite::new(0, 4)));
 
         let size = game.grid.size;
         for y in 0..size.y {
@@ -46,7 +57,8 @@ impl Game {
                     // Tile::Empty
                     game.grid.set_tile(pos, Tile::new(TileBiome::Dirt));
                 } else {
-                    game.grid.set_tile(pos, Tile::new_block(TileBiome::Stone));
+                    game.grid
+                        .set_tile(pos, Tile::new_block(TileBiome::Stone, stone_id));
                 };
             }
         }
@@ -59,7 +71,7 @@ impl Game {
     pub fn update(&mut self) {
         // Update game state
         for gnome in self.gnomes.values_mut() {
-            gnome.update(&mut self.grid, &mut self.jobs);
+            gnome.update(&mut self.grid, &mut self.job_manager);
         }
     }
 
@@ -71,26 +83,12 @@ impl Game {
         self.gnome_id += 1;
     }
 
-    pub fn spawn_job(&mut self, job: Job) {
-        self.jobs.push(job);
+    pub fn mine(&mut self, pos: Pos) {
+        self.job_manager.mine_manager.mine(&self.grid, pos);
     }
 
-    pub fn mine(&mut self, pos: Pos) -> Option<()> {
-        if self.grid.get_tile(pos)?.is_passable {
-            return None;
-        }
-
-        let mut dig_pos: Option<Pos> = None;
-        for dir in dirs::ALL {
-            if let Some(tile) = self.grid.get_tile(pos + dir) {
-                if tile.is_passable {
-                    dig_pos = Some(pos + dir);
-                }
-            }
-        }
-        self.spawn_job(Job::new(dig_pos?, pos));
-
-        Some(())
+    pub fn farm(&mut self, pos: Pos) {
+        self.job_manager.farm_manager.new_farm(&self.grid, pos);
     }
 }
 

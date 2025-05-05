@@ -1,4 +1,3 @@
-use draw::draw_game;
 use gameplay::Gameplay;
 use macroquad::{conf::Conf, miniquad, window::next_frame};
 
@@ -12,6 +11,7 @@ mod context;
 mod draw;
 mod gameplay;
 mod toolbar;
+mod block;
 
 const PKG_NAME: &str = "gnome-io";
 

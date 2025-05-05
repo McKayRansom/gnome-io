@@ -1,13 +1,13 @@
 use macroquad::{
     color::{colors, Color, BLACK},
     math::{vec2, Rect, Vec2},
-    shapes::{draw_circle, draw_line, draw_rectangle},
+    shapes::{draw_circle, draw_line, draw_rectangle, draw_rectangle_lines},
     text::{draw_text_ex, measure_text, TextParams},
     texture::{draw_texture_ex, load_texture, DrawTextureParams, FilterMode, Texture2D},
     window::{screen_height, screen_width},
 };
 
-use crate::{draw::GRID_CELL_SIZE, grid::Pos};
+use crate::{draw::{GRID_CELL_SIZE, PIXEL_SIZE}, grid::Pos};
 
 const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
 
@@ -131,6 +131,17 @@ impl Tileset {
                 flip_x: flip,
                 ..Default::default()
             },
+        );
+    }
+
+    pub fn draw_rect_outline(&self, rect: &Rect, color: Color) {
+        draw_rectangle_lines(
+            (rect.x - self.camera.0) * self.zoom,
+            (rect.y - self.camera.1) * self.zoom,
+            rect.w * self.zoom,
+            rect.h * self.zoom,
+            PIXEL_SIZE * self.zoom,
+            color,
         );
     }
 

@@ -1,6 +1,5 @@
 use std::ops::Add;
 
-
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub x: i16,
@@ -21,6 +20,31 @@ pub mod dirs {
 impl Pos {
     pub const fn new(x: i16, y: i16) -> Pos {
         Pos { x, y }
+    }
+
+    pub(crate) fn diff(&self, pos: Pos) -> i16 {
+        (self.x - pos.x).abs() + (self.y - pos.y).abs()
+    }
+
+    pub fn min(&self, other: Pos) -> Pos {
+        Self {
+            x: self.x.min(other.x),
+            y: self.y.min(other.y),
+        }
+    }
+
+    pub fn max(&self, other: Pos) -> Pos {
+        Self {
+            x: self.x.max(other.x),
+            y: self.y.max(other.y),
+        }
+    }
+
+    // inclusive!
+    pub fn iter(&self, other: Self) -> impl Iterator<Item = Self> {
+        let min = self.min(other);
+        let max = self.max(other);
+        (min.y..max.y + 1).flat_map(move |y: i16| (min.x..max.x + 1).map(move |x| (x, y).into()))
     }
 }
 

@@ -1,6 +1,6 @@
 // use hecs::Entity;
 
-use crate::gnome::GnomeId;
+use crate::{block::BlockId, gnome::GnomeId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TileBiome {
@@ -11,10 +11,10 @@ pub enum TileBiome {
 
 #[derive(Debug, Clone)]
 pub struct Tile {
-    // pub item: Option<Entity>,
+    // pub item: Option<Entity>, // might need to be a vec sadly
     pub gnome: Option<GnomeId>,
-    pub is_passable: bool,
     pub biome: TileBiome,
+    pub block: Option<BlockId>, // only 1 block allowed per tile
 }
 
 impl Tile {
@@ -22,17 +22,17 @@ impl Tile {
         Tile {
             // item: None,
             gnome: None,
-            is_passable: true,
             biome,
+            block: None,
         }
     }
 
-    pub fn new_block(biome: TileBiome) -> Tile {
+    pub fn new_block(biome: TileBiome, block: BlockId) -> Tile {
         Tile {
             // item: None,
             gnome: None,
-            is_passable: false,
             biome,
+            block: Some(block),
         }
     }
 
@@ -44,11 +44,11 @@ impl Tile {
     //     self.gnome = Some(gnome);
     // }
 
-    pub fn set_passable(&mut self, passable: bool) {
-        self.is_passable = passable;
-    }
+    // pub fn set_passable(&mut self, passable: bool) {
+    //     self.is_passable = passable;
+    // }
     
     pub(crate) fn is_passable(&self) -> bool {
-        self.is_passable
+        self.block.is_none()
     }
 }
