@@ -1,5 +1,4 @@
 use crate::{
-    block::BlockId,
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemId,
@@ -10,8 +9,7 @@ use super::{Job, JobManager};
 const BUILD_TIME: Tick = 30;
 
 pub fn build(grid: &Grid, pos: Pos, id: ItemId, game_ctx: &mut GameCtx) -> Option<()> {
-    let block = grid.get_tile(pos)?.block;
-    if block.is_some() {
+    if grid.get_tile(pos)?.get_block().is_some() {
         return None;
     }
 

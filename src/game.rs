@@ -121,7 +121,10 @@ impl Game {
             game.grid.drop_item(Pos::new(14, 14), WHEAT_SEED);
         }
 
-        game.spawn_gnome(Pos::new(13, 13));
+        // spawn some gnomes
+        for _ in 0..4 {
+            game.spawn_gnome(Pos::new(13, 13));
+        }
 
         game
     }

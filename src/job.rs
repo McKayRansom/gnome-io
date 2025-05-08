@@ -1,10 +1,12 @@
 use farm::FarmManager;
+use macroquad::rand;
 
 use crate::{
     block::BlockId,
     event::{Event, EventId, EventManager},
-    game::GameCtx,
-    grid::Pos, item::ItemId,
+    game::{GameCtx, Tick},
+    grid::Pos,
+    item::ItemId,
 };
 
 pub mod build;
@@ -21,11 +23,17 @@ pub struct Job {
 
 impl Job {
     pub fn new(pos: Pos, time: u16, block: Option<BlockId>, requires: Vec<ItemId>) -> Self {
-        Job { pos, time, builds: block, requires}
+        Job {
+            pos,
+            time,
+            builds: block,
+            requires,
+        }
     }
 }
 
 pub const JOB_QUEUE: EventId = 10;
+// pub const JOB_FAIL_QUEUE: EventId = 11;
 
 pub struct JobManager {
     pub farm_manager: FarmManager,
@@ -34,6 +42,7 @@ pub struct JobManager {
 impl JobManager {
     pub fn new(game_ctx: &mut GameCtx) -> Self {
         game_ctx.events.add_event_class(JOB_QUEUE);
+        // game_ctx.events.add_event_class(JOB_FAIL_QUEUE);
         Self {
             farm_manager: FarmManager::new(game_ctx),
         }
@@ -68,5 +77,16 @@ impl JobManager {
                     true
                 }
             });
+    }
+
+    pub fn fail_job(events: &mut EventManager, job: Box<Job>) {
+        const JOB_RETRY_TIME: Tick = 60;
+        events.push_timer(
+            JOB_RETRY_TIME + (rand::rand() as u16 % JOB_RETRY_TIME),
+            Event {
+                id: JOB_QUEUE,
+                value: job,
+            },
+        );
     }
 }

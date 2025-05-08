@@ -1,5 +1,10 @@
 use crate::{
-    block::BlockId, event::Event, game::GameCtx, gnome::GnomeId, item::ItemId, tile::Tile,
+    block::BlockId,
+    event::Event,
+    game::GameCtx,
+    gnome::GnomeId,
+    item::ItemId,
+    tile::{Entity, Tile},
 };
 
 mod pos;
@@ -47,11 +52,12 @@ impl Grid {
         game_ctx: &mut GameCtx,
     ) -> Option<()> {
         let tile = self.get_tile_mut(pos)?;
-        if let Some(block_id) = tile.block.take() {
-            if let Some(old_block) = game_ctx.blocks.get_block(&block_id) {
+        let old_block = tile.get_block();
+        if let Some(old_block_id) = old_block {
+            if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
                 for (chance, item_id) in old_block.drops.iter() {
                     if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
-                        tile.items.push(*item_id);
+                        tile.add_entity(Entity::Item(*item_id));
                     }
                 }
                 if let Some(mine_event) = old_block.mine_event {
@@ -59,7 +65,7 @@ impl Grid {
                         id: mine_event,
                         value: Box::new(BlockUpdateEvent {
                             pos,
-                            _old: Some(block_id),
+                            _old: Some(old_block_id),
                             new: block,
                         }),
                     });
@@ -76,7 +82,7 @@ impl Grid {
                         id: event,
                         value: Box::new(BlockUpdateEvent {
                             pos,
-                            _old: tile.block,
+                            _old: Some(0),
                             new: block,
                         }),
                     });
@@ -93,31 +99,38 @@ impl Grid {
                     });
                 }
             }
+            tile.add_entity(Entity::Block(block_id));
+        } else if let Some(old_block_id) = old_block {
+            tile.remove_entity(&Entity::Block(old_block_id));
         }
-        tile.block = block;
         log::info!("Setting {:?} to {:?}", tile, block);
 
         Some(())
     }
 
     pub fn gnome_enter(&mut self, pos: Pos, id: GnomeId) {
-        self.get_tile_mut(pos).unwrap().gnome = Some(id);
+        self.get_tile_mut(pos)
+            .unwrap()
+            .add_entity(Entity::Gnome(id));
     }
 
     pub fn gnome_exit(&mut self, pos: Pos, id: GnomeId) {
-        let tile = self.get_tile_mut(pos).unwrap();
-        if tile.gnome == Some(id) {
-            // this is weird...
-            tile.gnome = None;
-        }
+        self.get_tile_mut(pos)
+            .unwrap()
+            .remove_entity(&Entity::Gnome(id));
     }
 
     pub fn try_take_item(&mut self, pos: Pos, item: ItemId) -> Option<ItemId> {
-        let tile = self.get_tile_mut(pos).unwrap();
-        Some(
-            tile.items
-                .swap_remove(tile.items.iter().position(|it| it == &item)?),
-        )
+        self.get_tile_mut(pos)
+            .unwrap()
+            .remove_entity(&Entity::Item(item))
+            .map(|entity| {
+                if let Entity::Item(item) = entity {
+                    item
+                } else {
+                    panic!("WHY");
+                }
+            })
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -143,7 +156,7 @@ impl Grid {
             },
             |pos| {
                 if let Some(item) = item {
-                    self.get_tile(*pos).unwrap().items.contains(&item)
+                    self.get_tile(*pos).unwrap().contains(&Entity::Item(item))
                 } else if is_passable {
                     pos == &end
                 } else {
@@ -163,7 +176,9 @@ impl Grid {
         }
     }
 
-    pub(crate) fn drop_item(&mut self, pos: Pos, item: u32) {
-        self.get_tile_mut(pos).unwrap().items.push(item);
+    pub(crate) fn drop_item(&mut self, pos: Pos, item: ItemId) {
+        self.get_tile_mut(pos)
+            .unwrap()
+            .add_entity(Entity::Item(item));
     }
 }

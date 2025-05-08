@@ -29,7 +29,7 @@ pub struct EventManager {
     // one queue per event for now
     events: HashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
-    timers: Vec<Timer>,
+    pub timers: Vec<Timer>,
 }
 
 impl EventManager {

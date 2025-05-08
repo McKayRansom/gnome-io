@@ -24,7 +24,7 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - More easily modable in a scripting language rather than XML
 - scales to larger numbers
 - Visual display of stats instead of just a number
-- Simulate enemy of friendly factions
+- Simulate enemy or friendly factions
   - Gnomes: well-balanced overall, can grow wheat and mushrooms, can mine and build okay and reproduce medium
   - Elves: great with forests and animals, stronger but reproduce slower (if this is even possible to balance, not required)
   - Goblins: Hide in mountains, okay at mining but mostly steal.
@@ -44,6 +44,7 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - Duplicate/similar items. The base game will probably just have 1 type of food and 1 type of ore, 
 Maybe mods can add this but I want to keep the base game as simple as possible.
 - Mechanisms: Add mod support for these sorts of features if time
+- Traits/professions (for now) 
 
 ### Undecided:
 - Mining vs infinite mining workshops? how well does this work on 2d

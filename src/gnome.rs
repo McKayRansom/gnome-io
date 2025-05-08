@@ -48,6 +48,11 @@ impl Gnome {
             return;
         }
 
+        // find a new job first 
+        if self.job.is_none() {
+            self.job = JobManager::find_job(&mut game_ctx.events);
+        }
+
         if let Some(job) = &mut self.job {
             // collect items
             for required_item in job.requires.iter() {
@@ -61,9 +66,9 @@ impl Gnome {
                         return;
                     } else {
                         // job.unreachable();
-                        log::warn!("Unable to find item {} for job", required_item);
+                        // log::warn!("Unable to find item {} for job", required_item);
+                        JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
                         // job_manager.failed_job(pos);
-                        self.job = None; // Job is unreachable, remove it
                         return;
                     }
                 }
@@ -74,9 +79,10 @@ impl Gnome {
                     self.path = path;
                 } else {
                     // job.unreachable();
-                    log::warn!("Job at {:?} is unreachable", job.pos);
+                    // log::warn!("Job at {:?} is unreachable", job.pos);
+                    JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
                     // job_manager.failed_job(pos);
-                    self.job = None; // Job is unreachable, remove it
+                    // self.job = None; // Job is unreachable, remove it
                 }
                 return;
             }
@@ -91,9 +97,6 @@ impl Gnome {
             grid.place_block(job.pos, job.builds, game_ctx);
             log::info!("Finished job: {:?}", job);
             self.job = None;
-        } else {
-            // Find a new job
-            self.job = JobManager::find_job(&mut game_ctx.events);
-        }
+        } 
     }
 }

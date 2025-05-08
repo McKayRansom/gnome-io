@@ -23,7 +23,7 @@ const WHEAT_2_ID: BlockId = BLK_GRP | 2;
 const WHEAT_3_ID: BlockId = BLK_GRP | 3;
 const WHEAT_4_ID: BlockId = BLK_GRP | 4;
 
-const GROWTH_TIME: Tick = 60;
+const GROWTH_TIME: Tick = 60 * 60;
 
 const ITM_GRP: ItemId = 200;
 
@@ -145,14 +145,14 @@ impl FarmManager {
         }
 
         if tile
-            .block
+            .get_block()
             .is_none_or(|block| block < WHEAT_0_ID || block > WHEAT_4_ID)
         {
             // till
             Some(Job::new(*pos, TILL_TIME, Some(WHEAT_0_ID), vec![
                 WHEAT_SEED,
             ]))
-        } else if tile.block.is_some_and(|block| block == WHEAT_4_ID) {
+        } else if tile.get_block().is_some_and(|block| block == WHEAT_4_ID) {
             // harvest
             Some(Job::new(*pos, HARVEST_TIME, None, vec![]))
         } else {

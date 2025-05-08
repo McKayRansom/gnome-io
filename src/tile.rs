@@ -9,13 +9,18 @@ pub enum TileBiome {
     Water,
 }
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Entity {
+    Item(ItemId),
+    Gnome(GnomeId),
+    Block(BlockId),
+}
+
 #[derive(Debug, Clone)]
 pub struct Tile {
     // should this be hashmap?
-    pub items: Vec<ItemId>,
-    pub gnome: Option<GnomeId>,
+    entities: Vec<Entity>,
     pub biome: TileBiome,
-    pub block: Option<BlockId>, // only 1 block allowed per tile
     // TODO: PathfindingInfo{}
     pub walkable: bool,
 }
@@ -23,22 +28,46 @@ pub struct Tile {
 impl Tile {
     pub fn new(biome: TileBiome) -> Tile {
         Tile {
-            items: Vec::new(),
-            gnome: None,
+            entities: Vec::new(),
             biome,
-            block: None,
-            walkable: biome != TileBiome::Water
+            walkable: biome != TileBiome::Water,
         }
     }
 
     pub fn new_block(biome: TileBiome, block: BlockId) -> Tile {
         Tile {
-            items: Vec::new(),
-            gnome: None,
+            entities: vec![Entity::Block(block)],
             biome,
-            block: Some(block),
             walkable: false,
         }
+    }
+
+    pub fn get_block(&self) -> Option<BlockId> {
+        for entity in self.entities.iter() {
+            if let Entity::Block(block_id) = *entity {
+                return Some(block_id);
+            }
+        }
+        None
+    }
+
+    pub fn remove_entity(&mut self, remove: &Entity) -> Option<Entity> {
+        Some(
+            self.entities
+                .remove(self.entities.iter().position(|entity| entity == remove)?),
+        )
+    }
+
+    pub fn add_entity(&mut self, entity: Entity) {
+        self.entities.push(entity);
+    }
+
+    pub fn contains(&self, entity: &Entity) -> bool {
+        self.entities.contains(entity)
+    }
+
+    pub fn iter_entities(&self) -> std::slice::Iter<'_, Entity> {
+        self.entities.iter()
     }
 
     // pub fn set_item(&mut self, item: Entity) {
@@ -52,7 +81,7 @@ impl Tile {
     // pub fn set_passable(&mut self, passable: bool) {
     //     self.is_passable = passable;
     // }
-    
+
     pub(crate) fn is_passable(&self) -> bool {
         self.walkable
     }

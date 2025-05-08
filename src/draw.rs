@@ -26,36 +26,36 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
             let tile = grid.get_tile(pos).unwrap();
             let dest = pos_to_rect(pos.into());
             ctx.tileset.draw_tile(
-                if let Some(block) = tile.block {
-                    let Some(block) = game_ctx.blocks.get_block(&block) else {
-                        panic!("No block found fo id {}", block);
-                    };
-                    block.sprite
-                } else {
-                    match tile.biome {
-                        TileBiome::Dirt => Sprite::new(1, 1),
-                        TileBiome::Stone => Sprite::new(0, 2),
-                        TileBiome::Water => Sprite::new(1, 2),
-                        // _ => Sprite::new(0, 5),
-                    }
+                match tile.biome {
+                    TileBiome::Dirt => Sprite::new(1, 1),
+                    TileBiome::Stone => Sprite::new(0, 2),
+                    TileBiome::Water => Sprite::new(1, 2),
+                    // _ => Sprite::new(0, 5),
                 },
                 &dest,
                 colors::WHITE,
             );
-            for item in tile.items.iter() {
+            for item in tile.iter_entities() {
                 ctx.tileset.draw_tile(
-                    if let Some(item) = game_ctx.items.get_item(item) {
-                        item.sprite
-                    } else {
-                        sprites::UNKOWN_ITEM
+                    match item {
+                        crate::tile::Entity::Item(item) => {
+                            if let Some(item) = game_ctx.items.get_item(item) {
+                                item.sprite
+                            } else {
+                                sprites::UNKOWN_ITEM
+                            }
+                        }
+                        crate::tile::Entity::Gnome(_gnome) => sprites::GNOME,
+                        crate::tile::Entity::Block(block) => {
+                            let Some(block) = game_ctx.blocks.get_block(&block) else {
+                                panic!("No block found fo id {}", block);
+                            };
+                            block.sprite
+                        }
                     },
                     &dest,
                     colors::WHITE,
                 );
-            }
-            if let Some(_gnome) = tile.gnome {
-                ctx.tileset
-                    .draw_tile(Sprite::new(0, 0), &pos_to_rect(pos), colors::WHITE);
             }
         }
     }
@@ -85,11 +85,17 @@ fn draw_jobs(game_ctx: &GameCtx, grid: &Grid, gnomes: &Gnomes, ctx: &Context) {
         if let Some(job) = event.value.downcast_ref::<Job>() {
             draw_tile_outline(grid, &job.pos, Color::new(0.3, 0.3, 0., 1.0), ctx);
         }
-        // draw in-progress jobs
-        for gnome in gnomes.values() {
-            if let Some(job) = &gnome.job {
-                draw_tile_outline(grid, &job.pos, Color::new(0., 0.3, 0., 1.0), ctx);
-            }
+    }
+    // look for failed jobs
+    for timer in game_ctx.events.timers.iter() {
+        if let Some(job) = timer.event.as_ref().unwrap().value.downcast_ref::<Job>() {
+            draw_tile_outline(grid, &job.pos, Color::new(0.3, 0.0, 0., 1.0), ctx);
+        }
+    }
+    // draw in-progress jobs
+    for gnome in gnomes.values() {
+        if let Some(job) = &gnome.job {
+            draw_tile_outline(grid, &job.pos, Color::new(0., 0.3, 0., 1.0), ctx);
         }
     }
 }

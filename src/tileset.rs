@@ -35,6 +35,8 @@ impl Sprite {
 pub mod sprites {
     use super::Sprite;
 
+    pub const GNOME: Sprite = Sprite::new(0, 0);
+
     pub const STONE: Sprite = Sprite::new(0, 3);
     pub const ORE: Sprite = Sprite::new(0, 4);
     pub const STONE_ITEM: Sprite = Sprite::new(2, 2);
