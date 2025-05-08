@@ -36,8 +36,10 @@ pub mod sprites {
     use super::Sprite;
 
     pub const STONE: Sprite = Sprite::new(0, 3);
-    pub const _ORE: Sprite = Sprite::new(0, 4);
+    pub const ORE: Sprite = Sprite::new(0, 4);
     pub const STONE_ITEM: Sprite = Sprite::new(2, 2);
+
+    pub const TREE: Sprite = Sprite::new(2, 4);
 
     pub const UNKOWN_ITEM: Sprite = Sprite::new(3, 0);
 }

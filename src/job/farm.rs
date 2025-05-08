@@ -61,12 +61,12 @@ impl FarmManager {
                 .walkable()
                 .grow((GROWTH_TIME, Some(WHEAT_2_ID))),
         );
-        game_ctx.blocks.add_block(
-            WHEAT_2_ID,
-            BlockType::new(Sprite::new(1, 5), vec![])
-                .walkable()
-                .grow((GROWTH_TIME, Some(WHEAT_3_ID))),
-        );
+        game_ctx.blocks.add_block(WHEAT_2_ID, BlockType {
+            sprite: Sprite::new(1, 5),
+            walkable: true,
+            growth: Some((GROWTH_TIME, Some(WHEAT_3_ID))),
+            ..Default::default()
+        });
         game_ctx.blocks.add_block(
             WHEAT_3_ID,
             BlockType::new(Sprite::new(1, 6), vec![])
@@ -149,7 +149,9 @@ impl FarmManager {
             .is_none_or(|block| block < WHEAT_0_ID || block > WHEAT_4_ID)
         {
             // till
-            Some(Job::new(*pos, TILL_TIME, Some(WHEAT_0_ID), vec![WHEAT_SEED]))
+            Some(Job::new(*pos, TILL_TIME, Some(WHEAT_0_ID), vec![
+                WHEAT_SEED,
+            ]))
         } else if tile.block.is_some_and(|block| block == WHEAT_4_ID) {
             // harvest
             Some(Job::new(*pos, HARVEST_TIME, None, vec![]))

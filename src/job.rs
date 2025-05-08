@@ -4,32 +4,19 @@ use crate::{
     block::BlockId,
     event::{Event, EventId, EventManager},
     game::GameCtx,
-    grid::{Grid, Pos}, item::ItemId,
+    grid::Pos, item::ItemId,
 };
 
 pub mod build;
 pub mod farm;
 pub mod mine;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum JobAction {
-    Move(Pos),
-    Finished(Pos),
-    Wait(u16),
-}
-
-// pub trait Job {
-//     fn perform(&mut self, pos: Pos, grid: &mut Grid, blocks: &Blocks) -> JobAction;
-// }
-
-/// Generic build job, can place any type of block
 #[derive(Clone, Debug)]
 pub struct Job {
     pub pos: Pos,
     pub time: u16,
     pub builds: Option<BlockId>,
     pub requires: Vec<ItemId>,
-    // require: Option<ItemId>,
 }
 
 impl Job {

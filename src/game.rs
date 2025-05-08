@@ -35,6 +35,9 @@ const DEFAULT_SIZE: Pos = Pos::new(64, 64);
 
 const STONE_ITEM_ID: ItemId = 100;
 const STONE_BLOCK_ID: BlockId = 100;
+const ORE_ID: BlockId = 101;
+const TREE_ID: BlockId = 102;
+const WOOD_ID: ItemId = 103;
 
 impl Game {
     pub fn new() -> Game {
@@ -56,6 +59,7 @@ impl Game {
         let mut game = Game::new();
 
         let perlin_noise = noise::Perlin::new(5554);
+        let detail_noise = noise::Perlin::new(2222);
 
         // why
 
@@ -63,10 +67,21 @@ impl Game {
             sprite: sprites::STONE_ITEM,
             builds: Some(STONE_BLOCK_ID),
         });
-        game.game_ctx.blocks.add_block(
-            STONE_BLOCK_ID,
-            BlockType::new(sprites::STONE, vec![(1.0, STONE_ITEM_ID)]),
-        );
+        game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
+            sprite: sprites::STONE,
+            drops: vec![(1.0, STONE_ITEM_ID)],
+            ..Default::default()
+        });
+        game.game_ctx.blocks.add_block(ORE_ID, BlockType {
+            sprite: sprites::ORE,
+            drops: vec![(1.0, STONE_ITEM_ID)],
+            ..Default::default()
+        });
+        game.game_ctx.blocks.add_block(TREE_ID, BlockType {
+            sprite: sprites::TREE,
+            drops: vec![(1.0, WOOD_ID)],
+            ..Default::default()
+        });
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
@@ -76,15 +91,27 @@ impl Game {
                 let pos: Pos = (x, y).into();
                 let noise =
                     perlin_noise.get([pos.x as f64 / size.x as f64, pos.y as f64 / size.y as f64]);
+                let detail =
+                    detail_noise.get([pos.x as f64 / size.x as f64, pos.y as f64 / size.y as f64]);
                 if noise < 0.1333 {
                     // Tile::Water
                     game.grid.set_tile(pos, Tile::new(TileBiome::Water));
                 } else if noise < 0.59999 {
                     // Tile::Empty
-                    game.grid.set_tile(pos, Tile::new(TileBiome::Dirt));
+                    if detail < 0.2 {
+                        game.grid
+                            .set_tile(pos, Tile::new_block(TileBiome::Dirt, TREE_ID));
+                    } else {
+                        game.grid.set_tile(pos, Tile::new(TileBiome::Dirt));
+                    }
                 } else {
-                    game.grid
-                        .set_tile(pos, Tile::new_block(TileBiome::Stone, STONE_BLOCK_ID));
+                    if detail < 0.2 {
+                        game.grid
+                            .set_tile(pos, Tile::new_block(TileBiome::Stone, ORE_ID));
+                    } else {
+                        game.grid
+                            .set_tile(pos, Tile::new_block(TileBiome::Stone, STONE_BLOCK_ID));
+                    }
                 };
             }
         }
