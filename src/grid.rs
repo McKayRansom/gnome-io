@@ -1,6 +1,9 @@
-use crate::tile::Tile;
+use crate::{
+    block::BlockId, game::GameCtx, gnome::GnomeId, tile::Tile
+};
 
 mod pos;
+use macroquad::rand;
 pub use pos::Pos;
 
 pub struct Grid {
@@ -23,8 +26,46 @@ impl Grid {
         self.cells.get(pos.y as usize)?.get(pos.x as usize)
     }
 
-    pub fn get_tile_mut(&mut self, pos: Pos) -> Option<&mut Tile> {
+    // not pub to ensure correctness!
+    fn get_tile_mut(&mut self, pos: Pos) -> Option<&mut Tile> {
         self.cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
+    }
+
+    pub fn place_block(&mut self, pos: Pos, block: Option<BlockId>, game_ctx: &mut GameCtx) -> Option<()> {
+        let tile = self.get_tile_mut(pos)?;
+        if let Some(block_id) = tile.block.take() {
+            if let Some(old_block) = game_ctx.blocks.get_block(&block_id) {
+                for (chance, item_id) in old_block.drops.iter() {
+                    // TODO: Handle chance greater than 1...
+                    if rand::rand() as f32 / (u32::MAX as f32) < *chance {
+                        tile.items.push(*item_id);
+                    }
+                }
+            }
+            tile.walkable = true;
+        }
+
+        tile.block = block;
+        if let Some(block_id) = block {
+            if let Some(block_info) = game_ctx.blocks.get_block(&block_id) {
+                tile.walkable = block_info.walkable;
+            }
+        }
+        // TODO: if plant, who start the timer?
+
+        Some(())
+    }
+
+    pub fn gnome_enter(&mut self, pos: Pos, id: GnomeId) {
+        self.get_tile_mut(pos).unwrap().gnome = Some(id);
+    }
+
+    pub fn gnome_exit(&mut self, pos: Pos, id: GnomeId) {
+        let tile = self.get_tile_mut(pos).unwrap();
+        if tile.gnome == Some(id) {
+            // this is weird...
+            tile.gnome = None;
+        }
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {

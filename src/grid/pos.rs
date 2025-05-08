@@ -6,16 +6,16 @@ pub struct Pos {
     pub y: i16,
 }
 
-pub mod dirs {
-    use super::Pos;
+// pub mod dirs {
+//     use super::Pos;
 
-    pub const LEFT: Pos = Pos::new(-1, 0);
-    pub const RIGHT: Pos = Pos::new(1, 0);
-    pub const UP: Pos = Pos::new(0, -1);
-    pub const DOWN: Pos = Pos::new(0, 1);
+//     pub const LEFT: Pos = Pos::new(-1, 0);
+//     pub const RIGHT: Pos = Pos::new(1, 0);
+//     pub const UP: Pos = Pos::new(0, -1);
+//     pub const DOWN: Pos = Pos::new(0, 1);
 
-    pub const ALL: [Pos; 4] = [LEFT, RIGHT, UP, DOWN];
-}
+//     pub const ALL: [Pos; 4] = [LEFT, RIGHT, UP, DOWN];
+// }
 
 impl Pos {
     pub const fn new(x: i16, y: i16) -> Pos {

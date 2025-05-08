@@ -12,6 +12,8 @@ mod draw;
 mod gameplay;
 mod toolbar;
 mod block;
+mod item;
+mod event;
 
 const PKG_NAME: &str = "gnome-io";
 

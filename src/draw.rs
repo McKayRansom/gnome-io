@@ -5,29 +5,31 @@ use macroquad::{
 };
 
 use crate::{
-    block::Blocks,
     context::Context,
-    game::Game,
+    game::{Game, GameCtx},
     grid::{Grid, Pos},
-    job::GlobalJobManager,
+    job::{Job, JOB_QUEUE},
     tile::TileBiome,
     tileset::Sprite,
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
-    draw_tiles(&game.grid, &game.blocks, ctx);
+    draw_tiles(&game.grid, &game.game_ctx, ctx);
     // draw_gnomes(&game.gnomes, ctx);
-    draw_jobs(&game.job_manager, &game.grid, ctx);
+    draw_jobs(&game.game_ctx, &game.grid, ctx);
 }
 
-fn draw_tiles(grid: &Grid, blocks: &Blocks, ctx: &Context) {
+fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
             let pos: Pos = (x, y).into();
             let tile = grid.get_tile(pos).unwrap();
             ctx.tileset.draw_tile(
                 if let Some(block) = tile.block {
-                    blocks.get_block(block).unwrap().sprite
+                    let Some(block) = game_ctx.blocks.get_block(&block) else {
+                        panic!("No block found fo id {}", block);
+                    };
+                    block.sprite
                 } else {
                     match tile.biome {
                         TileBiome::Dirt => Sprite::new(1, 1),
@@ -65,13 +67,18 @@ pub fn draw_tile_outline(grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     }
 }
 
-fn draw_jobs(jobs: &GlobalJobManager, grid: &Grid, ctx: &Context) {
-    for pos in &jobs.mine_manager.tiles_queued {
-        draw_tile_outline(grid, pos, Color::new(1., 1., 0., 0.5), ctx);
-    }
+fn draw_jobs(game_ctx: &GameCtx, grid: &Grid, ctx: &Context) {
+    for event in game_ctx.events.get_queue(&JOB_QUEUE).unwrap().iter() {
+        if let Some(job) = event.value.downcast_ref::<Job>() {
+        // for pos in &jobs.mine_manager.tiles_queued {
+            draw_tile_outline(grid, &job.pos, Color::new(1., 1., 0., 0.5), ctx);
+        // }
 
-    for pos in &jobs.mine_manager.tiles_in_progress {
-        draw_tile_outline(grid, pos, Color::new(0., 1., 0., 0.5), ctx);
+
+        }
+        // for pos in &jobs.mine_manager.tiles_in_progress {
+        //     draw_tile_outline(grid, pos, Color::new(0., 1., 0., 0.5), ctx);
+        // }
     }
 }
 

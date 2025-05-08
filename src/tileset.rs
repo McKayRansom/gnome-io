@@ -11,6 +11,7 @@ use crate::{draw::{GRID_CELL_SIZE, PIXEL_SIZE}, grid::Pos};
 
 const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
 
+const DEFAULT_ZOOM: f32 = 0.1;
 const MIN_ZOOM: f32 = 0.1;
 const MAX_ZOOM: f32 = 4.;
 
@@ -35,13 +36,22 @@ impl Sprite {
     }
 }
 
+pub mod sprites {
+    use super::Sprite;
+
+    pub const STONE: Sprite = Sprite::new(0, 3);
+    pub const ORE: Sprite = Sprite::new(0, 4);
+    // TODO
+    pub const STONE_ITEM: Sprite = Sprite::new(0, 0);
+}
+
 pub struct Tileset {
     pub texture: Texture2D,
     pub zoom: f32,
     pub camera: (f32, f32),
 }
 
-// TODO: Rename to TextureAtlas
+// TODO: Rename to TextureAtlas and support more than one...
 impl Tileset {
     pub async fn new() -> Self {
         let texture = load_texture("assets/tileset.png").await.unwrap();
@@ -49,7 +59,7 @@ impl Tileset {
 
         Tileset {
             texture,
-            zoom: 1.,
+            zoom: DEFAULT_ZOOM,
             camera: (0., 0.),
         }
     }

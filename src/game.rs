@@ -3,35 +3,47 @@ use std::collections::HashMap;
 use noise::NoiseFn;
 
 use crate::{
-    block::{BlockType, Blocks},
+    block::{BlockId, BlockType, Blocks},
+    event::EventManager,
     gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
-    job::GlobalJobManager,
+    item::{ItemId, ItemType, Items},
+    job::JobManager,
     tile::{Tile, TileBiome},
-    tileset::Sprite,
+    tileset::sprites,
 };
 
 pub type Tick = u16;
+
+pub struct GameCtx {
+    pub blocks: Blocks,
+    pub items: Items,
+    pub events: EventManager,
+}
 
 pub struct Game {
     pub gnomes: HashMap<GnomeId, Gnome>,
     pub gnome_id: GnomeId,
     pub grid: Grid,
-    pub blocks: Blocks,
-    pub job_manager: GlobalJobManager,
+    pub job_manager: JobManager,
+    pub game_ctx: GameCtx,
 }
 
 const DEFAULT_SIZE: Pos = Pos::new(64, 64);
 
 impl Game {
     pub fn new() -> Game {
-        let mut blocks = Blocks::new();
+        let mut game_ctx = GameCtx {
+            blocks: Blocks::new(),
+            items: Items::new(),
+            events: EventManager::new(),
+        };
         Game {
             gnomes: HashMap::new(),
             gnome_id: 1,
             grid: Grid::new(DEFAULT_SIZE),
-            job_manager: GlobalJobManager::new(&mut blocks),
-            blocks,
+            job_manager: JobManager::new(&mut game_ctx),
+            game_ctx,
         }
     }
 
@@ -40,9 +52,20 @@ impl Game {
 
         let perlin_noise = noise::Perlin::new(5554);
 
-        let stone_id = game.blocks.add_block(BlockType::new(Sprite::new(0, 3)));
+        // why
+        const STONE_ITEM_ID: ItemId = 100;
+        const STONE_BLOCK_ID: BlockId = 100;
+
+        game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
+            _sprite: sprites::STONE_ITEM,
+            _builds: Some(STONE_BLOCK_ID),
+        });
+        game.game_ctx.blocks.add_block(
+            STONE_BLOCK_ID,
+            BlockType::new(sprites::STONE, vec![(1.0, STONE_ITEM_ID)]),
+        );
         // ore?
-        let _ore_id = game.blocks.add_block(BlockType::new(Sprite::new(0, 4)));
+        // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
         let size = game.grid.size;
         for y in 0..size.y {
@@ -58,7 +81,7 @@ impl Game {
                     game.grid.set_tile(pos, Tile::new(TileBiome::Dirt));
                 } else {
                     game.grid
-                        .set_tile(pos, Tile::new_block(TileBiome::Stone, stone_id));
+                        .set_tile(pos, Tile::new_block(TileBiome::Stone, STONE_BLOCK_ID));
                 };
             }
         }
@@ -71,7 +94,7 @@ impl Game {
     pub fn update(&mut self) {
         // Update game state
         for gnome in self.gnomes.values_mut() {
-            gnome.update(&mut self.grid, &mut self.job_manager);
+            gnome.update(&mut self.grid, &mut self.job_manager, &mut self.game_ctx);
         }
     }
 
@@ -84,11 +107,15 @@ impl Game {
     }
 
     pub fn mine(&mut self, pos: Pos) {
-        self.job_manager.mine_manager.mine(&self.grid, pos);
+        self.job_manager
+            .mine_manager
+            .mine(&self.grid, pos, &mut self.game_ctx);
     }
 
     pub fn farm(&mut self, pos: Pos) {
-        self.job_manager.farm_manager.new_farm(&self.grid, pos);
+        self.job_manager
+            .farm_manager
+            .new_farm(&self.grid, pos, &mut self.game_ctx);
     }
 }
 
