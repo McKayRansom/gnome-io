@@ -10,7 +10,7 @@ use crate::{
     game::Game,
     grid::Pos,
     tileset::Sprite,
-    toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
+    toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
 };
 
 pub enum GameAction {
@@ -89,9 +89,9 @@ impl Gameplay {
                         if let Some(action) = self.action_toolbar.get_selected() {
                             match action {
                                 GameAction::Mine => self.game.mine(pos),
-                                GameAction::Build => todo!(),
+                                GameAction::Build => self.game.build(pos),
                                 GameAction::Farm => self.game.farm(pos),
-                                GameAction::Cancel => todo!(),
+                                GameAction::Cancel => self.game.cancel(pos),
                             }
                         }
                     }

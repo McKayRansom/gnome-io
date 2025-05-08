@@ -1,5 +1,5 @@
 use crate::{
-    block::BlockId, game::GameCtx, gnome::GnomeId, tile::Tile
+    block::BlockId, event::Event, game::GameCtx, gnome::GnomeId, item::ItemId, tile::Tile,
 };
 
 mod pos;
@@ -11,8 +11,17 @@ pub struct Grid {
     pub cells: Vec<Vec<Tile>>,
 }
 
+pub struct BlockUpdateEvent {
+    pub pos: Pos,
+    pub _old: Option<BlockId>,
+    pub new: Option<BlockId>,
+}
+
+const GROWTH_EVENT: u32 = 20;
+
 impl Grid {
-    pub fn new(size: Pos) -> Grid {
+    pub fn new(size: Pos, game_ctx: &mut GameCtx) -> Grid {
+        game_ctx.events.add_event_class(GROWTH_EVENT);
         let cells =
             vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid { size, cells }
@@ -31,27 +40,62 @@ impl Grid {
         self.cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
     }
 
-    pub fn place_block(&mut self, pos: Pos, block: Option<BlockId>, game_ctx: &mut GameCtx) -> Option<()> {
+    pub fn place_block(
+        &mut self,
+        pos: Pos,
+        block: Option<BlockId>,
+        game_ctx: &mut GameCtx,
+    ) -> Option<()> {
         let tile = self.get_tile_mut(pos)?;
         if let Some(block_id) = tile.block.take() {
             if let Some(old_block) = game_ctx.blocks.get_block(&block_id) {
                 for (chance, item_id) in old_block.drops.iter() {
-                    // TODO: Handle chance greater than 1...
-                    if rand::rand() as f32 / (u32::MAX as f32) < *chance {
+                    if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
                         tile.items.push(*item_id);
                     }
+                }
+                if let Some(mine_event) = old_block.mine_event {
+                    game_ctx.events.push_event(Event {
+                        id: mine_event,
+                        value: Box::new(BlockUpdateEvent {
+                            pos,
+                            _old: Some(block_id),
+                            new: block,
+                        }),
+                    });
                 }
             }
             tile.walkable = true;
         }
 
-        tile.block = block;
         if let Some(block_id) = block {
             if let Some(block_info) = game_ctx.blocks.get_block(&block_id) {
                 tile.walkable = block_info.walkable;
+                if let Some(event) = block_info.place_event {
+                    game_ctx.events.push_event(Event {
+                        id: event,
+                        value: Box::new(BlockUpdateEvent {
+                            pos,
+                            _old: tile.block,
+                            new: block,
+                        }),
+                    });
+                }
+                // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
+                if let Some((delay, new_block)) = block_info.growth {
+                    game_ctx.events.push_timer(delay, Event {
+                        id: GROWTH_EVENT,
+                        value: Box::new(BlockUpdateEvent {
+                            pos,
+                            _old: block,
+                            new: new_block,
+                        }),
+                    });
+                }
             }
         }
-        // TODO: if plant, who start the timer?
+        tile.block = block;
+        log::info!("Setting {:?} to {:?}", tile, block);
 
         Some(())
     }
@@ -68,22 +112,22 @@ impl Grid {
         }
     }
 
+    pub fn try_take_item(&mut self, pos: Pos, item: ItemId) -> Option<ItemId> {
+        let tile = self.get_tile_mut(pos).unwrap();
+        Some(
+            tile.items
+                .swap_remove(tile.items.iter().position(|it| it == &item)?),
+        )
+    }
+
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
         if self.is_valid_pos(pos) {
             self.cells[pos.y as usize][pos.x as usize] = tile;
         }
     }
 
-    pub fn find_path(&self, start: Pos, end: Pos) -> Option<Vec<Pos>> {
+    pub fn find_path(&self, start: Pos, end: Pos, item: Option<ItemId>) -> Option<Vec<Pos>> {
         let is_passable = self.get_tile(end)?.is_passable();
-        // let mut dig_pos: Option<Pos> = None;
-        // for dir in dirs::ALL {
-        //     if let Some(tile) = self.grid.get_tile(pos + dir) {
-        //         if tile.is_passable {
-        //             dig_pos = Some(pos + dir);
-        //         }
-        //     }
-        // }
         pathfinding::prelude::bfs(
             &start,
             |pos| {
@@ -98,12 +142,28 @@ impl Grid {
                 .collect::<Vec<Pos>>()
             },
             |pos| {
-                if is_passable {
+                if let Some(item) = item {
+                    self.get_tile(*pos).unwrap().items.contains(&item)
+                } else if is_passable {
                     pos == &end
                 } else {
                     pos.diff(end) <= 1
                 }
             },
         )
+    }
+
+    pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {
+        while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
+            if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
+                self.place_block(block_growth_event.pos, block_growth_event.new, game_ctx);
+            } else {
+                log::warn!("Unkown event pushed to growth queue");
+            }
+        }
+    }
+
+    pub(crate) fn drop_item(&mut self, pos: Pos, item: u32) {
+        self.get_tile_mut(pos).unwrap().items.push(item);
     }
 }

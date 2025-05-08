@@ -9,7 +9,7 @@ use macroquad::{
 
 use crate::{draw::{GRID_CELL_SIZE, PIXEL_SIZE}, grid::Pos};
 
-const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
+pub const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
 
 const DEFAULT_ZOOM: f32 = 0.1;
 const MIN_ZOOM: f32 = 0.1;
@@ -30,19 +30,16 @@ impl Sprite {
             col,
         }
     }
-
-    pub const fn new_size(row: u8, col: u8) -> Self {
-        Sprite { row, col }
-    }
 }
 
 pub mod sprites {
     use super::Sprite;
 
     pub const STONE: Sprite = Sprite::new(0, 3);
-    pub const ORE: Sprite = Sprite::new(0, 4);
-    // TODO
-    pub const STONE_ITEM: Sprite = Sprite::new(0, 0);
+    pub const _ORE: Sprite = Sprite::new(0, 4);
+    pub const STONE_ITEM: Sprite = Sprite::new(2, 2);
+
+    pub const UNKOWN_ITEM: Sprite = Sprite::new(3, 0);
 }
 
 pub struct Tileset {
@@ -71,6 +68,7 @@ impl Tileset {
         )
     }
 
+    #[allow(unused)]
     pub fn reset_camera(&mut self, size: (f32, f32)) {
         self.camera = (
             -(screen_width() - size.0) / 2.,
@@ -110,8 +108,8 @@ impl Tileset {
         }
     }
 
-    pub fn draw_tile(&self, sprite: Sprite, dest: &Rect, color: Color, rotation: f32) {
-        self.draw_tile_ex(sprite, color, dest, rotation, false);
+    pub fn draw_tile(&self, sprite: Sprite, dest: &Rect, color: Color) {
+        self.draw_tile_ex(sprite, color, dest, false);
     }
 
     // pub fn draw_tile_flip(&self, sprite: Sprite, color: Color, dest: &Rect, rotation: f32) {
@@ -123,7 +121,6 @@ impl Tileset {
         sprite: Sprite,
         color: Color,
         dest: &Rect,
-        rotation: f32,
         flip: bool,
     ) {
         let dest_size = vec2(dest.w * self.zoom, dest.h * self.zoom * 2.);
@@ -137,7 +134,6 @@ impl Tileset {
             DrawTextureParams {
                 dest_size: Some(dest_size),
                 source: Some(spr_rect),
-                rotation,
                 flip_x: flip,
                 ..Default::default()
             },
@@ -150,11 +146,12 @@ impl Tileset {
             (rect.y - self.camera.1) * self.zoom,
             rect.w * self.zoom,
             rect.h * self.zoom,
-            PIXEL_SIZE * self.zoom,
+            PIXEL_SIZE * self.zoom * 2. /* WHY */,
             color,
         );
     }
 
+    #[allow(unused)]
     pub fn draw_rect(&self, rect: &Rect, color: Color) {
         draw_rectangle(
             (rect.x - self.camera.0) * self.zoom,
@@ -165,6 +162,7 @@ impl Tileset {
         );
     }
 
+    #[allow(unused)]
     pub fn draw_circle(&self, rect: &Rect, radius: f32, color: Color) {
         draw_circle(
             ((rect.x + rect.w / 2.) - self.camera.0) * self.zoom,
@@ -174,6 +172,7 @@ impl Tileset {
         );
     }
 
+    #[allow(unused)]
     pub fn draw_line(&self, start: &Rect, end: &Rect, thickness: f32, color: Color) {
         draw_line(
             ((start.x + start.w / 2.) - self.camera.0) * self.zoom,
@@ -186,6 +185,7 @@ impl Tileset {
     }
 
     /// Draws text centered
+    #[allow(unused)]
     pub fn draw_text(&self, text: &str, text_size: f32, color: Color, rect: &Rect) {
         let font_size = (text_size * self.zoom) as u16;
         let text_measured = measure_text(text, None, font_size, 1.0);
@@ -223,7 +223,8 @@ impl Tileset {
         );
     }
 
-    pub fn draw_icon(&self, sprite: Sprite, rect: &Rect, rotation: f32) {
+    #[allow(unused)]
+    pub fn draw_icon(&self, sprite: Sprite, rect: &Rect) {
         let mut rect = *rect;
         rect.w -= 16.;
         rect.h -= 16.;
@@ -234,6 +235,6 @@ impl Tileset {
         shadow_rect.y += 1.;
         // self.draw_tile(sprite, colors::BLACK, &shadow_rect, rotation);
 
-        self.draw_tile(sprite, &rect, colors::WHITE, rotation);
+        self.draw_tile(sprite, &rect, colors::WHITE);
     }
 }

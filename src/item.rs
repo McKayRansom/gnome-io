@@ -5,22 +5,22 @@ use crate::{block::BlockId, tileset::Sprite};
 pub type ItemId = u32;
 
 pub struct ItemType {
-    pub _sprite: Sprite,
-    pub _builds: Option<BlockId>,
+    pub sprite: Sprite,
+    pub builds: Option<BlockId>,
     // food value?
 }
 
 impl ItemType {
     pub fn builds(sprite: Sprite, block: BlockId) -> Self {
         Self {
-            _sprite: sprite,
-            _builds: Some(block),
+            sprite,
+            builds: Some(block),
         }
     }
     pub fn new(sprite: Sprite) -> Self {
         Self {
-            _sprite: sprite,
-            _builds: None,
+            sprite,
+            builds: None,
         }
     }
 }

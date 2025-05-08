@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use crate::{item::ItemId, tileset::Sprite};
+use crate::{event::EventId, game::Tick, item::ItemId, tileset::Sprite};
 
 pub type BlockId = u32;
 
@@ -8,24 +8,50 @@ pub struct BlockType {
     pub sprite: Sprite, // should this be elsewhere?
     pub drops: Vec<(f32, ItemId)>,
     pub walkable: bool, // will need other path information eventually
+    pub growth: Option<(Tick, Option<BlockId>)>, // time until it grows into something else
+    pub place_event: Option<EventId>,
+    pub mine_event: Option<EventId>,
     // Some way to create a dynamic block like trees, thoughts?
 }
 
+// builder pattern
 impl BlockType {
-    // pub fn 
     pub fn new(sprite: Sprite, drops: Vec<(f32, ItemId)>) -> Self {
         Self {
             sprite,
             drops,
             walkable: false,
+            growth: None,
+            place_event: None,
+            mine_event: None,
         }
     }
 
-    pub fn walkable(sprite: Sprite, drops: Vec<(f32, ItemId)>) -> Self {
+    pub fn walkable(self) -> Self {
         Self {
-            sprite,
-            drops,
             walkable: true,
+            ..self
+        }
+    }
+
+    pub fn grow(self, growth: (Tick, Option<BlockId>)) -> Self {
+        Self {
+            growth: Some(growth),
+            ..self
+        }
+    }
+
+    pub fn place_event(self, event_id: EventId) -> Self {
+        Self {
+            place_event: Some(event_id),
+            ..self
+        }
+    }
+
+    pub fn mine_event(self, event_id: EventId) -> Self {
+        Self {
+            mine_event: Some(event_id),
+            ..self
         }
     }
 }

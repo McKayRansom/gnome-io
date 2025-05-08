@@ -82,6 +82,7 @@ impl<V> Toolbar<V> {
         Some(&self.items[selected].value)
     }
 
+    #[allow(unused)]
     pub fn clear_selected(&mut self) {
         self.selected = None;
     }

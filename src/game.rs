@@ -8,7 +8,7 @@ use crate::{
     gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
     item::{ItemId, ItemType, Items},
-    job::JobManager,
+    job::{JobManager, build, farm::WHEAT_SEED, mine::mine},
     tile::{Tile, TileBiome},
     tileset::sprites,
 };
@@ -21,8 +21,10 @@ pub struct GameCtx {
     pub events: EventManager,
 }
 
+pub type Gnomes = HashMap<GnomeId, Gnome>;
+
 pub struct Game {
-    pub gnomes: HashMap<GnomeId, Gnome>,
+    pub gnomes: Gnomes,
     pub gnome_id: GnomeId,
     pub grid: Grid,
     pub job_manager: JobManager,
@@ -30,6 +32,9 @@ pub struct Game {
 }
 
 const DEFAULT_SIZE: Pos = Pos::new(64, 64);
+
+const STONE_ITEM_ID: ItemId = 100;
+const STONE_BLOCK_ID: BlockId = 100;
 
 impl Game {
     pub fn new() -> Game {
@@ -41,7 +46,7 @@ impl Game {
         Game {
             gnomes: HashMap::new(),
             gnome_id: 1,
-            grid: Grid::new(DEFAULT_SIZE),
+            grid: Grid::new(DEFAULT_SIZE, &mut game_ctx),
             job_manager: JobManager::new(&mut game_ctx),
             game_ctx,
         }
@@ -53,12 +58,10 @@ impl Game {
         let perlin_noise = noise::Perlin::new(5554);
 
         // why
-        const STONE_ITEM_ID: ItemId = 100;
-        const STONE_BLOCK_ID: BlockId = 100;
 
         game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
-            _sprite: sprites::STONE_ITEM,
-            _builds: Some(STONE_BLOCK_ID),
+            sprite: sprites::STONE_ITEM,
+            builds: Some(STONE_BLOCK_ID),
         });
         game.game_ctx.blocks.add_block(
             STONE_BLOCK_ID,
@@ -86,16 +89,30 @@ impl Game {
             }
         }
 
+        // spawn some seeds
+        for _ in 0..16 {
+            game.grid.drop_item(Pos::new(14, 14), WHEAT_SEED);
+        }
+
         game.spawn_gnome(Pos::new(13, 13));
 
         game
     }
 
     pub fn update(&mut self) {
+        // Update timers first?
+        self.game_ctx.events.update_timers();
+
+        // no idea on this ordering..
+        self.grid.update_growth(&mut self.game_ctx);
         // Update game state
         for gnome in self.gnomes.values_mut() {
-            gnome.update(&mut self.grid, &mut self.job_manager, &mut self.game_ctx);
+            gnome.update(&mut self.grid, &mut self.game_ctx);
         }
+
+        self.job_manager
+            .farm_manager
+            .update(&mut self.game_ctx.events, &self.grid);
     }
 
     pub fn spawn_gnome(&mut self, pos: Pos) {
@@ -107,15 +124,21 @@ impl Game {
     }
 
     pub fn mine(&mut self, pos: Pos) {
-        self.job_manager
-            .mine_manager
-            .mine(&self.grid, pos, &mut self.game_ctx);
+        mine(&self.grid, pos, &mut self.game_ctx);
     }
 
     pub fn farm(&mut self, pos: Pos) {
         self.job_manager
             .farm_manager
             .new_farm(&self.grid, pos, &mut self.game_ctx);
+    }
+
+    pub fn build(&mut self, pos: Pos) {
+        build::build(&self.grid, pos, STONE_ITEM_ID, &mut self.game_ctx);
+    }
+
+    pub fn cancel(&mut self, pos: Pos) {
+        self.job_manager.cancel_job(pos, &mut self.game_ctx);
     }
 }
 

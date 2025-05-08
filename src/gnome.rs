@@ -1,6 +1,7 @@
 use crate::{
     game::{GameCtx, Tick},
     grid::Pos,
+    item::ItemId,
     job::{Job, JobManager},
 };
 
@@ -12,6 +13,7 @@ pub struct Gnome {
     pub pos: Pos,
     pub path: Vec<Pos>,
     pub timer: Tick,
+    pub items: Vec<ItemId>,
 }
 
 const GNOME_SPEED: Tick = 20;
@@ -26,15 +28,11 @@ impl Gnome {
             pos,
             path: Vec::new(),
             timer: 0,
+            items: Vec::new(),
         }
     }
 
-    pub fn update(
-        &mut self,
-        grid: &mut crate::grid::Grid,
-        job_manager: &mut JobManager,
-        game_ctx: &mut GameCtx,
-    ) {
+    pub fn update(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut GameCtx) {
         if self.timer > 0 {
             self.timer -= 1;
             return;
@@ -51,29 +49,51 @@ impl Gnome {
         }
 
         if let Some(job) = &mut self.job {
-            match job.perform(self.pos, grid, game_ctx) {
-                crate::job::JobAction::Move(pos) => {
-                    if let Some(path) = grid.find_path(self.pos, pos) {
+            // collect items
+            for required_item in job.requires.iter() {
+                if !self.items.contains(required_item) {
+                    if let Some(item) = grid.try_take_item(self.pos, *required_item) {
+                        self.items.push(item);
+                    } else if let Some(path) =
+                        grid.find_path(self.pos, job.pos, Some(*required_item))
+                    {
                         self.path = path;
-                        self.timer = 0;
+                        return;
                     } else {
                         // job.unreachable();
-                        log::warn!("Job at {:?} is unreachable", pos);
-                        job_manager.failed_job(pos);
+                        log::warn!("Unable to find item {} for job", required_item);
+                        // job_manager.failed_job(pos);
                         self.job = None; // Job is unreachable, remove it
+                        return;
                     }
                 }
-                crate::job::JobAction::Finished(pos) => {
-                    job_manager.finished_job(pos);
-                    self.job = None
-                }
-                crate::job::JobAction::Wait(time) => {
-                    self.timer = time;
-                }
             }
+            if self.pos.diff(job.pos) > 1 {
+                // this needs to be changed for unreachable terrain...
+                if let Some(path) = grid.find_path(self.pos, job.pos, None) {
+                    self.path = path;
+                } else {
+                    // job.unreachable();
+                    log::warn!("Job at {:?} is unreachable", job.pos);
+                    // job_manager.failed_job(pos);
+                    self.job = None; // Job is unreachable, remove it
+                }
+                return;
+            }
+            // we are here!
+            if job.time > 0 {
+                self.timer = job.time;
+                job.time = 0;
+                return;
+            }
+            // perform the job
+            self.items.retain(|item| !job.requires.contains(item));
+            grid.place_block(job.pos, job.builds, game_ctx);
+            log::info!("Finished job: {:?}", job);
+            self.job = None;
         } else {
             // Find a new job
-            self.job = job_manager.find_job(&mut game_ctx.events);
+            self.job = JobManager::find_job(&mut game_ctx.events);
         }
     }
 }

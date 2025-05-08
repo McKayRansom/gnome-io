@@ -11,6 +11,7 @@ pub enum TileBiome {
 
 #[derive(Debug, Clone)]
 pub struct Tile {
+    // should this be hashmap?
     pub items: Vec<ItemId>,
     pub gnome: Option<GnomeId>,
     pub biome: TileBiome,

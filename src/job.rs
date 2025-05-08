@@ -1,11 +1,13 @@
-
 use farm::FarmManager;
-use mine::MineManager;
 
 use crate::{
-    block::BlockId, event::{EventId, EventManager}, game::GameCtx, grid::{Grid, Pos}
+    block::BlockId,
+    event::{Event, EventId, EventManager},
+    game::GameCtx,
+    grid::{Grid, Pos}, item::ItemId,
 };
 
+pub mod build;
 pub mod farm;
 pub mod mine;
 
@@ -21,40 +23,24 @@ pub enum JobAction {
 // }
 
 /// Generic build job, can place any type of block
-#[derive(Clone, Copy)]
+#[derive(Clone, Debug)]
 pub struct Job {
     pub pos: Pos,
-    time: u16,
-    block: Option<BlockId>,
+    pub time: u16,
+    pub builds: Option<BlockId>,
+    pub requires: Vec<ItemId>,
+    // require: Option<ItemId>,
 }
 
 impl Job {
-    pub fn new(pos: Pos, time: u16, block: Option<BlockId>) -> Self {
-        Job { pos, time, block }
-    }
-
-    pub fn perform(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) -> JobAction {
-        if self.pos.diff(pos) > 1 { // this may need to be changed?
-            return JobAction::Move(self.pos);
-        }
-        if self.time > 0 {
-            self.time = 0;
-            return JobAction::Wait(self.time);
-        }
-        // grid.get_tile_mut(self.pos).unwrap().block = Some(self.block);
-        grid.place_block(self.pos, self.block, game_ctx);
-        JobAction::Finished(self.pos)
+    pub fn new(pos: Pos, time: u16, block: Option<BlockId>, requires: Vec<ItemId>) -> Self {
+        Job { pos, time, builds: block, requires}
     }
 }
 
 pub const JOB_QUEUE: EventId = 10;
 
 pub struct JobManager {
-    // Priority in futures?
-    // jobs: VecDeque<Box<dyn Job>>,
-    // pub min
-    // pub buildManager: BuildManager,
-    pub mine_manager: MineManager,
     pub farm_manager: FarmManager,
 }
 
@@ -62,26 +48,38 @@ impl JobManager {
     pub fn new(game_ctx: &mut GameCtx) -> Self {
         game_ctx.events.add_event_class(JOB_QUEUE);
         Self {
-            mine_manager: MineManager::new(),
             farm_manager: FarmManager::new(game_ctx),
         }
     }
 
-    pub fn find_job(&mut self, events: &mut EventManager) -> Option<Box<Job>> {
-        if let Some(event) = events.pop_event(JOB_QUEUE) {
-            if let Ok(job) = event.value.downcast::<Job>() {
-                return Some(job);
-            }
-        }
-        None
-        // self.mine_manager.find_job().or(self.farm_manager.find_job(grid))
+    pub fn create_job(events: &mut EventManager, job: Job) {
+        events.push_event(Event {
+            id: JOB_QUEUE,
+            value: Box::new(job),
+        });
     }
 
-    pub fn finished_job(&mut self, _pos: Pos) {
-        // self.mine_manager.finished(pos);
+    pub fn find_job(events: &mut EventManager) -> Option<Box<Job>> {
+        events.pop_event(JOB_QUEUE).map(|event| {
+            event
+                .value
+                .downcast::<Job>()
+                .expect("Invalid event in job queue")
+        })
     }
 
-    pub fn failed_job(&mut self, _pos: Pos) {
-        // self.mine_manager.failed(pos);
+    pub fn cancel_job(&mut self, pos: Pos, game_ctx: &mut GameCtx) {
+        self.farm_manager.cancel_farm(pos);
+        game_ctx
+            .events
+            .get_queue_mut(&JOB_QUEUE)
+            .unwrap()
+            .retain(|event| {
+                if let Some(job) = event.value.downcast_ref::<Job>() {
+                    job.pos != pos
+                } else {
+                    true
+                }
+            });
     }
 }
