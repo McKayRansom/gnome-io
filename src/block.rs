@@ -11,6 +11,8 @@ pub struct BlockType {
     pub growth: Option<(Tick, Option<BlockId>)>, // time until it grows into something else
     pub place_event: Option<EventId>,
     pub mine_event: Option<EventId>,
+    // what it needs to be built
+    pub requires: Vec<ItemId>,
 }
 
 impl Default for BlockType {
@@ -22,6 +24,7 @@ impl Default for BlockType {
             growth: None,
             place_event: None,
             mine_event: None,
+            requires: Vec::new(),
         }
     }
 }
@@ -36,6 +39,7 @@ impl BlockType {
             growth: None,
             place_event: None,
             mine_event: None,
+            requires: Vec::new(),
         }
     }
 

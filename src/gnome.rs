@@ -3,6 +3,7 @@ use crate::{
     grid::Pos,
     item::ItemId,
     job::{Job, JobManager},
+    tile::Entity,
 };
 
 pub type GnomeId = u32;
@@ -48,7 +49,7 @@ impl Gnome {
             return;
         }
 
-        // find a new job first 
+        // find a new job first
         if self.job.is_none() {
             self.job = JobManager::find_job(&mut game_ctx.events);
         }
@@ -94,9 +95,14 @@ impl Gnome {
             }
             // perform the job
             self.items.retain(|item| !job.requires.contains(item));
-            grid.place_block(job.pos, job.builds, game_ctx);
+            let _ = match job.entity {
+                Some(Entity::Item(item_id)) => grid.drop_item(job.pos, item_id),
+                Some(Entity::Block(block_id)) => grid.place_block(job.pos, Some(block_id), game_ctx),
+                Some(Entity::Gnome(_)) => todo!(),
+                None => grid.place_block(job.pos, None, game_ctx),
+            };
             log::info!("Finished job: {:?}", job);
             self.job = None;
-        } 
+        }
     }
 }

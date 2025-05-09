@@ -1,16 +1,13 @@
 // use hecs::World;
-use macroquad::{
-    color::{Color, colors},
-    math::Rect,
-};
+use macroquad::color::{Color, colors};
 
 use crate::{
     context::Context,
     game::{Game, GameCtx, Gnomes},
     grid::{Grid, Pos},
-    job::{JOB_QUEUE, Job},
+    job::{Job, JOB_QUEUE},
     tile::TileBiome,
-    tileset::{Sprite, sprites},
+    tileset::{pos_to_rect, sprites, Sprite, GRID_CELL_SIZE, PIXEL_SIZE},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
@@ -98,17 +95,4 @@ fn draw_jobs(game_ctx: &GameCtx, grid: &Grid, gnomes: &Gnomes, ctx: &Context) {
             draw_tile_outline(grid, &job.pos, Color::new(0., 0.3, 0., 1.0), ctx);
         }
     }
-}
-
-// Default zoom pixel size of Position
-pub const GRID_CELL_SIZE: (f32, f32) = (64., 64.);
-pub const PIXEL_SIZE: f32 = 64. / 16.;
-
-pub fn pos_to_rect(pos: Pos) -> Rect {
-    Rect::new(
-        pos.x as f32 * GRID_CELL_SIZE.0,
-        pos.y as f32 * GRID_CELL_SIZE.1, /* - (pos.z as f32 * GRID_Z_OFFSET) */
-        GRID_CELL_SIZE.0,
-        GRID_CELL_SIZE.1,
-    )
 }

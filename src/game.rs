@@ -8,7 +8,7 @@ use crate::{
     gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
     item::{ItemId, ItemType, Items},
-    job::{JobManager, build, farm::WHEAT_SEED, mine::mine},
+    job::{build, farm::{WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager},
     tile::{Tile, TileBiome},
     tileset::sprites,
 };
@@ -34,10 +34,12 @@ pub struct Game {
 const DEFAULT_SIZE: Pos = Pos::new(64, 64);
 
 const STONE_ITEM_ID: ItemId = 100;
-const STONE_BLOCK_ID: BlockId = 100;
+pub const STONE_BLOCK_ID: BlockId = 100;
 const ORE_ID: BlockId = 101;
 const TREE_ID: BlockId = 102;
 const WOOD_ID: ItemId = 103;
+pub const CRAFT_TABLE_ID: BlockId = 104;
+pub const FURNACE_ID: BlockId = 105;
 
 impl Game {
     pub fn new() -> Game {
@@ -65,11 +67,32 @@ impl Game {
 
         game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
             sprite: sprites::STONE_ITEM,
-            builds: Some(STONE_BLOCK_ID),
+            recipe: None,
         });
+        game.game_ctx.items.add_item(WOOD_ID, ItemType {
+            sprite: sprites::WOOD,
+            recipe: None,
+        });
+        game.game_ctx.blocks.add_block(CRAFT_TABLE_ID, BlockType {
+            sprite: sprites::CRAFT_TABLE,
+            drops: vec![(1.0, WOOD_ID)],
+            walkable: false,
+            requires: vec![WOOD_ID],
+            ..Default::default()
+        });
+        game.game_ctx.blocks.add_block(FURNACE_ID, BlockType {
+            sprite: sprites::FURNACE,
+            drops: vec![(1.0, STONE_ITEM_ID)],
+            walkable: false,
+            requires: vec![STONE_ITEM_ID],
+            // TODO: Update to remove craft jobs when block removed
+            ..Default::default()
+        });
+
         game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
             sprite: sprites::STONE,
             drops: vec![(1.0, STONE_ITEM_ID)],
+            requires: vec![STONE_ITEM_ID],
             ..Default::default()
         });
         game.game_ctx.blocks.add_block(ORE_ID, BlockType {
@@ -119,6 +142,7 @@ impl Game {
         // spawn some seeds
         for _ in 0..16 {
             game.grid.drop_item(Pos::new(14, 14), WHEAT_SEED);
+            game.grid.drop_item(Pos::new(14, 14), WHEAT_GRAIN);
         }
 
         // spawn some gnomes
@@ -163,8 +187,8 @@ impl Game {
             .new_farm(&self.grid, pos, &mut self.game_ctx);
     }
 
-    pub fn build(&mut self, pos: Pos) {
-        build::build(&self.grid, pos, STONE_ITEM_ID, &mut self.game_ctx);
+    pub fn build(&mut self, pos: Pos, block_id: BlockId) {
+        build::build(&self.grid, pos, block_id, &mut self.game_ctx);
     }
 
     pub fn cancel(&mut self, pos: Pos) {

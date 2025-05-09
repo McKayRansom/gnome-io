@@ -1,26 +1,35 @@
 use std::collections::HashMap;
 
-use crate::{block::BlockId, tileset::Sprite};
+use crate::{block::BlockId, tileset::{sprites, Sprite}};
 
 pub type ItemId = u32;
 
 pub struct ItemType {
     pub sprite: Sprite,
-    pub builds: Option<BlockId>,
+    pub recipe: Option<(BlockId, Vec<ItemId>)>,
     // food value?
+}
+
+impl Default for ItemType {
+    fn default() -> Self {
+        Self {
+            sprite: sprites::UNKOWN_ITEM,
+            recipe: None,
+        }
+    }
 }
 
 impl ItemType {
     pub fn builds(sprite: Sprite, block: BlockId) -> Self {
         Self {
             sprite,
-            builds: Some(block),
+            recipe: None,
         }
     }
     pub fn new(sprite: Sprite) -> Self {
         Self {
             sprite,
-            builds: None,
+            recipe: None,
         }
     }
 }
@@ -44,5 +53,9 @@ impl Items {
 
     pub fn get_item(&self, id: &ItemId) -> Option<&ItemType> {
         self.item_list.get(&id)
+    }
+
+    pub fn iter_items(&self) -> std::collections::hash_map::Iter<'_, u32, ItemType> {
+        self.item_list.iter()
     }
 }

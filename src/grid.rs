@@ -176,9 +176,8 @@ impl Grid {
         }
     }
 
-    pub(crate) fn drop_item(&mut self, pos: Pos, item: ItemId) {
-        self.get_tile_mut(pos)
-            .unwrap()
-            .add_entity(Entity::Item(item));
+    pub(crate) fn drop_item(&mut self, pos: Pos, item: ItemId) -> Option<()> {
+        self.get_tile_mut(pos)?.add_entity(Entity::Item(item));
+        None
     }
 }

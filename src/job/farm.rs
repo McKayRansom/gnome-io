@@ -1,11 +1,11 @@
 use crate::{
     block::{BlockId, BlockType},
     event::{Event, EventId, EventManager},
-    game::{GameCtx, Tick},
+    game::{GameCtx, Tick, FURNACE_ID},
     grid::{BlockUpdateEvent, Grid, Pos},
     item::{ItemId, ItemType},
-    tile::TileBiome,
-    tileset::Sprite,
+    tile::{Entity, TileBiome},
+    tileset::{sprites, Sprite},
 };
 
 use super::{JOB_QUEUE, Job};
@@ -28,8 +28,8 @@ const GROWTH_TIME: Tick = 60 * 60;
 const ITM_GRP: ItemId = 200;
 
 pub const WHEAT_SEED: ItemId = ITM_GRP | 0;
-const WHEAT_GRAIN: ItemId = ITM_GRP | 1;
-// straw?
+pub const WHEAT_GRAIN: ItemId = ITM_GRP | 1;
+const BREAD_ID: ItemId = ITM_GRP | 2;
 
 const FARM_EVENT_ID: EventId = 200;
 
@@ -84,6 +84,11 @@ impl FarmManager {
             .place_event(FARM_EVENT_ID)
             .mine_event(FARM_EVENT_ID),
         );
+
+        game_ctx.items.add_item(BREAD_ID, ItemType {
+            sprite: sprites::BREAD,
+            recipe: Some((FURNACE_ID, vec![WHEAT_GRAIN])),
+        });
 
         game_ctx.events.add_event_class(FARM_EVENT_ID);
         Self {
@@ -149,9 +154,12 @@ impl FarmManager {
             .is_none_or(|block| block < WHEAT_0_ID || block > WHEAT_4_ID)
         {
             // till
-            Some(Job::new(*pos, TILL_TIME, Some(WHEAT_0_ID), vec![
-                WHEAT_SEED,
-            ]))
+            Some(Job::new(
+                *pos,
+                TILL_TIME,
+                Some(Entity::Block(WHEAT_0_ID)),
+                vec![WHEAT_SEED],
+            ))
         } else if tile.get_block().is_some_and(|block| block == WHEAT_4_ID) {
             // harvest
             Some(Job::new(*pos, HARVEST_TIME, None, vec![]))

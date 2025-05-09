@@ -1,13 +1,13 @@
 use macroquad::{
-    color::{colors, Color, BLACK},
-    math::{vec2, Rect, Vec2},
+    color::{BLACK, Color, colors},
+    math::{Rect, Vec2, vec2},
     shapes::{draw_circle, draw_line, draw_rectangle, draw_rectangle_lines},
-    text::{draw_text_ex, measure_text, TextParams},
-    texture::{draw_texture_ex, load_texture, DrawTextureParams, FilterMode, Texture2D},
+    text::{TextParams, draw_text_ex, measure_text},
+    texture::{DrawTextureParams, FilterMode, Texture2D, draw_texture_ex, load_texture},
     window::{screen_height, screen_width},
 };
 
-use crate::{draw::{GRID_CELL_SIZE, PIXEL_SIZE}, grid::Pos};
+use crate::grid::Pos;
 
 pub const TILE_SIZE: Vec2 = Vec2::new(16., 32.);
 
@@ -25,10 +25,7 @@ pub struct Sprite {
 
 impl Sprite {
     pub const fn new(row: u8, col: u8) -> Self {
-        Sprite {
-            row,
-            col,
-        }
+        Sprite { row, col }
     }
 }
 
@@ -42,6 +39,13 @@ pub mod sprites {
     pub const STONE_ITEM: Sprite = Sprite::new(2, 2);
 
     pub const TREE: Sprite = Sprite::new(2, 4);
+    pub const WOOD: Sprite = Sprite::new(2, 5);
+
+    pub const FURNACE: Sprite = Sprite::new(0, 5);
+    pub const CRAFT_TABLE: Sprite = Sprite::new(0, 6);
+    pub const CHEST: Sprite = Sprite::new(0, 7);
+
+    pub const BREAD: Sprite = Sprite::new(3, 7);
 
     pub const UNKOWN_ITEM: Sprite = Sprite::new(3, 0);
 }
@@ -50,6 +54,19 @@ pub struct Tileset {
     pub texture: Texture2D,
     pub zoom: f32,
     pub camera: (f32, f32),
+}
+
+// Default zoom pixel size of Position
+pub const GRID_CELL_SIZE: (f32, f32) = (64., 64.);
+pub const PIXEL_SIZE: f32 = 64. / 16.;
+
+pub fn pos_to_rect(pos: Pos) -> Rect {
+    Rect::new(
+        pos.x as f32 * GRID_CELL_SIZE.0,
+        pos.y as f32 * GRID_CELL_SIZE.1, /* - (pos.z as f32 * GRID_Z_OFFSET) */
+        GRID_CELL_SIZE.0,
+        GRID_CELL_SIZE.1,
+    )
 }
 
 // TODO: Rename to TextureAtlas and support more than one...
@@ -69,6 +86,13 @@ impl Tileset {
         Pos::new(
             ((self.camera.0 + (screen_pos.0 / self.zoom)) / GRID_CELL_SIZE.0) as i16,
             ((self.camera.1 + (screen_pos.1 / self.zoom)) / GRID_CELL_SIZE.1) as i16,
+        )
+    }
+
+    pub fn to_screen(&self, pos: Pos) -> Vec2 {
+        Vec2::new(
+            ((pos.x as f32 * GRID_CELL_SIZE.0) - self.camera.0) * self.zoom,
+            ((pos.y as f32 * GRID_CELL_SIZE.1) - self.camera.1) * self.zoom,
         )
     }
 
@@ -120,13 +144,7 @@ impl Tileset {
     //     self.draw_tile_ex(sprite, color, dest, rotation, true);
     // }
 
-    pub fn draw_tile_ex(
-        &self,
-        sprite: Sprite,
-        color: Color,
-        dest: &Rect,
-        flip: bool,
-    ) {
+    pub fn draw_tile_ex(&self, sprite: Sprite, color: Color, dest: &Rect, flip: bool) {
         let dest_size = vec2(dest.w * self.zoom, dest.h * self.zoom * 2.);
         let spr_rect = self.sprite_rect(sprite);
 
@@ -150,7 +168,7 @@ impl Tileset {
             (rect.y - self.camera.1) * self.zoom,
             rect.w * self.zoom,
             rect.h * self.zoom,
-            PIXEL_SIZE * self.zoom * 2. /* WHY */,
+            PIXEL_SIZE * self.zoom * 2., /* WHY */
             color,
         );
     }
@@ -170,7 +188,7 @@ impl Tileset {
     pub fn draw_circle(&self, rect: &Rect, radius: f32, color: Color) {
         draw_circle(
             ((rect.x + rect.w / 2.) - self.camera.0) * self.zoom,
-            ((rect.y + rect.h / 2.)- self.camera.1) * self.zoom,
+            ((rect.y + rect.h / 2.) - self.camera.1) * self.zoom,
             radius * self.zoom,
             color,
         );
@@ -200,31 +218,21 @@ impl Tileset {
             (rect.x + SHADOW_OFFSET - self.camera.0) * self.zoom - text_measured.width / 2.;
         let shadow_y =
             (rect.y + SHADOW_OFFSET - self.camera.1) * self.zoom + text_measured.height / 2.;
-        draw_text_ex(
-            text,
-            shadow_x,
-            shadow_y,
-            TextParams {
-                font_size,
-                font_scale: 1.0,
-                color: BLACK,
-                ..Default::default()
-            },
-        );
+        draw_text_ex(text, shadow_x, shadow_y, TextParams {
+            font_size,
+            font_scale: 1.0,
+            color: BLACK,
+            ..Default::default()
+        });
 
         let x = (rect.x - self.camera.0) * self.zoom - text_measured.width / 2.;
         let y = (rect.y - self.camera.1) * self.zoom + text_measured.height / 2.;
-        draw_text_ex(
-            text,
-            x,
-            y,
-            TextParams {
-                font_size,
-                font_scale: 1.0,
-                color,
-                ..Default::default()
-            },
-        );
+        draw_text_ex(text, x, y, TextParams {
+            font_size,
+            font_scale: 1.0,
+            color,
+            ..Default::default()
+        });
     }
 
     #[allow(unused)]

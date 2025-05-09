@@ -2,11 +2,10 @@ use farm::FarmManager;
 use macroquad::rand;
 
 use crate::{
-    block::BlockId,
     event::{Event, EventId, EventManager},
     game::{GameCtx, Tick},
     grid::Pos,
-    item::ItemId,
+    item::ItemId, tile::Entity,
 };
 
 pub mod build;
@@ -17,16 +16,16 @@ pub mod mine;
 pub struct Job {
     pub pos: Pos,
     pub time: u16,
-    pub builds: Option<BlockId>,
+    pub entity: Option<Entity>,
     pub requires: Vec<ItemId>,
 }
 
 impl Job {
-    pub fn new(pos: Pos, time: u16, block: Option<BlockId>, requires: Vec<ItemId>) -> Self {
+    pub fn new(pos: Pos, time: u16, entity: Option<Entity>, requires: Vec<ItemId>) -> Self {
         Job {
             pos,
             time,
-            builds: block,
+            entity,
             requires,
         }
     }

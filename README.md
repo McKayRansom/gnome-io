@@ -9,6 +9,24 @@ The point should be more trying to survivie (rimworld but way simpler) an inters
 The one exception is I want there to be multiple races that play very differently and interact in interesting ways.
 This will be almost impossible to balance, but I'm hoping to make it casual enough that it doesn't super matter.
 
+# MVP:
+- [x] Tile-based drawing and sprites
+- [x] Procedural terrain
+- [x] Mining
+- [x] Farming
+- [ ] Hauling
+- [ ] Crafting (Just crafting table/furnace for now)
+- [ ] Hunger/Sleep
+- [ ] Goal: Survive Winter (requires seasons) OR survive first goblin raid (requires combat)
+- [ ] Saving
+- [ ] UI
+  - [ ] Toolbar
+  - [ ] Menus
+  - [ ] Tile details
+  - [ ] Stocks
+  - [ ] 1st day of spring
+
+
 ## Features
 - Grow a colony of gnomes and other fantasy races and survive the seasons and goblin raids.
 - Procedual world generation
