@@ -8,10 +8,16 @@ use crate::{
     gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
     item::{ItemId, ItemType, Items},
-    job::{build, farm::{WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager},
+    job::{
+        JobManager, build,
+        farm::{WHEAT_GRAIN, WHEAT_SEED},
+        mine::mine,
+    },
     tile::{Tile, TileBiome},
     tileset::sprites,
 };
+
+mod generate;
 
 pub type Tick = u16;
 
@@ -31,7 +37,7 @@ pub struct Game {
     pub game_ctx: GameCtx,
 }
 
-const DEFAULT_SIZE: Pos = Pos::new(64, 64);
+const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
 const STONE_ITEM_ID: ItemId = 100;
 pub const STONE_BLOCK_ID: BlockId = 100;
@@ -60,8 +66,7 @@ impl Game {
     pub fn generate() -> Game {
         let mut game = Game::new();
 
-        let perlin_noise = noise::Perlin::new(5554);
-        let detail_noise = noise::Perlin::new(2222);
+        generate::generate(&mut game.grid);
 
         // why
 
@@ -108,36 +113,6 @@ impl Game {
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
-        let size = game.grid.size;
-        for y in 0..size.y {
-            for x in 0..size.x {
-                let pos: Pos = (x, y).into();
-                let noise =
-                    perlin_noise.get([pos.x as f64 / size.x as f64, pos.y as f64 / size.y as f64]);
-                let detail =
-                    detail_noise.get([pos.x as f64 / size.x as f64, pos.y as f64 / size.y as f64]);
-                if noise < 0.1333 {
-                    // Tile::Water
-                    game.grid.set_tile(pos, Tile::new(TileBiome::Water));
-                } else if noise < 0.59999 {
-                    // Tile::Empty
-                    if detail < 0.2 {
-                        game.grid
-                            .set_tile(pos, Tile::new_block(TileBiome::Dirt, TREE_ID));
-                    } else {
-                        game.grid.set_tile(pos, Tile::new(TileBiome::Dirt));
-                    }
-                } else {
-                    if detail < 0.2 {
-                        game.grid
-                            .set_tile(pos, Tile::new_block(TileBiome::Stone, ORE_ID));
-                    } else {
-                        game.grid
-                            .set_tile(pos, Tile::new_block(TileBiome::Stone, STONE_BLOCK_ID));
-                    }
-                };
-            }
-        }
 
         // spawn some seeds
         for _ in 0..16 {
