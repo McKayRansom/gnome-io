@@ -6,7 +6,7 @@ use crate::{
     game::{Game, GameCtx, Gnomes},
     grid::{Grid, Pos},
     job::{Job, JOB_QUEUE},
-    tile::TileBiome,
+    tile::{Entity, TileBiome},
     tileset::{pos_to_rect, sprites, Sprite, GRID_CELL_SIZE, PIXEL_SIZE},
 };
 
@@ -35,19 +35,23 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
             for item in tile.iter_entities() {
                 ctx.tileset.draw_tile(
                     match item {
-                        crate::tile::Entity::Item(item) => {
+                        Entity::Item(item) => {
                             if let Some(item) = game_ctx.items.get_item(item) {
                                 item.sprite
                             } else {
                                 sprites::UNKOWN_ITEM
                             }
                         }
-                        crate::tile::Entity::Gnome(_gnome) => sprites::GNOME,
-                        crate::tile::Entity::Block(block) => {
+                        Entity::Gnome(_gnome) => sprites::GNOME,
+                        Entity::Block(block) => {
                             let Some(block) = game_ctx.blocks.get_block(&block) else {
                                 panic!("No block found fo id {}", block);
                             };
                             block.sprite
+                        },
+                        Entity::Job(_) => {
+                            draw_tile_outline(grid, &pos, Color::new(0.3, 0.3, 0., 1.0), ctx);
+                            continue;
                         }
                     },
                     &dest,

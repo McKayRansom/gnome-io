@@ -3,7 +3,7 @@ use std::{
     collections::{HashMap, VecDeque},
 };
 
-use crate::game::Tick;
+use crate::{game::Tick, job::Job};
 
 pub type EventId = u32;
 
@@ -25,11 +25,15 @@ pub struct Timer {
 //     fn handle(&mut self, event: Event, grid: &Grid) -> Option<Event>;
 // }
 
+pub type JobId = u32;
+
 pub struct EventManager {
     // one queue per event for now
     events: HashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
     pub timers: Vec<Timer>,
+    pub jobs: HashMap<JobId, Job>,
+    pub job_id: JobId,
 }
 
 impl EventManager {
@@ -37,6 +41,8 @@ impl EventManager {
         Self {
             events: HashMap::new(),
             timers: Vec::new(),
+            jobs: HashMap::new(),
+            job_id: 1,
         }
     }
 
@@ -105,6 +111,18 @@ impl EventManager {
         });
     }
 
+    pub fn add_job(&mut self, mut job: Job) -> JobId {
+        job.id = self.job_id;
+        self.jobs.insert(self.job_id, job);
+        let id = self.job_id;
+        self.job_id += 1;
+        id
+    }
+
+    pub fn remove_job(&mut self, job: JobId) {
+        self.jobs.remove(&job);
+    }
+    
     // pub fn update(&mut self, grid: &Grid) {
     //     while let Some(event) = self.events.pop_front() {
     //         let Some(handler) = self.handlers.get_mut(&event.id) else {

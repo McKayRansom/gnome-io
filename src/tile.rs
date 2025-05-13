@@ -1,6 +1,6 @@
 // use hecs::Entity;
 
-use crate::{block::BlockId, gnome::GnomeId, item::ItemId};
+use crate::{block::BlockId, event::JobId, gnome::GnomeId, item::ItemId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TileBiome {
@@ -14,8 +14,16 @@ pub enum Entity {
     Item(ItemId),
     Gnome(GnomeId),
     Block(BlockId),
+    Job(JobId),
 }
 
+/*
+ * Theory of pathfinding otimization:
+ * - Games like transport-io, gnomoria have shown that pathfinding is often the bottleneck.
+ * - For optimal pathfinding, all nescesary information to make a path should be in a spacially oriented datastructure (Grid or chunked grid in the future)
+ * - This allows all pathfinding lookups to have cache hits on not have to I.E. dereference other vectors or look up in hashmaps (poor cache locality)
+ * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
+ */
 #[derive(Debug, Clone)]
 pub struct Tile {
     // should this be hashmap?
@@ -23,6 +31,7 @@ pub struct Tile {
     pub biome: TileBiome,
     // TODO: PathfindingInfo{}
     pub walkable: bool,
+    // TODO: TileFlags (walkable, biome, has_job, job_type, etc...) for whatever the bottlenecks are so we don't always have to look through entities[]
 }
 
 impl Tile {

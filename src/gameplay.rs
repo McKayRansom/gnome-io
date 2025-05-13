@@ -127,6 +127,7 @@ impl Gameplay {
                             if ui.button(None, format!("{:?}", item_id).as_str()) {
                                 // make this recipe!
                                 JobManager::create_job(
+                                    &mut self.game.grid,
                                     &mut self.game.game_ctx.events,
                                     Job::new(
                                         draw_details_pos,

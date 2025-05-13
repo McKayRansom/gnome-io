@@ -10,7 +10,7 @@ pub type GnomeId = u32;
 
 pub struct Gnome {
     pub id: GnomeId,
-    pub job: Option<Box<Job>>,
+    pub job: Option<Job>,
     pub pos: Pos,
     pub path: Vec<Pos>,
     pub timer: Tick,
@@ -42,8 +42,16 @@ impl Gnome {
         if !self.path.is_empty() {
             // Move towards the destination
 
+            let new_pos = self.path.remove(0);
+
+            if grid.get_tile(new_pos).is_none_or(|tile| !tile.is_passable()) {
+                // impassable terrain... abort?
+                self.path.clear();
+                return;
+            }
+
             grid.gnome_exit(self.pos, self.id);
-            self.pos = self.path.remove(0);
+            self.pos = new_pos;
             grid.gnome_enter(self.pos, self.id);
             self.timer = GNOME_SPEED;
             return;
@@ -51,14 +59,18 @@ impl Gnome {
 
         // find a new job first
         if self.job.is_none() {
-            self.job = JobManager::find_job(&mut game_ctx.events);
+            if let (Some(path), Some(job)) = grid.find_job(self.pos, &mut game_ctx.events) {
+                self.path = path;
+                self.job = Some(job);
+            }
         }
 
         if let Some(job) = &mut self.job {
             // collect items
             for required_item in job.requires.iter() {
                 if !self.items.contains(required_item) {
-                    if let Some(item) = grid.try_take_item(self.pos, *required_item) {
+                    if let Some(item) = grid.remove_entity(self.pos, Entity::Item(*required_item)) {
+                        let Entity::Item(item) = item else {panic!()};
                         self.items.push(item);
                     } else if let Some(path) =
                         grid.find_path(self.pos, job.pos, Some(*required_item))
@@ -67,23 +79,32 @@ impl Gnome {
                         return;
                     } else {
                         // job.unreachable();
-                        // log::warn!("Unable to find item {} for job", required_item);
-                        JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
+                        log::warn!("Unable to find item {} for job", required_item);
+                        // JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
+                        // TOdo; Fail job...
                         // job_manager.failed_job(pos);
+                        game_ctx.events.remove_job(job.id);
+                        grid.remove_entity(job.pos, Entity::Job(job.id));
                         return;
                     }
                 }
             }
             if self.pos.diff(job.pos) > 1 {
+                // we found the path earlier...
+                if !self.path.is_empty() {
+                    return;
+                }
                 // this needs to be changed for unreachable terrain...
                 if let Some(path) = grid.find_path(self.pos, job.pos, None) {
                     self.path = path;
                 } else {
                     // job.unreachable();
-                    // log::warn!("Job at {:?} is unreachable", job.pos);
-                    JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
+                    log::warn!("Job at {:?} is unreachable", job.pos);
+                    // JobManager::fail_job(&mut game_ctx.events, self.job.take().unwrap());
                     // job_manager.failed_job(pos);
                     // self.job = None; // Job is unreachable, remove it
+                    game_ctx.events.remove_job(job.id);
+                        grid.remove_entity(job.pos, Entity::Job(job.id));
                 }
                 return;
             }
@@ -96,13 +117,19 @@ impl Gnome {
             // perform the job
             self.items.retain(|item| !job.requires.contains(item));
             let _ = match job.entity {
-                Some(Entity::Item(item_id)) => grid.drop_item(job.pos, item_id),
-                Some(Entity::Block(block_id)) => grid.place_block(job.pos, Some(block_id), game_ctx),
-                Some(Entity::Gnome(_)) => todo!(),
+                Some(Entity::Item(item_id)) => grid.add_entity(job.pos, Entity::Item(item_id)),
+                Some(Entity::Block(block_id)) => {
+                    grid.place_block(job.pos, Some(block_id), game_ctx)
+                }
                 None => grid.place_block(job.pos, None, game_ctx),
+                Some(_) => todo!(),
             };
+            game_ctx.events.remove_job(job.id);
+            grid.remove_entity(job.pos, Entity::Job(job.id));
             log::info!("Finished job: {:?}", job);
             self.job = None;
+        } else {
+            self.timer = 30;
         }
     }
 }

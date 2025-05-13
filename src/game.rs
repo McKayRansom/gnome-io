@@ -1,6 +1,5 @@
 use std::collections::HashMap;
 
-use noise::NoiseFn;
 
 use crate::{
     block::{BlockId, BlockType, Blocks},
@@ -9,11 +8,9 @@ use crate::{
     grid::{Grid, Pos},
     item::{ItemId, ItemType, Items},
     job::{
-        JobManager, build,
-        farm::{WHEAT_GRAIN, WHEAT_SEED},
-        mine::mine,
+        build, farm::{WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager
     },
-    tile::{Tile, TileBiome},
+    tile::Entity,
     tileset::sprites,
 };
 
@@ -116,8 +113,8 @@ impl Game {
 
         // spawn some seeds
         for _ in 0..16 {
-            game.grid.drop_item(Pos::new(14, 14), WHEAT_SEED);
-            game.grid.drop_item(Pos::new(14, 14), WHEAT_GRAIN);
+            game.grid.add_entity(Pos::new(14, 14), Entity::Item(WHEAT_SEED));
+            game.grid.add_entity(Pos::new(14, 14), Entity::Item(WHEAT_GRAIN));
         }
 
         // spawn some gnomes
@@ -153,7 +150,7 @@ impl Game {
     }
 
     pub fn mine(&mut self, pos: Pos) {
-        mine(&self.grid, pos, &mut self.game_ctx);
+        mine(&mut self.grid, pos, &mut self.game_ctx);
     }
 
     pub fn farm(&mut self, pos: Pos) {
@@ -163,7 +160,7 @@ impl Game {
     }
 
     pub fn build(&mut self, pos: Pos, block_id: BlockId) {
-        build::build(&self.grid, pos, block_id, &mut self.game_ctx);
+        build::build(&mut self.grid, pos, block_id, &mut self.game_ctx);
     }
 
     pub fn cancel(&mut self, pos: Pos) {

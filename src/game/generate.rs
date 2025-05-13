@@ -1798,13 +1798,10 @@ pub fn generate(grid: &mut Grid) {
     }
      */
 
-    let perlin_noise = noise::Perlin::new(5554);
     let detail_noise = noise::Perlin::new(2222);
 
     let size = grid.size;
-    const NOISE_ZOOM: f64 = 0.3;
     const DETAIL_NOISE_ZOOM: f64 = 0.05;
-    let noise_size: (f64, f64) = (size.x as f64 * NOISE_ZOOM, size.y as f64 * NOISE_ZOOM);
     let detail_noise_size: (f64, f64) = (
         size.x as f64 * DETAIL_NOISE_ZOOM,
         size.y as f64 * DETAIL_NOISE_ZOOM,

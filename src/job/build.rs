@@ -8,7 +8,7 @@ use super::{Job, JobManager};
 
 const BUILD_TIME: Tick = 30;
 
-pub fn build(grid: &Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> Option<()> {
+pub fn build(grid: &mut Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> Option<()> {
     if grid.get_tile(pos)?.get_block().is_some() {
         return None;
     }
@@ -21,6 +21,7 @@ pub fn build(grid: &Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> Opti
     //     .expect("Can't build with item");
 
     JobManager::create_job(
+        grid,
         &mut game_ctx.events,
         Job::new(
             pos,

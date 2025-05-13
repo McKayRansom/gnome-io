@@ -1,9 +1,10 @@
 use crate::{
     block::BlockId,
-    event::Event,
+    event::{Event, EventManager, JobId},
     game::GameCtx,
     gnome::GnomeId,
     item::ItemId,
+    job::Job,
     tile::{Entity, Tile},
 };
 
@@ -102,6 +103,7 @@ impl Grid {
             tile.add_entity(Entity::Block(block_id));
         } else if let Some(old_block_id) = old_block {
             tile.remove_entity(&Entity::Block(old_block_id));
+            tile.walkable = true;
         }
         log::info!("Setting {:?} to {:?}", tile, block);
 
@@ -120,17 +122,8 @@ impl Grid {
             .remove_entity(&Entity::Gnome(id));
     }
 
-    pub fn try_take_item(&mut self, pos: Pos, item: ItemId) -> Option<ItemId> {
-        self.get_tile_mut(pos)
-            .unwrap()
-            .remove_entity(&Entity::Item(item))
-            .map(|entity| {
-                if let Entity::Item(item) = entity {
-                    item
-                } else {
-                    panic!("WHY");
-                }
-            })
+    pub fn remove_entity(&mut self, pos: Pos, entity: Entity) -> Option<Entity> {
+        self.get_tile_mut(pos).unwrap().remove_entity(&entity)
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -138,6 +131,8 @@ impl Grid {
             self.cells[pos.y as usize][pos.x as usize] = tile;
         }
     }
+
+    // pub fn successors(&self, pos: &Pos) -> Option<
 
     pub fn find_path(&self, start: Pos, end: Pos, item: Option<ItemId>) -> Option<Vec<Pos>> {
         let is_passable = self.get_tile(end)?.is_passable();
@@ -166,6 +161,51 @@ impl Grid {
         )
     }
 
+    pub fn find_job(
+        &self,
+        start: Pos,
+        events: &mut EventManager,
+    ) -> (Option<Vec<Pos>>, Option<Job>) {
+        let mut found_job: Option<Job> = None;
+        (
+            pathfinding::prelude::bfs(
+                &start,
+                |pos| {
+                    // check adjacent walls
+                    if self.get_tile(*pos).is_some_and(|tile| tile.is_passable()) {
+                        vec![
+                            Pos::new(pos.x + 1, pos.y),
+                            Pos::new(pos.x - 1, pos.y),
+                            Pos::new(pos.x, pos.y + 1),
+                            Pos::new(pos.x, pos.y - 1),
+                        ]
+                    } else {
+                        vec![Pos::new(0, 0); 0]
+                    }
+                },
+                |pos| {
+                    self.get_tile(*pos).is_some_and(|tile| tile.iter_entities().any(|entity| {
+                        if let Entity::Job(job_id) = entity {
+                            let job = events.jobs.get_mut(job_id).unwrap();
+                            if job.in_progress {
+                                // log::info!("Job in progress at {:?}", pos);
+                                return false;
+                            }
+                            job.in_progress = true;
+                            found_job = Some(job.clone());
+                            // log::info!("Found job at {:?}", pos);
+                            true
+                        } else {
+                            // log::info!("No jobs at {:?}", pos);
+                            false
+                        }
+                    }))
+                },
+            ),
+            found_job,
+        )
+    }
+
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
             if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
@@ -176,8 +216,8 @@ impl Grid {
         }
     }
 
-    pub(crate) fn drop_item(&mut self, pos: Pos, item: ItemId) -> Option<()> {
-        self.get_tile_mut(pos)?.add_entity(Entity::Item(item));
+    pub fn add_entity(&mut self, pos: Pos, entity: Entity) -> Option<()> {
+        self.get_tile_mut(pos)?.add_entity(entity);
         None
     }
 }
