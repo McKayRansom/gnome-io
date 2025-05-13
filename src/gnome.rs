@@ -1,6 +1,6 @@
 use crate::{
     game::{GameCtx, Tick},
-    grid::Pos,
+    grid::{Pos, pos},
     item::ItemId,
     job::Job,
     tile::Entity,
@@ -44,7 +44,10 @@ impl Gnome {
 
             let new_pos = self.path.remove(0);
 
-            if grid.get_tile(new_pos).is_none_or(|tile| !tile.is_passable()) {
+            if grid
+                .get_tile(new_pos)
+                .is_none_or(|tile| !tile.is_passable())
+            {
                 // impassable terrain... abort?
                 self.path.clear();
                 return;
@@ -70,7 +73,7 @@ impl Gnome {
             for required_item in job.requires.iter() {
                 if !self.items.contains(required_item) {
                     if let Some(item) = grid.remove_entity(self.pos, Entity::Item(*required_item)) {
-                        let Entity::Item(item) = item else {panic!()};
+                        let Entity::Item(item) = item else { panic!() };
                         self.items.push(item);
                     } else if let Some(path) =
                         grid.find_path(self.pos, job.pos, Some(*required_item))
@@ -104,7 +107,7 @@ impl Gnome {
                     // job_manager.failed_job(pos);
                     // self.job = None; // Job is unreachable, remove it
                     game_ctx.events.remove_job(job.id);
-                        grid.remove_entity(job.pos, Entity::Job(job.id));
+                    grid.remove_entity(job.pos, Entity::Job(job.id));
                 }
                 return;
             }
@@ -119,6 +122,20 @@ impl Gnome {
             let _ = match job.entity {
                 Some(Entity::Item(item_id)) => grid.add_entity(job.pos, Entity::Item(item_id)),
                 Some(Entity::Block(block_id)) => {
+                    // jank city, population Jank Jankerton III
+                    // move ourself out of the way so we're not stuck
+                    for pos in pos::dirs::ALL {
+                        let new_pos = self.pos + pos;
+                        if grid
+                            .get_tile(new_pos)
+                            .is_some_and(|tile| tile.is_passable())
+                        {
+                            grid.gnome_exit(self.pos, self.id);
+                            grid.gnome_enter(new_pos, self.id);
+                            self.pos = new_pos
+                        }
+                    }
+
                     grid.place_block(job.pos, Some(block_id), game_ctx)
                 }
                 None => grid.place_block(job.pos, None, game_ctx),

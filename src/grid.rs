@@ -8,7 +8,7 @@ use crate::{
     tile::{Entity, Tile},
 };
 
-mod pos;
+pub mod pos;
 use macroquad::rand;
 pub use pos::Pos;
 
