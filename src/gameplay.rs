@@ -4,17 +4,17 @@ use macroquad::{
     math::vec2,
     ui::{hash, root_ui, widgets::Window},
 };
+use quad_lib::tileset::Sprite;
 
 use crate::{
     block::BlockId,
     context::Context,
-    draw::{draw_game, draw_tile_outline},
-    game::{CRAFT_TABLE_ID, FURNACE_ID, Game, STONE_BLOCK_ID},
+    draw::{draw_game, draw_tile_outline, sprites},
+    game::{Game, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
     grid::Pos,
     job::{Job, JobManager},
     tile::Entity,
-    tileset::{Sprite, sprites},
-    toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
+    toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
 };
 
 pub enum GameAction {
@@ -38,8 +38,8 @@ const SCROLL_SENSITIVITY: f32 = 0.05;
 
 impl Gameplay {
     pub fn new(ctx: &mut Context) -> Self {
-        ctx.tileset.change_zoom(0.9);
-        ctx.tileset.camera = (500., 500.);
+        ctx.camera.change_zoom(0.9);
+        ctx.camera.camera = vec2(500., 500.);
         Self {
             game: Game::generate(),
             mouse_down_pos: None,
@@ -64,16 +64,16 @@ impl Gameplay {
         // check WASD
         // TODO: Right click PAN
         if is_key_down(KeyCode::W) {
-            ctx.tileset.camera.1 -= WASD_MOVE_SENSITIVITY / ctx.tileset.zoom;
+            ctx.camera.camera.y -= WASD_MOVE_SENSITIVITY / ctx.camera.zoom;
         }
         if is_key_down(KeyCode::A) {
-            ctx.tileset.camera.0 -= WASD_MOVE_SENSITIVITY / ctx.tileset.zoom;
+            ctx.camera.camera.x -= WASD_MOVE_SENSITIVITY / ctx.camera.zoom;
         }
         if is_key_down(KeyCode::S) {
-            ctx.tileset.camera.1 += WASD_MOVE_SENSITIVITY / ctx.tileset.zoom;
+            ctx.camera.camera.y += WASD_MOVE_SENSITIVITY / ctx.camera.zoom;
         }
         if is_key_down(KeyCode::D) {
-            ctx.tileset.camera.0 += WASD_MOVE_SENSITIVITY / ctx.tileset.zoom;
+            ctx.camera.camera.x += WASD_MOVE_SENSITIVITY / ctx.camera.zoom;
         }
 
         if ctx.mouse_pos.is_none() {
@@ -82,7 +82,7 @@ impl Gameplay {
 
         let new_mouse_wheel = mouse_wheel();
         if new_mouse_wheel.1 != 0. {
-            ctx.tileset
+            ctx.camera
                 .change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1);
         }
     }
@@ -108,7 +108,7 @@ impl Gameplay {
             // special behaviour for workshops
             if Window::new(
                 hash!(),
-                ctx.tileset.to_screen(draw_details_pos) - vec2(0., 100.),
+                ctx.camera.to_screen(draw_details_pos.into()) - vec2(0., 100.),
                 vec2(100., 100.),
             )
             .movable(false)
@@ -152,7 +152,7 @@ impl Gameplay {
 
         if let Some(mouse_pos) = ctx.mouse_pos {
             // if let Some(pos) =
-            let mouse_pos = ctx.tileset.from_screen(mouse_pos.into());
+            let mouse_pos = ctx.camera.to_world(mouse_pos.into()).into();
             if self.game.grid.is_valid_pos(mouse_pos) {
                 if is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                     self.mouse_down_pos = Some(mouse_pos);

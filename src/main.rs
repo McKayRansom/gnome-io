@@ -6,7 +6,7 @@ mod gnome;
 mod grid;
 mod job;
 mod tile;
-mod tileset;
+// mod tileset;
 mod context;
 mod draw;
 mod gameplay;

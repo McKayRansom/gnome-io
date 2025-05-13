@@ -1,6 +1,6 @@
 use crate::{
     block::BlockId,
-    event::{Event, EventManager, JobId},
+    event::{Event, EventManager},
     game::GameCtx,
     gnome::GnomeId,
     item::ItemId,

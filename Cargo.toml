@@ -9,6 +9,7 @@ log = "0.4.27"
 macroquad = "0.4.14"
 noise = "0.9.0"
 pathfinding = "4.14.0"
+quad-lib = {path = "quad-lib"}
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

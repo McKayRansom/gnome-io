@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{event::EventId, game::Tick, item::ItemId, tileset::{sprites, Sprite}};
+use quad_lib::tileset::Sprite;
+
+use crate::{draw::sprites, event::EventId, game::Tick, item::ItemId};
 
 pub type BlockId = u32;
 

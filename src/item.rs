@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
-use crate::{block::BlockId, tileset::{sprites, Sprite}};
+use quad_lib::tileset::Sprite;
+
+use crate::{block::BlockId, draw::sprites};
 
 pub type ItemId = u32;
 
@@ -20,12 +22,6 @@ impl Default for ItemType {
 }
 
 impl ItemType {
-    pub fn builds(sprite: Sprite, block: BlockId) -> Self {
-        Self {
-            sprite,
-            recipe: None,
-        }
-    }
     pub fn new(sprite: Sprite) -> Self {
         Self {
             sprite,

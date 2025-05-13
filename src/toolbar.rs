@@ -6,8 +6,9 @@ use macroquad::{
     text::draw_text,
     texture::{draw_texture_ex, DrawTextureParams},
 };
+use quad_lib::tileset::Sprite;
 
-use crate::{context::Context, tileset::Sprite};
+use crate::context::Context;
 
 #[derive(Clone, Copy)]
 pub struct ToolbarItem<V> {

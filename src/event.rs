@@ -73,28 +73,6 @@ impl EventManager {
         });
     }
 
-    // pub fn pop_event_downcast<T>(&mut self, id: EventId) -> Option<Box<T>>
-    // where
-    //     T: 'static,
-    // {
-    //     self.events
-    //         .get_mut(&id)
-    //         .expect("Unkown event ID")
-    //         .pop_front()
-    //         .map(|event| {
-    //             let value = event.value.downcast_ref::<T>();
-    //             value.unwrap()
-    //         })
-    // }
-
-    pub fn get_queue(&self, id: &EventId) -> Option<&VecDeque<Event>> {
-        self.events.get(id)
-    }
-
-    pub fn get_queue_mut(&mut self, id: &EventId) -> Option<&mut VecDeque<Event>> {
-        self.events.get_mut(id)
-    }
-
     pub fn update_timers(&mut self) {
         // yes I know this sucks...
         self.timers.retain_mut(|timer| {

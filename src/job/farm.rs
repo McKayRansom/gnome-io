@@ -1,11 +1,7 @@
+use quad_lib::tileset::Sprite;
+
 use crate::{
-    block::{BlockId, BlockType},
-    event::{Event, EventId, EventManager},
-    game::{FURNACE_ID, GameCtx, Tick},
-    grid::{BlockUpdateEvent, Grid, Pos},
-    item::{ItemId, ItemType},
-    tile::{Entity, TileBiome},
-    tileset::{Sprite, sprites},
+    block::{BlockId, BlockType}, draw::sprites, event::{Event, EventId, EventManager}, game::{GameCtx, Tick, FURNACE_ID}, grid::{BlockUpdateEvent, Grid, Pos}, item::{ItemId, ItemType}, tile::{Entity, TileBiome}
 };
 
 use super::{Job, JobManager};
@@ -44,7 +40,7 @@ impl FarmManager {
     pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
         game_ctx
             .items
-            .add_item(WHEAT_SEED, ItemType::builds(Sprite::new(2, 3), WHEAT_0_ID));
+            .add_item(WHEAT_SEED, ItemType::new(Sprite::new(2, 3)));
         game_ctx
             .items
             .add_item(WHEAT_GRAIN, ItemType::new(Sprite::new(2, 7)));

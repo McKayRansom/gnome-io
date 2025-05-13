@@ -1,8 +1,13 @@
-use macroquad::{input::{get_char_pressed, mouse_position}, math::Vec2, ui::root_ui, window::{screen_height, screen_width}};
-
-use crate::tileset::Tileset;
+use macroquad::{
+    input::{get_char_pressed, mouse_position},
+    math::Vec2,
+    ui::root_ui,
+    window::{screen_height, screen_width},
+};
+use quad_lib::{camera::Camera, tileset::Tileset};
 
 pub struct Context {
+    pub camera: Camera,
     pub tileset: Tileset,
     pub key_pressed: Option<char>,
     pub mouse_pos: Option<Vec2>,
@@ -12,6 +17,7 @@ pub struct Context {
 impl Context {
     pub async fn new() -> Self {
         Self {
+            camera: Camera::new(),
             tileset: Tileset::new().await,
             key_pressed: None,
             mouse_pos: None,

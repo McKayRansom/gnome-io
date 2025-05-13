@@ -1,5 +1,7 @@
 use std::ops::Add;
 
+use macroquad::math::{Rect, Vec2};
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Pos {
     pub x: i16,
@@ -62,5 +64,38 @@ impl Add<Pos> for Pos {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
         }
+    }
+}
+
+// Default zoom pixel size of Position
+pub const GRID_CELL_SIZE: (f32, f32) = (64., 64.);
+pub const PIXEL_SIZE: f32 = 64. / 16.;
+
+impl From<Vec2> for Pos {
+    fn from(value: Vec2) -> Self {
+        Self {
+            x: (value.x / GRID_CELL_SIZE.0) as i16,
+            y: (value.y / GRID_CELL_SIZE.1) as i16,
+        }
+    }
+}
+
+impl From<Pos> for Vec2 {
+    fn from(value: Pos) -> Self {
+        Self {
+            x: value.x as f32 * GRID_CELL_SIZE.0,
+            y: value.y as f32 * GRID_CELL_SIZE.1,
+        }
+    }
+}
+
+impl From<Pos> for Rect {
+    fn from(pos: Pos) -> Self {
+        Rect::new(
+            pos.x as f32 * GRID_CELL_SIZE.0,
+            pos.y as f32 * GRID_CELL_SIZE.1, /* - (pos.z as f32 * GRID_Z_OFFSET) */
+            GRID_CELL_SIZE.0,
+            GRID_CELL_SIZE.1,
+        )
     }
 }
