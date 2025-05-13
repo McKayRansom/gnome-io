@@ -20,13 +20,13 @@ use crate::{
 pub mod sprites {
     use quad_lib::tileset::Sprite;
 
-    pub const GNOME: Sprite = Sprite::new(0, 0);
+    pub const GNOME: Sprite = Sprite::new(1, 0);
 
-    pub const STONE: Sprite = Sprite::new(0, 3);
-    pub const ORE: Sprite = Sprite::new(0, 4);
+    pub const STONE: Sprite = Sprite::new(3, 5);
+    pub const ORE: Sprite = Sprite::new(3, 6);
     pub const STONE_ITEM: Sprite = Sprite::new(2, 2);
 
-    pub const TREE: Sprite = Sprite::new(2, 4);
+    pub const TREE: Sprite = Sprite::new(3, 4);
     pub const WOOD: Sprite = Sprite::new(2, 5);
 
     pub const FURNACE: Sprite = Sprite::new(0, 5);
@@ -124,17 +124,17 @@ pub fn draw_rect_outline(rect: &Rect, color: Color, ctx: &Context) {
 
 pub fn draw_tile_outline(grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     let mut rect: Rect = (*pos).into();
-    if grid.get_tile(*pos).is_some_and(|tile| !tile.is_passable()) {
-        // draw "box" around block
-        // "top side"
-        rect.h = GRID_CELL_SIZE.0;
-        rect.y -= TILE_PERSPECTIVE_HEIGHT;
+    // if grid.get_tile(*pos).is_some_and(|tile| !tile.is_passable()) {
+    //     // draw "box" around block
+    //     // "top side"
+    //     rect.h = GRID_CELL_SIZE.0;
+    //     rect.y -= TILE_PERSPECTIVE_HEIGHT;
+    //     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
+    //     // "front side" facing camera
+    //     rect.h = TILE_PERSPECTIVE_HEIGHT;
+    //     rect.y += GRID_CELL_SIZE.0;
+    //     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
+    // } else {
         draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
-        // "front side" facing camera
-        rect.h = TILE_PERSPECTIVE_HEIGHT;
-        rect.y += GRID_CELL_SIZE.0;
-        draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
-    } else {
-        draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
-    }
+    // }
 }
