@@ -27,7 +27,7 @@ pub enum Entity {
 #[derive(Debug, Clone)]
 pub struct Tile {
     // should this be hashmap?
-    entities: Vec<Entity>,
+    pub entities: Vec<Entity>,
     pub biome: TileBiome,
     // TODO: PathfindingInfo{}
     pub walkable: bool,

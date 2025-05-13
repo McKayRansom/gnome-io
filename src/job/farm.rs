@@ -1,14 +1,14 @@
 use crate::{
     block::{BlockId, BlockType},
     event::{Event, EventId, EventManager},
-    game::{GameCtx, Tick, FURNACE_ID},
+    game::{FURNACE_ID, GameCtx, Tick},
     grid::{BlockUpdateEvent, Grid, Pos},
     item::{ItemId, ItemType},
     tile::{Entity, TileBiome},
-    tileset::{sprites, Sprite},
+    tileset::{Sprite, sprites},
 };
 
-use super::{JOB_QUEUE, Job};
+use super::{Job, JobManager};
 
 // pub struct Farm {
 //     pub start: Pos,
@@ -97,26 +97,20 @@ impl FarmManager {
     }
 
     // impl EventHandler for FarmManager {
-    pub fn update(&mut self, events: &mut EventManager, grid: &Grid) {
+    pub fn update(&mut self, events: &mut EventManager, grid: &mut Grid) {
         while let Some(event) = events.pop_event(FARM_EVENT_ID) {
             if let Some(job) = self.handle_event(events, grid, event) {
-                events.push_event(Event {
-                    id: JOB_QUEUE,
-                    value: Box::new(job),
-                });
+                JobManager::create_job(grid, events, job);
             }
         }
     }
 
-    pub fn new_farm(&mut self, grid: &Grid, pos: Pos, game_ctx: &mut GameCtx) {
+    pub fn new_farm(&mut self, grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) {
         if !self.farm_pos.contains(&pos) {
             self.farm_pos.push(pos);
         }
         if let Some(job) = self.tile_changed(&mut game_ctx.events, grid, &pos) {
-            game_ctx.events.push_event(Event {
-                id: JOB_QUEUE,
-                value: Box::new(job),
-            });
+            JobManager::create_job(grid, &mut game_ctx.events, job);
         }
     }
 

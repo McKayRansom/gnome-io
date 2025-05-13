@@ -184,26 +184,40 @@ impl Grid {
                     }
                 },
                 |pos| {
-                    self.get_tile(*pos).is_some_and(|tile| tile.iter_entities().any(|entity| {
-                        if let Entity::Job(job_id) = entity {
-                            let job = events.jobs.get_mut(job_id).unwrap();
-                            if job.in_progress {
-                                // log::info!("Job in progress at {:?}", pos);
-                                return false;
+                    self.get_tile(*pos).is_some_and(|tile| {
+                        tile.iter_entities().any(|entity| {
+                            if let Entity::Job(job_id) = entity {
+                                let job = events.jobs.get_mut(job_id).expect("LEAKED JOB");
+                                if job.in_progress {
+                                    // log::info!("Job in progress at {:?}", pos);
+                                    return false;
+                                }
+                                job.in_progress = true;
+                                found_job = Some(job.clone());
+                                // log::info!("Found job at {:?}", pos);
+                                true
+                            } else {
+                                // log::info!("No jobs at {:?}", pos);
+                                false
                             }
-                            job.in_progress = true;
-                            found_job = Some(job.clone());
-                            // log::info!("Found job at {:?}", pos);
-                            true
-                        } else {
-                            // log::info!("No jobs at {:?}", pos);
-                            false
-                        }
-                    }))
+                        })
+                    })
                 },
             ),
             found_job,
         )
+    }
+
+    pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
+        let tile = self.get_tile_mut(pos).unwrap();
+        tile.entities.retain(|entity| {
+            if let Entity::Job(job_id) = entity {
+                events.jobs.remove(job_id);
+                false
+            } else {
+                true
+            }
+        });
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {

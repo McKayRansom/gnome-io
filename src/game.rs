@@ -138,7 +138,7 @@ impl Game {
 
         self.job_manager
             .farm_manager
-            .update(&mut self.game_ctx.events, &self.grid);
+            .update(&mut self.game_ctx.events, &mut self.grid);
     }
 
     pub fn spawn_gnome(&mut self, pos: Pos) {
@@ -156,7 +156,7 @@ impl Game {
     pub fn farm(&mut self, pos: Pos) {
         self.job_manager
             .farm_manager
-            .new_farm(&self.grid, pos, &mut self.game_ctx);
+            .new_farm(&mut self.grid, pos, &mut self.game_ctx);
     }
 
     pub fn build(&mut self, pos: Pos, block_id: BlockId) {
@@ -164,7 +164,7 @@ impl Game {
     }
 
     pub fn cancel(&mut self, pos: Pos) {
-        self.job_manager.cancel_job(pos, &mut self.game_ctx);
+        self.job_manager.cancel_job(pos, &mut self.grid, &mut self.game_ctx);
     }
 }
 

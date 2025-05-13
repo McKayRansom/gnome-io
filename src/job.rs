@@ -1,9 +1,8 @@
 use farm::FarmManager;
-use macroquad::rand;
 
 use crate::{
-    event::{Event, EventId, EventManager, JobId},
-    game::{GameCtx, Tick},
+    event::{EventManager, JobId},
+    game::GameCtx,
     grid::{Grid, Pos},
     item::ItemId, tile::Entity,
 };
@@ -57,7 +56,7 @@ impl Job {
     }
 }
 
-pub const JOB_QUEUE: EventId = 10;
+// pub const JOB_QUEUE: EventId = 10;
 // pub const JOB_FAIL_QUEUE: EventId = 11;
 
 pub struct JobManager {
@@ -66,7 +65,7 @@ pub struct JobManager {
 
 impl JobManager {
     pub fn new(game_ctx: &mut GameCtx) -> Self {
-        game_ctx.events.add_event_class(JOB_QUEUE);
+        // game_ctx.events.add_event_class(JOB_QUEUE);
         // game_ctx.events.add_event_class(JOB_FAIL_QUEUE);
         Self {
             farm_manager: FarmManager::new(game_ctx),
@@ -89,19 +88,9 @@ impl JobManager {
     //     })
     // }
 
-    pub fn cancel_job(&mut self, pos: Pos, game_ctx: &mut GameCtx) {
+    pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
         self.farm_manager.cancel_farm(pos);
-        game_ctx
-            .events
-            .get_queue_mut(&JOB_QUEUE)
-            .unwrap()
-            .retain(|event| {
-                if let Some(job) = event.value.downcast_ref::<Job>() {
-                    job.pos != pos
-                } else {
-                    true
-                }
-            });
+        grid.cancel_job(pos, &mut game_ctx.events);
     }
 
     // pub fn fail_job(events: &mut EventManager, job: Box<Job>) {

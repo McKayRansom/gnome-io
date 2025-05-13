@@ -2,7 +2,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::Pos,
     item::ItemId,
-    job::{Job, JobManager},
+    job::Job,
     tile::Entity,
 };
 

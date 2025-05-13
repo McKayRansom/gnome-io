@@ -3,17 +3,15 @@ use macroquad::color::{Color, colors};
 
 use crate::{
     context::Context,
-    game::{Game, GameCtx, Gnomes},
+    game::{Game, GameCtx},
     grid::{Grid, Pos},
-    job::{Job, JOB_QUEUE},
     tile::{Entity, TileBiome},
-    tileset::{pos_to_rect, sprites, Sprite, GRID_CELL_SIZE, PIXEL_SIZE},
+    tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx);
     // draw_gnomes(&game.gnomes, ctx);
-    draw_jobs(&game.game_ctx, &game.grid, &game.gnomes, ctx);
 }
 
 fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
@@ -48,9 +46,22 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
                                 panic!("No block found fo id {}", block);
                             };
                             block.sprite
-                        },
-                        Entity::Job(_) => {
-                            draw_tile_outline(grid, &pos, Color::new(0.3, 0.3, 0., 1.0), ctx);
+                        }
+                        Entity::Job(job) => {
+                            draw_tile_outline(
+                                grid,
+                                &pos,
+                                if let Some(job) = game_ctx.events.jobs.get(job) {
+                                    if job.in_progress {
+                                        Color::new(0., 0.3, 0., 1.0)
+                                    } else {
+                                        Color::new(0.3, 0.3, 0., 1.0)
+                                    }
+                                } else {
+                                    Color::new(0.3, 0.0, 0., 1.0)
+                                },
+                                ctx,
+                            );
                             continue;
                         }
                     },
@@ -81,22 +92,3 @@ pub fn draw_tile_outline(grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     }
 }
 
-fn draw_jobs(game_ctx: &GameCtx, grid: &Grid, gnomes: &Gnomes, ctx: &Context) {
-    for event in game_ctx.events.get_queue(&JOB_QUEUE).unwrap().iter() {
-        if let Some(job) = event.value.downcast_ref::<Job>() {
-            draw_tile_outline(grid, &job.pos, Color::new(0.3, 0.3, 0., 1.0), ctx);
-        }
-    }
-    // look for failed jobs
-    for timer in game_ctx.events.timers.iter() {
-        if let Some(job) = timer.event.as_ref().unwrap().value.downcast_ref::<Job>() {
-            draw_tile_outline(grid, &job.pos, Color::new(0.3, 0.0, 0., 1.0), ctx);
-        }
-    }
-    // draw in-progress jobs
-    for gnome in gnomes.values() {
-        if let Some(job) = &gnome.job {
-            draw_tile_outline(grid, &job.pos, Color::new(0., 0.3, 0., 1.0), ctx);
-        }
-    }
-}
