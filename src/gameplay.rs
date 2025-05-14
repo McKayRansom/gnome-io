@@ -1,7 +1,7 @@
 use macroquad::{
     color::Color,
     input::{KeyCode, is_key_down, is_mouse_button_pressed, is_mouse_button_released, mouse_wheel},
-    math::vec2,
+    math::{Vec2, vec2},
     time::get_time,
     ui::{hash, root_ui, widgets::Window},
 };
@@ -11,14 +11,16 @@ use crate::{
     block::BlockId,
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{time::GameTimeEvent, Game, GameSpeed, BED_ID, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
-    grid::Pos,
+    game::{
+        BED_ID, CRAFT_TABLE_ID, FURNACE_ID, Game, GameSpeed, STONE_BLOCK_ID, time::GameTimeEvent,
+    },
+    grid::{Pos, pos::GRID_CELL_SIZE},
     job::{Job, JobManager},
     tile::Entity,
     ui::{
         menu::{Menu, MenuItem},
         popup::{Popup, PopupResult},
-        toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
+        toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
     },
 };
 
@@ -161,7 +163,8 @@ impl Gameplay {
             );
         }
 
-        self.time_select.draw(ctx, ctx.screen_size.x - TOOLBAR_SPACE * 1.5, 0.);
+        self.time_select
+            .draw(ctx, ctx.screen_size.x - TOOLBAR_SPACE * 1.5, 0.);
         match self.time_select.get_selected() {
             Some(TimeSelect::Pause) => {
                 self.game.speed = GameSpeed::Paused;
@@ -205,11 +208,15 @@ impl Gameplay {
 
         if let Some(draw_details_pos) = self.draw_details_pos {
             // special behaviour for workshops
+            let size = Vec2::new(200., 200.);
             if Window::new(
                 hash!(),
-                ctx.camera.to_screen(draw_details_pos.into()) - vec2(0., 100.),
-                vec2(100., 100.),
+                ctx.camera
+                    .to_screen(Into::<Vec2>::into(draw_details_pos) + vec2(GRID_CELL_SIZE.0 / 2., 0.))
+                    - vec2(size.x / 2., size.y),
+                size,
             )
+            .titlebar(false)
             .movable(false)
             .ui(&mut root_ui(), |ui| {
                 let tile = self.game.grid.get_tile(draw_details_pos).unwrap();

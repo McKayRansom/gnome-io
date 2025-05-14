@@ -10,10 +10,9 @@ use crate::{
     game::{Game, GameCtx, Gnomes},
     gnome::{self, SLEEP_TIRED},
     grid::{
-        Grid, Pos,
-        pos::{PIXEL_SIZE, dirs},
+        pos::{dirs, PIXEL_SIZE}, Grid, Pos
     },
-    text::draw_text,
+    text::{draw_text, draw_text_screen_centered},
     tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
@@ -57,10 +56,13 @@ pub mod sprites {
     pub const WHEAT_3: Sprite = Sprite::new(3, 6);
     pub const WHEAT_4: Sprite = Sprite::new(3, 7);
 
-    pub const PLAY: Sprite = Sprite::new(0, 0);
-    pub const PAUSE: Sprite = Sprite::new(0, 0);
-    pub const FAST_FORWARD: Sprite = Sprite::new(0, 0);
-    pub const MENU: Sprite = Sprite::new(0, 0);
+    pub const TOOLBAR_EDGE: Sprite = Sprite::new(6, 2);
+    pub const TOOLBAR_MID: Sprite = Sprite::new(6, 3);
+
+    pub const PLAY: Sprite = Sprite::new(6, 4);
+    pub const PAUSE: Sprite = Sprite::new(6, 5);
+    pub const FAST_FORWARD: Sprite = Sprite::new(6, 6);
+    pub const MENU: Sprite = Sprite::new(6, 7);
 }
 
 pub fn draw_game(game: &Game, ctx: &Context) {
@@ -223,12 +225,12 @@ fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
 
 fn draw_status(game: &Game, ctx: &Context) {
     let time = &game.game_ctx.time;
-    draw_text(
+    draw_text_screen_centered(
         ctx,
         format!("Day {} of {:?} Year {}", time.day, time.season, time.year).as_str(),
-        ctx.screen_size.x - 100.,
-        20.,
-        crate::text::Size::Medium,
+        // ctx.screen_size.x - 200.,
+        25.,
+        crate::text::Size::Small,
         colors::WHITE,
     );
 }

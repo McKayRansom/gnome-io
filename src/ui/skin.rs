@@ -6,6 +6,8 @@ use macroquad::{
     ui::{root_ui, Skin},
 };
 
+use crate::text::text_size;
+
 pub const MENU_FONT_SIZE: u16 = 48;
 pub const MENU_MARGIN: f32 = 16.;
 pub const MENU_OUTER_MARGIN: f32 = 16.;
@@ -26,8 +28,8 @@ pub async fn init() -> Font {
         .style_builder()
         .with_font(&font)
         .unwrap()
-        .text_color(Color::from_rgba(120, 120, 120, 255))
-        .font_size(25)
+        .text_color(Color::from_rgba(180, 180, 180, 255))
+        .font_size(20)
         .build();
 
     let window_style = root_ui()
@@ -69,8 +71,9 @@ pub async fn init() -> Font {
         )
         .with_font(&font)
         .unwrap()
-        .text_color(Color::from_rgba(180, 180, 100, 255))
-        .font_size(40)
+        .text_color(Color::from_rgba(180, 180, 180, 255))
+        // .font_size(40)
+        .font_size(text_size(crate::text::Size::Small))
         .build();
 
     let checkbox_style = root_ui()

@@ -1,11 +1,7 @@
 use macroquad::rand::rand;
 
 use crate::{
-    game::{GameCtx, Tick, BED_ID},
-    grid::{pos::dirs, Grid, Pos},
-    item::ItemId,
-    job::{farm::BREAD_ID, Job},
-    tile::Entity,
+    draw::sprites::GNOME, game::{time::hours, GameCtx, Tick, BED_ID}, grid::{pos::dirs, Grid, Pos}, item::ItemId, job::{farm::BREAD_ID, Job}, tile::Entity
 };
 
 pub type GnomeId = u32;
@@ -26,14 +22,14 @@ pub struct Gnome {
 
 const GNOME_SPEED: Tick = 20;
 
-const BASE_TIRED: u16 = 24;
-const BASE_FOOD: u16 = 24;
+const BASE_TIRED: u16 = hours(20);
+const BASE_FOOD: u16 = hours(10);
 
-pub const SLEEP_TIRED: u16 = 6;
-pub const FOOD_EAT: u16 = 12;
+pub const SLEEP_TIRED: u16 = hours(1);
+pub const FOOD_EAT: u16 = hours(1);
 
-const PASS_OUT_TIME: u16 = 240;
-const SLEEP_TIME: u16 = 200;
+const PASS_OUT_TIME: u16 = hours(6);
+const SLEEP_TIME: u16 = hours(4);
 
 impl Gnome {
     pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
@@ -54,6 +50,8 @@ impl Gnome {
     }
 
     pub fn update(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut GameCtx) {
+        self.tired = self.tired.saturating_sub(1);
+        self.food = self.food.saturating_sub(1);
         if self.timer > 0 {
             self.timer -= 1;
             return;
@@ -61,48 +59,46 @@ impl Gnome {
 
         self.sleeping = false;
 
-        // this feels a bit not-optimial but IDK
-        if self.tired > 0 {
-            self.tired -= 1;
-            if self.tired < SLEEP_TIRED {
-                if let Some(path) = grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID))) {
-                    self.path = path;
-                } else {
-                    // log::warn("Unable to find bed...")
-                    self.move_random(grid, game_ctx);
-                }
-                return;
-            }
-        } else {
-            // pass out on the spot
-            self.tired = BASE_TIRED / 2;
-            self.timer = PASS_OUT_TIME;
-            self.sleeping = true;
-        }
-
         if !self.path.is_empty() {
-            // Move towards the destination
-            if grid.get_tile(self.pos).unwrap().get_block().is_some_and(|block| block == BED_ID) {
-                // great, sleep here
-                self.sleeping = true;
-                self.tired = BASE_TIRED;
-                self.timer = SLEEP_TIME;
-            }
-            else if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
+            if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
                 self.pos = pos;
                 self.timer = GNOME_SPEED;
             } else {
-                // impassable terrain... abort?
+                //impassable terrain
                 self.path.clear();
             }
             return;
         }
 
-        if self.food > 0 {
-            self.food -= 1;
-        } else {
-            // die of starvation? Take health injury?
+        // this feels a bit not-optimial but IDK
+        if self.tired < SLEEP_TIRED {
+            if grid
+                .get_tile(self.pos)
+                .unwrap()
+                .get_block()
+                .is_some_and(|block| block == BED_ID)
+            {
+                // great, sleep here
+                self.sleeping = true;
+                self.tired = BASE_TIRED;
+                self.timer = SLEEP_TIME;
+            } else if let Some(path) =
+                grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID)))
+            {
+                self.path = path;
+            } else {
+                // log::warn("Unable to find bed...")
+                self.move_random(grid, game_ctx);
+                if self.tired == 0 {
+                    // pass out on the spot
+                    self.tired = BASE_TIRED;
+                    self.timer = PASS_OUT_TIME;
+                    self.sleeping = true;
+                }
+            }
+            return;
         }
+
         if self.food < FOOD_EAT {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP

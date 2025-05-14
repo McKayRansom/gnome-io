@@ -1,15 +1,17 @@
 use macroquad::{
-    color::{self, Color},
+    color::{self, Color, colors},
     input::{is_mouse_button_down, mouse_position},
-    math::{vec2, Rect, Vec2},
+    math::{Rect, Vec2, vec2},
     shapes::draw_rectangle,
-    text::draw_text,
-    texture::{draw_texture_ex, DrawTextureParams},
-    ui::{hash, root_ui},
+    texture::{DrawTextureParams, draw_texture_ex},
 };
 use quad_lib::tileset::Sprite;
 
-use crate::context::Context;
+use crate::{
+    context::Context,
+    draw::sprites,
+    text::{draw_text, measure_text},
+};
 
 #[derive(Clone, Copy)]
 pub struct ToolbarItem<V> {
@@ -113,12 +115,14 @@ impl<V> Toolbar<V> {
             self.mouse_down = None;
         }
 
-        macroquad::ui::widgets::Window::new(
-            hash!() + x as u64 + y as u64,
-            self.rect.point(),
-            self.rect.size(),
-        )
-        .ui(&mut root_ui(), |_ui| {});
+        // macroquad::ui::widgets::Window::new(
+        //     hash!() + x as u64 + y as u64,
+        //     self.rect.point(),
+        //     self.rect.size(),
+        // )
+        // .ui(&mut root_ui(), |_ui| {});
+
+        // root_ui().window(id, position, size, f)
         // draw_rectangle(
         //     self.rect.x,
         //     self.rect.y,
@@ -126,6 +130,13 @@ impl<V> Toolbar<V> {
         //     self.rect.h,
         //     window_color,
         // );
+
+        let mut background_rect = Rect::new(
+            self.rect.x,
+            self.rect.y,
+            TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD,
+            TOOLBAR_ITEM_HEIGHT + TOOLBAR_ITEM_PAD,
+        );
 
         let mut item_rect = Rect::new(
             self.rect.x + TOOLBAR_ITEM_PAD / 2.,
@@ -135,8 +146,27 @@ impl<V> Toolbar<V> {
         );
         let mut tooltip: Option<(&'static str, Vec2)> = None;
         for (i, toolbar_item) in self.items.iter().enumerate() {
-            let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
+            let spr_rect = ctx
+                .tileset
+                .sprite_rect(if i == 0 || i == self.items.len() - 1 {
+                    sprites::TOOLBAR_EDGE
+                } else {
+                    sprites::TOOLBAR_MID
+                });
+            draw_texture_ex(
+                &ctx.tileset.texture,
+                background_rect.x,
+                background_rect.y, // JANK FOR DOUBLE HIGH SPRITES
+                colors::WHITE,
+                DrawTextureParams {
+                    dest_size: Some(vec2(background_rect.w, background_rect.h)), // JANK FOR DOUBLE HIGH SPRITES
+                    source: Some(spr_rect),
+                    flip_x: i == self.items.len() - 1,
+                    ..Default::default()
+                },
+            );
 
+            let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
             draw_texture_ex(
                 &ctx.tileset.texture,
                 item_rect.x,
@@ -197,13 +227,35 @@ impl<V> Toolbar<V> {
 
             if self.kind == ToolbarType::Horizontal {
                 item_rect.x += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
+                background_rect.x += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
             } else {
                 item_rect.y += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
+                background_rect.y += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
             }
         }
 
         if let Some(tooltip) = tooltip {
-            draw_text(tooltip.0, tooltip.1.x, tooltip.1.y, 24., color::WHITE);
+            let measure = measure_text(ctx, tooltip.0, crate::text::Size::Small);
+            draw_rectangle(
+                tooltip.1.x,
+                tooltip.1.y - measure.height,
+                measure.width,
+                measure.height,
+                Color {
+                    r: 0.,
+                    g: 0.,
+                    b: 0.,
+                    a: 0.3,
+                },
+            );
+            draw_text(
+                ctx,
+                tooltip.0,
+                tooltip.1.x,
+                tooltip.1.y,
+                crate::text::Size::Small,
+                color::WHITE,
+            );
         }
 
         if let Some(mouse_pos) = ctx.mouse_pos {

@@ -1,10 +1,15 @@
 // use super::Tick;
 
+use super::Tick;
+
 // pub const TICKS_PER_MINUTE: Tick = 1;
 pub type Minute = u8;
 pub const MINUTES_PER_HOUR: Minute = 60; // 1 IRL second
 pub type Hour = u8;
-pub const HOURS_PER_DAY: Hour = 60; // 60 IRL seconds
+pub const HOURS_PER_DAY: Hour = 24; // 24 IRL seconds
+pub const fn hours(hours: Hour) -> Tick {
+    hours as Tick * MINUTES_PER_HOUR as Tick
+}
 pub type Day = u8;
 pub const DAYS_PER_SEASON: Day = 10; // 10 IRL minutes
 
