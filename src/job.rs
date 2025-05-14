@@ -34,6 +34,14 @@ pub mod mine;
  * Specifically with mining we need a way to find the closest mining job with a valid path...
  *
  */
+ /*
+  * Thoughts on hauling:
+  * - option1: Low priority Job in global job list
+  * - option2: automatically created job when looking for jobs and we see loose items
+  * - option3: (stupid) don't haul just leave everything a mess always
+  * - remove hauling and just have jobs dump into gnome's inventory, and then drop in chest when full/idle?
+  * - how are chests going to work in general, what happens when you mine a chest, goes into gnome inventory? (I hate that they keep their items in gnomoria)
+  */
 #[derive(Clone, Debug)]
 pub struct Job {
     pub id: JobId,

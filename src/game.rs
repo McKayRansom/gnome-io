@@ -1,17 +1,29 @@
 use std::collections::HashMap;
 
+use time::GameTime;
 
 use crate::{
-    block::{BlockId, BlockType, Blocks}, draw::sprites, event::EventManager, gnome::{Gnome, GnomeId}, grid::{Grid, Pos}, item::{ItemId, ItemType, Items}, job::{
-        build, farm::{BREAD_ID, WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager
-    }, tile::Entity
+    block::{BlockId, BlockType, Blocks},
+    draw::sprites,
+    event::EventManager,
+    gnome::{Gnome, GnomeId},
+    grid::{Grid, Pos},
+    item::{ItemId, ItemType, Items},
+    job::{
+        JobManager, build,
+        farm::{BREAD_ID, WHEAT_GRAIN, WHEAT_SEED},
+        mine::mine,
+    },
+    tile::Entity,
 };
 
 mod generate;
+pub mod time;
 
 pub type Tick = u16;
 
 pub struct GameCtx {
+    pub time: time::GameTime,
     pub blocks: Blocks,
     pub items: Items,
     pub events: EventManager,
@@ -41,6 +53,7 @@ pub const BED_ID: BlockId = 106;
 impl Game {
     pub fn new() -> Game {
         let mut game_ctx = GameCtx {
+            time: GameTime::default(),
             blocks: Blocks::new(),
             items: Items::new(),
             events: EventManager::new(),
@@ -94,7 +107,6 @@ impl Game {
             ..Default::default()
         });
 
-
         game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
             sprite: sprites::STONE,
             drops: vec![(1.0, STONE_ITEM_ID)],
@@ -141,6 +153,7 @@ impl Game {
     }
 
     pub fn update(&mut self) {
+        self.game_ctx.time.update();
         // Update timers first?
         self.game_ctx.events.update_timers();
 
@@ -179,7 +192,8 @@ impl Game {
     }
 
     pub fn cancel(&mut self, pos: Pos) {
-        self.job_manager.cancel_job(pos, &mut self.grid, &mut self.game_ctx);
+        self.job_manager
+            .cancel_job(pos, &mut self.grid, &mut self.game_ctx);
     }
 }
 

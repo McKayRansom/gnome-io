@@ -3,10 +3,10 @@ use std::collections::HashMap;
 use crate::{
     block::BlockId,
     event::{Event, EventManager},
-    game::GameCtx,
+    game::{GameCtx, time::Season},
     gnome::GnomeId,
     item::ItemId,
-    job::Job,
+    job::{Job, farm::GROWTH_TIME},
     tile::{Entity, Tile},
 };
 
@@ -250,9 +250,18 @@ impl Grid {
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {
+        // TODO: Don't do this in winter...
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
             if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-                self.place_block(block_growth_event.pos, block_growth_event.new, game_ctx);
+                // delay this growth event (for now?)
+                if game_ctx.time.season == Season::Winter {
+                    game_ctx.events.push_timer(GROWTH_TIME, Event {
+                        id: GROWTH_EVENT,
+                        value: Box::new(event),
+                    });
+                } else {
+                    self.place_block(block_growth_event.pos, block_growth_event.new, game_ctx);
+                }
             } else {
                 log::warn!("Unkown event pushed to growth queue");
             }

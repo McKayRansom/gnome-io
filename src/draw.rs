@@ -61,6 +61,7 @@ pub mod sprites {
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.gnomes);
     draw_stocks(&game.grid, &game.game_ctx, ctx);
+    draw_status(game, ctx);
 }
 
 fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
@@ -200,4 +201,15 @@ fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, _ctx: &Context) {
         );
         pos.y += 26.;
     }
+}
+
+fn draw_status(game: &Game, ctx: &Context) {
+    let time = &game.game_ctx.time;
+    draw_text(
+        format!("Day {} of {:?} Year {}", time.day, time.season, time.year).as_str(),
+        ctx.screen_size.x - 100.,
+        20.,
+        24.,
+        colors::WHITE,
+    );
 }

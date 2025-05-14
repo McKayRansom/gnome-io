@@ -23,7 +23,7 @@ const WHEAT_2_ID: BlockId = BLK_GRP | 2;
 const WHEAT_3_ID: BlockId = BLK_GRP | 3;
 const WHEAT_4_ID: BlockId = BLK_GRP | 4;
 
-const GROWTH_TIME: Tick = 60 * 2;
+pub const GROWTH_TIME: Tick = 60 * 2;
 
 const ITM_GRP: ItemId = 200;
 
