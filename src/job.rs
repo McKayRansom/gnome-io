@@ -1,5 +1,6 @@
 use craft::CraftManager;
 use farm::FarmManager;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     event::{EventManager, JobId},
@@ -45,6 +46,7 @@ pub mod craft;
   * - how are chests going to work in general, what happens when you mine a chest, goes into gnome inventory? (I hate that they keep their items in gnomoria)
   */
 #[derive(Clone, Debug)]
+#[derive(Serialize, Deserialize)]
 pub struct Job {
     pub id: JobId,
     pub in_progress: bool,
@@ -143,6 +145,7 @@ impl Job {
 // pub const JOB_QUEUE: EventId = 10;
 // pub const JOB_FAIL_QUEUE: EventId = 11;
 
+#[derive(Serialize, Deserialize)]
 pub struct JobManager {
     pub farm_manager: FarmManager,
     pub craft_manager: CraftManager,

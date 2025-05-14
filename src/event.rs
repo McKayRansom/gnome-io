@@ -1,17 +1,26 @@
-use std::{
-    any::Any,
-    collections::{HashMap, VecDeque},
-};
+use std::collections::{HashMap, VecDeque};
 
-use crate::{game::Tick, job::Job};
+use serde::{Deserialize, Serialize};
+
+use crate::{block::BlockId, game::Tick, grid::Pos, job::Job};
 
 pub type EventId = u32;
 
-pub struct Event {
-    pub id: EventId,
-    pub value: Box<dyn Any>,
+
+#[derive(Serialize, Deserialize)]
+pub struct BlockUpdateEvent {
+    pub pos: Pos,
+    pub _old: Option<BlockId>,
+    pub new: Option<BlockId>,
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct Event {
+    pub id: EventId,
+    pub value: BlockUpdateEvent,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct Timer {
     pub time: Tick,
     pub event: Option<Event>,
@@ -27,10 +36,14 @@ pub struct Timer {
 
 pub type JobId = u32;
 
+#[derive(Serialize, Deserialize)]
 pub struct EventManager {
     // one queue per event for now
+    // #[serde(skip_deserializing, skip_serializing)]
     events: HashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
+    // OOF HOW DO THIS?
+    // #[serde(skip_deserializing, skip_serializing)]
     pub timers: Vec<Timer>,
     pub jobs: HashMap<JobId, Job>,
     pub job_id: JobId,

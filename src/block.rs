@@ -1,11 +1,15 @@
 use std::collections::HashMap;
 
 use quad_lib::tileset::Sprite;
+use serde::{Deserialize, Serialize};
 
 use crate::{draw::sprites, event::EventId, game::Tick, item::ItemId};
 
+pub mod blocks;
+
 pub type BlockId = u32;
 
+#[derive(Serialize, Deserialize)]
 pub struct BlockType {
     pub sprite: Sprite, // should this be elsewhere?
     pub drops: Vec<(f32, ItemId)>,
@@ -74,18 +78,21 @@ impl BlockType {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Blocks {
     // theoretically, this won't be changed after startup and doesn't need to be saved...
     block_list: HashMap<BlockId, BlockType>,
 }
 
-impl Blocks {
-    pub fn new() -> Self {
-        Blocks {
-            block_list: HashMap::new(),
-        }
+impl Default for Blocks {
+    fn default() -> Self {
+        let mut blocks = Self { block_list: Default::default() };
+        blocks::init(&mut blocks);
+        blocks
     }
+}
 
+impl Blocks {
     pub fn add_block(&mut self, block_id: BlockId, block: BlockType) {
         if let Some(_old) = self.block_list.insert(block_id, block) {
             log::warn!("Block {} already exists!", block_id);

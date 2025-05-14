@@ -1,11 +1,8 @@
 use macroquad::rand::rand;
+use serde::{Deserialize, Serialize};
 
 use crate::{
-    game::{BED_ID, GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs},
-    item::ItemId,
-    job::{Job, farm::BREAD_ID},
-    tile::Entity,
+    block::blocks, game::{time::hours, GameCtx, Tick}, grid::{pos::dirs, Grid, Pos}, item::{items, ItemId}, job::Job, tile::Entity
 };
 
 pub type GnomeId = u32;
@@ -35,6 +32,8 @@ pub type GnomeId = u32;
  *  - attack or defend type order
  * 
  */
+
+#[derive(Serialize, Deserialize, Default)]
 pub struct Gnome {
     pub id: GnomeId,
     pub job: Option<Job>,
@@ -114,7 +113,7 @@ impl Gnome {
                 .get_tile(self.pos)
                 .unwrap()
                 .get_block()
-                .is_some_and(|block| block == BED_ID)
+                .is_some_and(|block| block == blocks::BED_ID)
             {
                 // great, sleep here
                 self.sleeping = true;
@@ -125,7 +124,7 @@ impl Gnome {
                 }
                 return;
             } else if let Some(path) =
-                grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID)))
+                grid.find_path(self.pos, self.pos, Some(Entity::Block(blocks::BED_ID)))
             {
                 // move to bed
                 // TODO: Only unoccupied bed...
@@ -147,14 +146,14 @@ impl Gnome {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
-            if let Some(item) = grid.remove_entity(self.pos, Entity::Item(BREAD_ID)) {
+            if let Some(item) = grid.remove_entity(self.pos, Entity::Item(items::BREAD_ID)) {
                 let Entity::Item(item) = item else { panic!() };
                 // self.items.push(item);
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
             } else if let Some(path) =
-                grid.find_path(self.pos, self.pos, Some(Entity::Item(BREAD_ID)))
+                grid.find_path(self.pos, self.pos, Some(Entity::Item(items::BREAD_ID)))
             {
                 self.path = path;
                 return;

@@ -1,29 +1,25 @@
 use std::collections::HashMap;
 
 use crate::{
-    block::BlockId,
-    event::{Event, EventManager},
+    block::{BlockId, blocks::GROWTH_TIME},
+    event::{BlockUpdateEvent, Event, EventManager},
     game::{GameCtx, time::Season},
     gnome::GnomeId,
     item::ItemId,
-    job::{Job, farm::GROWTH_TIME},
+    job::Job,
     tile::{Entity, Tile},
 };
 
 pub mod pos;
 use macroquad::rand;
 pub use pos::Pos;
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Grid {
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
     pub stocks: HashMap<ItemId, usize>,
-}
-
-pub struct BlockUpdateEvent {
-    pub pos: Pos,
-    pub _old: Option<BlockId>,
-    pub new: Option<BlockId>,
 }
 
 const GROWTH_EVENT: u32 = 20;
@@ -69,11 +65,11 @@ impl Grid {
                 if let Some(mine_event) = old_block.mine_event {
                     game_ctx.events.push_event(Event {
                         id: mine_event,
-                        value: Box::new(BlockUpdateEvent {
+                        value: BlockUpdateEvent {
                             pos,
                             _old: Some(old_block_id),
                             new: block,
-                        }),
+                        },
                     });
                 }
                 for (chance, item_id) in old_block.drops.iter() {
@@ -92,22 +88,22 @@ impl Grid {
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
-                        value: Box::new(BlockUpdateEvent {
+                        value: BlockUpdateEvent {
                             pos,
                             _old: Some(0),
                             new: block,
-                        }),
+                        },
                     });
                 }
                 // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
                 if let Some((delay, new_block)) = block_info.growth {
                     game_ctx.events.push_timer(delay, Event {
                         id: GROWTH_EVENT,
-                        value: Box::new(BlockUpdateEvent {
+                        value: BlockUpdateEvent {
                             pos,
                             _old: block,
                             new: new_block,
-                        }),
+                        },
                     });
                 }
             }
@@ -252,19 +248,19 @@ impl Grid {
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {
         // TODO: Don't do this in winter...
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
-            if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
+            // if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
                 // delay this growth event (for now?)
                 if game_ctx.time.season == Season::Winter {
                     game_ctx.events.push_timer(GROWTH_TIME, Event {
                         id: GROWTH_EVENT,
-                        value: Box::new(event),
+                        value: event.value,
                     });
                 } else {
-                    self.place_block(block_growth_event.pos, block_growth_event.new, game_ctx);
+                    self.place_block(event.value.pos, event.value.new, game_ctx);
                 }
-            } else {
-                log::warn!("Unkown event pushed to growth queue");
-            }
+            // } else {
+            //     log::warn!("Unkown event pushed to growth queue");
+            // }
         }
     }
 }

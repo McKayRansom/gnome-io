@@ -6,6 +6,8 @@ use crate::{block::BlockId, draw::sprites};
 
 pub type ItemId = u32;
 
+pub mod items;
+
 pub struct ItemType {
     pub name: &'static str,
     pub sprite: Sprite,
@@ -37,13 +39,15 @@ pub struct Items {
     item_list: HashMap<ItemId, ItemType>,
 }
 
-impl Items {
-    pub fn new() -> Self {
-        Items {
-            item_list: HashMap::new(),
-        }
+impl Default for Items {
+    fn default() -> Self {
+        let mut items = Self { item_list: Default::default() };
+        items::init(&mut items);
+        items
     }
+}
 
+impl Items {
     pub fn add_item(&mut self, id: ItemId, item: ItemType) {
         if let Some(_old) = self.item_list.insert(id, item) {
             log::warn!("Item {} already exists!", id);

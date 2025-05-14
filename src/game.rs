@@ -1,19 +1,19 @@
 use std::collections::HashMap;
 
+use quad_lib::storage::{LoadResult, SaveError, SaveResult, Storage};
+use serde::{Deserialize, Serialize};
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
-    block::{BlockId, BlockType, Blocks},
-    draw::sprites,
+    block::{BlockId, Blocks},
     event::EventManager,
     gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
-    item::{ItemId, ItemType, Items},
-    job::{
-        JobManager, build,
-        farm::{BREAD_ID, WHEAT_GRAIN},
-        mine::mine,
+    item::{
+        Items,
+        items::{self, GNOME_DEAD_ID},
     },
+    job::{JobManager, build, mine::mine},
     tile::Entity,
 };
 
@@ -22,8 +22,10 @@ pub mod time;
 
 pub type Tick = u16;
 
+#[derive(Serialize, Deserialize, Default)]
 pub enum GameSpeed {
     Paused,
+    #[default]
     Normal,
     FastForward,
 }
@@ -35,15 +37,19 @@ pub enum GameSpeed {
  * Instanced:
  * - gnomes/gnomeId, job manager(or refactor to store faction_id), stocks (move out of grid?)
  */
+#[derive(Serialize, Deserialize)]
 pub struct GameCtx {
     pub time: time::GameTime,
+    #[serde(skip_deserializing, skip_serializing)]
     pub blocks: Blocks,
+    #[serde(skip_deserializing, skip_serializing)]
     pub items: Items,
     pub events: EventManager,
 }
 
 pub type Gnomes = HashMap<GnomeId, Gnome>;
 
+#[derive(Serialize, Deserialize)]
 pub struct Game {
     pub next_frame_time: f64,
     pub speed: GameSpeed,
@@ -56,24 +62,14 @@ pub struct Game {
 
 const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
-pub const STONE_ITEM_ID: ItemId = 100;
-const GNOME_DEAD_ID: ItemId = 666;
-pub const STONE_BLOCK_ID: BlockId = 100;
-const ORE_ID: BlockId = 101;
-const TREE_ID: BlockId = 102;
-const WOOD_ID: ItemId = 103;
-pub const CRAFT_TABLE_ID: BlockId = 104;
-
-pub const BED_ID: BlockId = 106;
-
 pub const CRAFTING_TIME: Tick = 30;
 
 impl Game {
     pub fn new(frame_time: f64) -> Game {
         let mut game_ctx = GameCtx {
             time: GameTime::default(),
-            blocks: Blocks::new(),
-            items: Items::new(),
+            blocks: Blocks::default(),
+            items: Items::default(),
             events: EventManager::new(),
         };
         Game {
@@ -87,6 +83,16 @@ impl Game {
         }
     }
 
+    pub fn save(&self) -> SaveResult {
+        Storage::new("save")
+            .save(ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())?.as_str())
+    }
+
+    pub fn load() -> LoadResult<Self> {
+        let ron_str = Storage::new("save").load()?;
+        Ok(ron::from_str(ron_str.as_str()).map_err(|err| SaveError::Deserialize(err))?)
+    }
+
     pub fn generate(frame_time: f64) -> Game {
         let mut game = Game::new(frame_time);
 
@@ -94,54 +100,6 @@ impl Game {
 
         // why
 
-        game.game_ctx.items.add_item(GNOME_DEAD_ID, ItemType {
-            name: "dead gnome",
-            sprite: sprites::GNOME_DEAD,
-            recipe: None,
-        });
-
-        game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
-            name: "stone",
-            sprite: sprites::STONE_ITEM,
-            recipe: None,
-        });
-        game.game_ctx.items.add_item(WOOD_ID, ItemType {
-            name: "wood",
-            sprite: sprites::WOOD,
-            recipe: None,
-        });
-        game.game_ctx.blocks.add_block(CRAFT_TABLE_ID, BlockType {
-            sprite: sprites::CRAFT_TABLE,
-            drops: vec![(1.0, WOOD_ID)],
-            walkable: true,
-            requires: vec![WOOD_ID],
-            ..Default::default()
-        });
-        game.game_ctx.blocks.add_block(BED_ID, BlockType {
-            sprite: sprites::BED,
-            drops: vec![(1.0, WOOD_ID)],
-            walkable: true,
-            requires: vec![WOOD_ID],
-            ..Default::default()
-        });
-        
-
-        game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
-            sprite: sprites::STONE,
-            drops: vec![(1.0, STONE_ITEM_ID)],
-            requires: vec![STONE_ITEM_ID],
-            ..Default::default()
-        });
-        game.game_ctx.blocks.add_block(ORE_ID, BlockType {
-            sprite: sprites::ORE,
-            drops: vec![(1.0, STONE_ITEM_ID)],
-            ..Default::default()
-        });
-        game.game_ctx.blocks.add_block(TREE_ID, BlockType {
-            sprite: sprites::TREE,
-            drops: vec![(1.0, WOOD_ID)],
-            ..Default::default()
-        });
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
@@ -150,8 +108,10 @@ impl Game {
         // spawn some wheat
         for _ in 0..16 {
             // game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
-            game.grid.add_entity(start_pos, Entity::Item(WHEAT_GRAIN));
-            game.grid.add_entity(start_pos, Entity::Item(BREAD_ID));
+            game.grid
+                .add_entity(start_pos, Entity::Item(items::WHEAT_GRAIN));
+            game.grid
+                .add_entity(start_pos, Entity::Item(items::BREAD_ID));
         }
 
         // spawn some gnomes

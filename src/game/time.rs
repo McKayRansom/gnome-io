@@ -1,5 +1,7 @@
 // use super::Tick;
 
+use serde::{Deserialize, Serialize};
+
 use super::Tick;
 
 // pub const TICKS_PER_MINUTE: Tick = 1;
@@ -14,6 +16,7 @@ pub type Day = u8;
 pub const DAYS_PER_SEASON: Day = 5; // ~ 5 IRL minutes
 
 #[derive(Debug, PartialEq, Eq, Default)]
+#[derive(Serialize, Deserialize)]
 pub enum Season {
     #[default]
     Spring,
@@ -36,6 +39,7 @@ impl Season {
 pub type Year = u32;
 
 #[derive(Default)]
+#[derive(Serialize, Deserialize)]
 pub struct GameTime {
     pub tick_off: Tick,
     pub hour: Hour,

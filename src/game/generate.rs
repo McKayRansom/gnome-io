@@ -4,9 +4,9 @@ use macroquad::prelude::rand;
 use noise::{core::worley::ReturnType, utils::*, *};
 
 use crate::{
-    game::{ORE_ID, STONE_BLOCK_ID, TREE_ID},
     grid::{Grid, Pos},
     tile::{Tile, TileBiome},
+    block::blocks
 };
 
 // mod utils;
@@ -1821,15 +1821,15 @@ pub fn generate(grid: &mut Grid) {
             } else if noise < 2048.0 / 16384.0 {
                 // Tile::Empty
                 if detail > 0.65 - rand::rand() as f64 / u32::MAX as f64 {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Dirt, TREE_ID));
+                    grid.set_tile(pos, Tile::new_block(TileBiome::Dirt, blocks::TREE_ID));
                 } else {
                     grid.set_tile(pos, Tile::new(TileBiome::Dirt));
                 }
             } else {
                 if detail > 0.75 {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, ORE_ID));
+                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, blocks::ORE_ID));
                 } else {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, STONE_BLOCK_ID));
+                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID));
                 }
             };
         }

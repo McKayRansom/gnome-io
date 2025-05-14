@@ -1,8 +1,11 @@
 use std::ops::Add;
 
 use macroquad::math::{Rect, Vec2};
+use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+
+#[derive(Serialize, Deserialize, Default)]
 pub struct Pos {
     pub x: i16,
     pub y: i16,

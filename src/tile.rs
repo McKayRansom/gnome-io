@@ -1,8 +1,11 @@
 // use hecs::Entity;
 
+use serde::{Deserialize, Serialize};
+
 use crate::{block::BlockId, event::JobId, gnome::GnomeId, item::ItemId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
 pub enum TileBiome {
     Dirt,
     Stone,
@@ -10,6 +13,7 @@ pub enum TileBiome {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize)]
 pub enum Entity {
     Item(ItemId),
     Gnome(GnomeId),
@@ -25,6 +29,7 @@ pub enum Entity {
  * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
  */
 #[derive(Debug, Clone)]
+#[derive(Serialize, Deserialize)]
 pub struct Tile {
     // should this be hashmap?
     pub entities: Vec<Entity>,

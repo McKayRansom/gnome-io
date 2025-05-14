@@ -8,12 +8,11 @@ use macroquad::{
 use quad_lib::tileset::Sprite;
 
 use crate::{
-    block::BlockId,
+    block::{BlockId, blocks},
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{BED_ID, CRAFT_TABLE_ID, Game, GameSpeed, STONE_BLOCK_ID, time::GameTimeEvent},
+    game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
-    job::craft::FURNACE_ID,
     tile::Entity,
     ui::{
         menu::{Menu, MenuItem},
@@ -39,6 +38,7 @@ pub enum TimeSelect {
 enum PauseMenuSelect {
     Continue,
     Save,
+    Load,
     Quit,
     // Restart,
 }
@@ -73,10 +73,15 @@ impl Gameplay {
                 ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', Sprite::new(7, 3)),
             ]),
             build_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
-                ToolbarItem::new(CRAFT_TABLE_ID, "Crafting table", '2', sprites::CRAFT_TABLE),
-                ToolbarItem::new(FURNACE_ID, "Furnace", '3', sprites::FURNACE),
-                ToolbarItem::new(BED_ID, "Bed", '4', sprites::BED),
+                ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
+                ToolbarItem::new(
+                    blocks::CRAFT_TABLE_ID,
+                    "Crafting table",
+                    '2',
+                    sprites::CRAFT_TABLE,
+                ),
+                ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', sprites::FURNACE),
+                ToolbarItem::new(blocks::BED_ID, "Bed", '4', sprites::BED),
             ]),
             time_select: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', sprites::PAUSE),
@@ -93,6 +98,7 @@ impl Gameplay {
             pause_menu: Menu::new(vec![
                 MenuItem::new(PauseMenuSelect::Continue, "Close".to_string()),
                 MenuItem::new(PauseMenuSelect::Save, "Save".to_string()),
+                MenuItem::new(PauseMenuSelect::Load, "Load".to_string()),
                 MenuItem::new(PauseMenuSelect::Quit, "Menu".to_string()),
                 // MenuItem::new(PauseMenuSelect::Restart, "Restart".to_string()),
             ]),
@@ -181,7 +187,12 @@ impl Gameplay {
                             self.time_select.clear_selected();
                         }
                         PauseMenuSelect::Save => {
-                            // map.save().expect("Failed to save!");
+                            self.game.save().expect("Failed to save!");
+                            // println!("SAVED GAME");
+                        }
+                        PauseMenuSelect::Load => {
+                            self.game = Game::load().expect("Failed to load");
+                            // self.game.save().expect("Failed to save!");
                             // println!("SAVED GAME");
                         }
                         PauseMenuSelect::Quit => {

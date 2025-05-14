@@ -11,8 +11,8 @@ mod context;
 mod draw;
 mod gameplay;
 mod ui;
-mod block;
-mod item;
+pub mod block;
+pub mod item;
 mod event;
 mod text;
 
