@@ -54,7 +54,7 @@ impl Items {
         self.item_list.get(&id)
     }
 
-    pub fn iter_items(&self) -> std::collections::hash_map::Iter<'_, u32, ItemType> {
+    pub fn _iter_items(&self) -> std::collections::hash_map::Iter<'_, u32, ItemType> {
         self.item_list.iter()
     }
 }

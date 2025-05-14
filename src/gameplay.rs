@@ -11,11 +11,9 @@ use crate::{
     block::BlockId,
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{
-        BED_ID, CRAFT_TABLE_ID, FURNACE_ID, Game, GameSpeed, STONE_BLOCK_ID, time::GameTimeEvent,
-    },
+    game::{BED_ID, CRAFT_TABLE_ID, Game, GameSpeed, STONE_BLOCK_ID, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
-    job::{Job, JobManager},
+    job::craft::FURNACE_ID,
     tile::Entity,
     ui::{
         menu::{Menu, MenuItem},
@@ -211,59 +209,61 @@ impl Gameplay {
             let size = Vec2::new(200., 200.);
             if Window::new(
                 hash!(),
-                ctx.camera
-                    .to_screen(Into::<Vec2>::into(draw_details_pos) + vec2(GRID_CELL_SIZE.0 / 2., 0.))
-                    - vec2(size.x / 2., size.y),
+                ctx.camera.to_screen(
+                    Into::<Vec2>::into(draw_details_pos) + vec2(GRID_CELL_SIZE.0 / 2., 0.),
+                ) - vec2(size.x / 2., size.y),
                 size,
             )
             .titlebar(false)
             .movable(false)
             .ui(&mut root_ui(), |ui| {
                 let tile = self.game.grid.get_tile(draw_details_pos).unwrap();
-                let workshops: Vec<BlockId> = vec![CRAFT_TABLE_ID, FURNACE_ID];
-                if tile
-                    .get_block()
-                    .is_some_and(|block| workshops.contains(&block))
-                {
-                    let workshop_block = tile.get_block().unwrap();
-                    // show recipes instead
-                    for (item_id, item) in self.game.game_ctx.items.iter_items() {
-                        if item
-                            .recipe
-                            .as_ref()
-                            .is_some_and(|recipe| recipe.0 == workshop_block)
-                        {
-                            if ui.button(None, format!("{:?}", item.name).as_str()) {
-                                // make this recipe!
-                                JobManager::create_job(
-                                    &mut self.game.grid,
-                                    &mut self.game.game_ctx.events,
-                                    Job::new(
-                                        draw_details_pos,
-                                        30,
-                                        Some(Entity::Item(*item_id)),
-                                        item.recipe.as_ref().unwrap().1.clone(),
-                                    ),
-                                );
+
+                // remove workshop menu for now...
+                // let workshops: Vec<BlockId> = vec![CRAFT_TABLE_ID, FURNACE_ID];
+                // if tile
+                //     .get_block()
+                //     .is_some_and(|block| workshops.contains(&block))
+                // {
+                //     let workshop_block = tile.get_block().unwrap();
+                //     // show recipes instead
+                //     for (item_id, item) in self.game.game_ctx.items.iter_items() {
+                //         if item
+                //             .recipe
+                //             .as_ref()
+                //             .is_some_and(|recipe| recipe.0 == workshop_block)
+                //         {
+                //             if ui.button(None, format!("{:?}", item.name).as_str()) {
+                //                 // make this recipe!
+                //                 JobManager::create_job(
+                //                     &mut self.game.grid,
+                //                     &mut self.game.game_ctx.events,
+                //                     Job::new(
+                //                         draw_details_pos,
+                //                         CRAFTING_TIME,
+                //                         Some(Entity::Item(*item_id)),
+                //                         item.recipe.as_ref().unwrap().1.clone(),
+                //                     ),
+                //                 );
+                //             }
+                //         }
+                //     }
+                // } else {
+                for item in tile.iter_entities() {
+                    ui.label(
+                        None,
+                        format!(
+                            "{:?}",
+                            if let Entity::Item(item) = item {
+                                self.game.game_ctx.items.get_item(item).unwrap().name
+                            } else {
+                                ""
                             }
-                        }
-                    }
-                } else {
-                    for item in tile.iter_entities() {
-                        ui.label(
-                            None,
-                            format!(
-                                "{:?}",
-                                if let Entity::Item(item) = item {
-                                    self.game.game_ctx.items.get_item(item).unwrap().name
-                                } else {
-                                    ""
-                                }
-                            )
-                            .as_str(),
-                        );
-                    }
+                        )
+                        .as_str(),
+                    );
                 }
+                // }
             }) == false
             {
                 log::info!("UI RETURNED FALSE?");

@@ -97,8 +97,8 @@ impl EventManager {
         id
     }
 
-    pub fn remove_job(&mut self, job: JobId) {
-        self.jobs.remove(&job);
+    pub fn remove_job(&mut self, job: &JobId) {
+        self.jobs.remove(job);
     }
     
     // pub fn update(&mut self, grid: &Grid) {

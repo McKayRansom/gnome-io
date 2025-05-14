@@ -16,7 +16,7 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - [x] Farming
 - [ ] Hauling?
 - [x] Crafting (Just crafting table/furnace for now)
-  - [ ] auto-craft bread for now
+  - [x] auto-craft bread for now
 - [x] Hunger/Sleep
 - [ ] Saving
 - [ ] Winter storms with snow would be nice but not required I guess...

@@ -1,3 +1,4 @@
+use craft::CraftManager;
 use farm::FarmManager;
 
 use crate::{
@@ -11,6 +12,7 @@ use crate::{
 pub mod build;
 pub mod farm;
 pub mod mine;
+pub mod craft;
 
 /*
  * Theory of Job optimization:
@@ -76,6 +78,11 @@ impl Job {
         matches!(self.entity, Some(Entity::Block(_)))
     }
 
+    // will this always be true?
+    pub fn is_craft(&self) -> bool {
+        matches!(self.entity, Some(Entity::Item(_)))
+    }
+
     pub fn update(
         &mut self,
         pos: Pos,
@@ -123,12 +130,12 @@ impl Job {
     }
 
     pub fn fail(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        game_ctx.events.remove_job(self.id);
+        game_ctx.events.remove_job(&self.id);
         grid.remove_entity(self.pos, Entity::Job(self.id));
     }
 
     pub fn success(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        game_ctx.events.remove_job(self.id);
+        game_ctx.events.remove_job(&self.id);
         grid.remove_entity(self.pos, Entity::Job(self.id));
     }
 }
@@ -138,6 +145,7 @@ impl Job {
 
 pub struct JobManager {
     pub farm_manager: FarmManager,
+    pub craft_manager: CraftManager,
 }
 
 impl JobManager {
@@ -146,7 +154,13 @@ impl JobManager {
         // game_ctx.events.add_event_class(JOB_FAIL_QUEUE);
         Self {
             farm_manager: FarmManager::new(game_ctx),
+            craft_manager: CraftManager::new(game_ctx),
         }
+    }
+
+    pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
+        self.farm_manager.update(&mut game_ctx.events, grid);
+        self.craft_manager.update(game_ctx, grid);
     }
 
     pub fn create_job(grid: &mut Grid, events: &mut EventManager, job: Job) {

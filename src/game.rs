@@ -11,7 +11,7 @@ use crate::{
     item::{ItemId, ItemType, Items},
     job::{
         JobManager, build,
-        farm::{BREAD_ID, WHEAT_GRAIN, WHEAT_SEED},
+        farm::{BREAD_ID, WHEAT_GRAIN},
         mine::mine,
     },
     tile::Entity,
@@ -56,15 +56,17 @@ pub struct Game {
 
 const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
-const STONE_ITEM_ID: ItemId = 100;
+pub const STONE_ITEM_ID: ItemId = 100;
 const GNOME_DEAD_ID: ItemId = 666;
 pub const STONE_BLOCK_ID: BlockId = 100;
 const ORE_ID: BlockId = 101;
 const TREE_ID: BlockId = 102;
 const WOOD_ID: ItemId = 103;
 pub const CRAFT_TABLE_ID: BlockId = 104;
-pub const FURNACE_ID: BlockId = 105;
+
 pub const BED_ID: BlockId = 106;
+
+pub const CRAFTING_TIME: Tick = 30;
 
 impl Game {
     pub fn new(frame_time: f64) -> Game {
@@ -122,14 +124,7 @@ impl Game {
             requires: vec![WOOD_ID],
             ..Default::default()
         });
-        game.game_ctx.blocks.add_block(FURNACE_ID, BlockType {
-            sprite: sprites::FURNACE,
-            drops: vec![(1.0, STONE_ITEM_ID)],
-            walkable: true, // walkable for now so that gnomes can use it properly...
-            requires: vec![STONE_ITEM_ID],
-            // TODO: Update to remove craft jobs when block removed
-            ..Default::default()
-        });
+        
 
         game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
             sprite: sprites::STONE,
@@ -152,9 +147,9 @@ impl Game {
 
         let start_pos = Pos::new(6, 11);
 
-        // spawn some seeds
+        // spawn some wheat
         for _ in 0..16 {
-            game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
+            // game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
             game.grid.add_entity(start_pos, Entity::Item(WHEAT_GRAIN));
             game.grid.add_entity(start_pos, Entity::Item(BREAD_ID));
         }
@@ -217,9 +212,7 @@ impl Game {
             self.grid.add_entity(gnome.pos, Entity::Item(GNOME_DEAD_ID));
         }
 
-        self.job_manager
-            .farm_manager
-            .update(&mut self.game_ctx.events, &mut self.grid);
+        self.job_manager.update(&mut self.game_ctx, &mut self.grid);
 
         self.game_ctx.time.update()
     }

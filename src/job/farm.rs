@@ -2,13 +2,13 @@ use crate::{
     block::{BlockId, BlockType},
     draw::sprites,
     event::{Event, EventId, EventManager},
-    game::{FURNACE_ID, GameCtx, Tick},
+    game::{time::{hours, HOURS_PER_DAY}, GameCtx, Tick},
     grid::{BlockUpdateEvent, Grid, Pos},
     item::{ItemId, ItemType},
     tile::{Entity, TileBiome},
 };
 
-use super::{Job, JobManager};
+use super::{craft::FURNACE_ID, Job, JobManager};
 
 // pub struct Farm {
 //     pub start: Pos,
@@ -23,11 +23,11 @@ const WHEAT_2_ID: BlockId = BLK_GRP | 2;
 const WHEAT_3_ID: BlockId = BLK_GRP | 3;
 const WHEAT_4_ID: BlockId = BLK_GRP | 4;
 
-pub const GROWTH_TIME: Tick = 60 * 2;
+pub const GROWTH_TIME: Tick = hours(HOURS_PER_DAY);
 
 const ITM_GRP: ItemId = 200;
 
-pub const WHEAT_SEED: ItemId = ITM_GRP | 0;
+// pub const WHEAT_SEED: ItemId = ITM_GRP | 0;
 pub const WHEAT_GRAIN: ItemId = ITM_GRP | 1;
 pub const BREAD_ID: ItemId = ITM_GRP | 2;
 
@@ -42,9 +42,9 @@ pub struct FarmManager {
 
 impl FarmManager {
     pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
-        game_ctx
-            .items
-            .add_item(WHEAT_SEED, ItemType::new("seeds", sprites::WHEAT_SEED));
+        // game_ctx
+        //     .items
+        //     .add_item(WHEAT_SEED, ItemType::new("seeds", sprites::WHEAT_SEED));
         game_ctx
             .items
             .add_item(WHEAT_GRAIN, ItemType::new("wheat", sprites::WHEAT_GRAIN));
@@ -77,8 +77,8 @@ impl FarmManager {
             WHEAT_4_ID,
             BlockType::new(sprites::WHEAT_4, vec![
                 (1.0, WHEAT_GRAIN),
-                (1.0, WHEAT_SEED),
-                (0.2, WHEAT_SEED),
+                (1.0, WHEAT_GRAIN),
+                (0.2, WHEAT_GRAIN),
             ])
             .walkable()
             .place_event(FARM_EVENT_ID)
@@ -155,7 +155,7 @@ impl FarmManager {
                 *pos,
                 TILL_TIME,
                 Some(Entity::Block(WHEAT_0_ID)),
-                vec![WHEAT_SEED],
+                vec![WHEAT_GRAIN],
             ))
         } else if block == WHEAT_4_ID {
             // harvest

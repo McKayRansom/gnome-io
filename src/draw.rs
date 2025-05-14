@@ -48,7 +48,7 @@ pub mod sprites {
     pub const THINK: Sprite = Sprite::new(6, 0);
     pub const SLEEP: Sprite = Sprite::new(6, 1);
 
-    pub const WHEAT_SEED: Sprite = Sprite::new(5, 3);
+    // pub const WHEAT_SEED: Sprite = Sprite::new(5, 3);
     pub const WHEAT_GRAIN: Sprite = Sprite::new(5, 7);
 
     pub const WHEAT_0: Sprite = Sprite::new(3, 3);
