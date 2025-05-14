@@ -15,16 +15,16 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - [x] Mining
 - [x] Farming
 - [ ] Hauling
-- [ ] Crafting (Just crafting table/furnace for now)
-- [ ] Hunger/Sleep
-- [ ] Goal: Survive Winter (requires seasons) OR survive first goblin raid (requires combat)
+- [x] Crafting (Just crafting table/furnace for now)
+- [x] Hunger/Sleep
+- [ ] Goal: Survive Winter (requires seasons) 
 - [ ] Saving
 - [ ] UI
   - [ ] Toolbar
   - [ ] Menus
-  - [ ] Tile details
-  - [ ] Stocks
-  - [ ] 1st day of spring
+  - [x] Tile details
+  - [x] Stocks
+  - [x] 1st day of spring
 
 
 ## Features

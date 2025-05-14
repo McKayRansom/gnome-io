@@ -1,13 +1,10 @@
 use macroquad::rand::rand;
 
 use crate::{
-    game::{GameCtx, Tick},
-    grid::{
-        Grid, Pos,
-        pos::{dirs},
-    },
+    game::{GameCtx, Tick, BED_ID},
+    grid::{pos::dirs, Grid, Pos},
     item::ItemId,
-    job::{Job, farm::BREAD_ID},
+    job::{farm::BREAD_ID, Job},
     tile::Entity,
 };
 
@@ -32,10 +29,11 @@ const GNOME_SPEED: Tick = 20;
 const BASE_TIRED: u16 = 24;
 const BASE_FOOD: u16 = 24;
 
-pub const _SLEEP_TIRED: u16 = 6;
+pub const SLEEP_TIRED: u16 = 6;
 pub const FOOD_EAT: u16 = 12;
 
 const PASS_OUT_TIME: u16 = 240;
+const SLEEP_TIME: u16 = 200;
 
 impl Gnome {
     pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
@@ -66,7 +64,15 @@ impl Gnome {
         // this feels a bit not-optimial but IDK
         if self.tired > 0 {
             self.tired -= 1;
-            // TODO: Find bed
+            if self.tired < SLEEP_TIRED {
+                if let Some(path) = grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID))) {
+                    self.path = path;
+                } else {
+                    // log::warn("Unable to find bed...")
+                    self.move_random(grid, game_ctx);
+                }
+                return;
+            }
         } else {
             // pass out on the spot
             self.tired = BASE_TIRED / 2;
@@ -76,16 +82,20 @@ impl Gnome {
 
         if !self.path.is_empty() {
             // Move towards the destination
-
-            if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
+            if grid.get_tile(self.pos).unwrap().get_block().is_some_and(|block| block == BED_ID) {
+                // great, sleep here
+                self.sleeping = true;
+                self.tired = BASE_TIRED;
+                self.timer = SLEEP_TIME;
+            }
+            else if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
                 self.pos = pos;
                 self.timer = GNOME_SPEED;
-                return;
             } else {
                 // impassable terrain... abort?
                 self.path.clear();
-                return;
             }
+            return;
         }
 
         if self.food > 0 {
@@ -103,11 +113,13 @@ impl Gnome {
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
-            } else if let Some(path) = grid.find_path(self.pos, self.pos, Some(BREAD_ID)) {
+            } else if let Some(path) =
+                grid.find_path(self.pos, self.pos, Some(Entity::Item(BREAD_ID)))
+            {
                 self.path = path;
                 return;
             } else {
-                log::warn!("Unable to find food!");
+                // log::warn!("Unable to find food!");
                 self.move_random(grid, game_ctx);
                 return;
             }
@@ -144,7 +156,7 @@ impl Gnome {
         // collect items
         match job.update(self.pos, &mut self.items, grid, game_ctx) {
             crate::job::JobAction::Aquire(item) => {
-                if let Some(path) = grid.find_path(self.pos, job.pos, Some(item)) {
+                if let Some(path) = grid.find_path(self.pos, job.pos, Some(Entity::Item(item))) {
                     self.path = path;
                 } else {
                     log::warn!("Unable to find item {} for job", item);
@@ -163,7 +175,7 @@ impl Gnome {
                         self.path.pop();
                     }
                     return;
-                } 
+                }
 
                 if let Some(path) = grid.find_path(self.pos, pos, None) {
                     log::info!("path");

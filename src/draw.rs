@@ -9,7 +9,7 @@ use macroquad::{
 use crate::{
     context::Context,
     game::{Game, GameCtx, Gnomes},
-    gnome,
+    gnome::{self, SLEEP_TIRED},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
@@ -44,7 +44,7 @@ pub mod sprites {
 
     pub const BREAD: Sprite = Sprite::new(7, 7);
 
-    pub const UNKOWN_ITEM: Sprite = Sprite::new(7, 0);
+    pub const UNKNOWN_ITEM: Sprite = Sprite::new(7, 0);
     pub const THINK: Sprite = Sprite::new(6, 0);
     pub const SLEEP: Sprite = Sprite::new(6, 1);
 
@@ -104,7 +104,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                         if let Some(item) = game_ctx.items.get_item(item) {
                             item.sprite
                         } else {
-                            sprites::UNKOWN_ITEM
+                            sprites::UNKNOWN_ITEM
                         },
                         &dest,
                         colors::WHITE,
@@ -118,7 +118,12 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     let gnome = gnomes.get(gnome).unwrap();
                     let think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
-                    if gnome.sleeping {
+                    if gnome.tired < SLEEP_TIRED {
+                        ctx.tileset
+                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                        ctx.tileset
+                            .draw_tile(sprites::BED, &think_box, colors::WHITE);
+                    } else if gnome.sleeping {
                         ctx.tileset
                             .draw_tile(sprites::THINK, &think_box, colors::WHITE);
                         ctx.tileset

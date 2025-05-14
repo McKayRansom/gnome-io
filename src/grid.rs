@@ -163,7 +163,7 @@ impl Grid {
 
     // pub fn successors(&self, pos: &Pos) -> Option<
 
-    pub fn find_path(&self, start: Pos, end: Pos, item: Option<ItemId>) -> Option<Vec<Pos>> {
+    pub fn find_path(&self, start: Pos, end: Pos, entity: Option<Entity>) -> Option<Vec<Pos>> {
         let is_passable = self.get_tile(end)?.is_passable();
         pathfinding::prelude::bfs(
             &start,
@@ -179,8 +179,8 @@ impl Grid {
                 .collect::<Vec<Pos>>()
             },
             |pos| {
-                if let Some(item) = item {
-                    self.get_tile(*pos).unwrap().contains(&Entity::Item(item))
+                if let Some(entity) = entity {
+                    self.get_tile(*pos).unwrap().contains(&entity)
                 } else if is_passable {
                     pos == &end
                 } else {

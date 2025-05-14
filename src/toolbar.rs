@@ -1,7 +1,7 @@
 use macroquad::{
     color::{self, Color},
     input::is_mouse_button_down,
-    math::{vec2, Rect},
+    math::{vec2, Rect, Vec2},
     shapes::draw_rectangle,
     text::draw_text,
     texture::{draw_texture_ex, DrawTextureParams},
@@ -126,6 +126,7 @@ impl<V> Toolbar<V> {
             TOOLBAR_ITEM_WIDTH,
             TOOLBAR_ITEM_HEIGHT,
         );
+        let mut tooltip: Option<(&'static str, Vec2)> = None;
         for (i, toolbar_item) in self.items.iter().enumerate() {
             let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
 
@@ -166,13 +167,7 @@ impl<V> Toolbar<V> {
 
             if let Some(mouse_pos) = ctx.mouse_pos {
                 if item_rect.contains(mouse_pos) {
-                    draw_text(
-                        toolbar_item.tooltip,
-                        mouse_pos.x,
-                        mouse_pos.y,
-                        24.,
-                        color::WHITE,
-                    );
+                    tooltip = Some((toolbar_item.tooltip, mouse_pos));
 
                     draw_rectangle(
                         item_rect.x - 5.,
@@ -198,6 +193,16 @@ impl<V> Toolbar<V> {
             } else {
                 item_rect.y += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
             }
+        }
+
+        if let Some(tooltip) = tooltip {
+            draw_text(
+                tooltip.0,
+                tooltip.1.x,
+                tooltip.1.y,
+                24.,
+                color::WHITE,
+            );
         }
 
         if let Some(mouse_pos) = ctx.mouse_pos {

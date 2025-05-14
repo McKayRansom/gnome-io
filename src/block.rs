@@ -20,7 +20,7 @@ pub struct BlockType {
 impl Default for BlockType {
     fn default() -> Self {
         Self {
-            sprite: sprites::UNKOWN_ITEM,
+            sprite: sprites::UNKNOWN_ITEM,
             drops: Vec::new(),
             walkable: false,
             growth: None,

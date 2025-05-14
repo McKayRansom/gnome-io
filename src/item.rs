@@ -17,7 +17,7 @@ impl Default for ItemType {
     fn default() -> Self {
         Self {
             name: "unnamed",
-            sprite: sprites::UNKOWN_ITEM,
+            sprite: sprites::UNKNOWN_ITEM,
             recipe: None,
         }
     }

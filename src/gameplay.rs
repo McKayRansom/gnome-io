@@ -10,11 +10,11 @@ use crate::{
     block::BlockId,
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{CRAFT_TABLE_ID, FURNACE_ID, Game, STONE_BLOCK_ID},
+    game::{time::GameTimeEvent, Game, BED_ID, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
     grid::Pos,
     job::{Job, JobManager},
     tile::Entity,
-    toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
+    toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
 };
 
 pub enum GameAction {
@@ -54,12 +54,21 @@ impl Gameplay {
                 ToolbarItem::new(STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
                 ToolbarItem::new(CRAFT_TABLE_ID, "Crafting table", '2', sprites::CRAFT_TABLE),
                 ToolbarItem::new(FURNACE_ID, "Furnace", '3', sprites::FURNACE),
+                ToolbarItem::new(BED_ID, "Bed", '4', sprites::BED),
             ]),
         }
     }
 
     pub fn update(&mut self, ctx: &mut Context) {
-        self.game.update();
+        match self.game.update() {
+            GameTimeEvent::None => {},
+            GameTimeEvent::YearEnd => {
+                // self.popup = Popup::new(format!("You survived Year {}!").as_str());
+            },
+        }
+        if self.game.gnomes.len() == 0 {
+            // self.popup = Popup::new(format!("Game over, you survived until {:?} Year {}", game.game_ctx.time.season, game.game_ctx.time.year)
+        }
 
         // check WASD
         // TODO: Right click PAN

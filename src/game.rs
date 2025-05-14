@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use time::GameTime;
+use time::{GameTime, GameTimeEvent};
 
 use crate::{
     block::{BlockId, BlockType, Blocks},
@@ -152,8 +152,7 @@ impl Game {
         game
     }
 
-    pub fn update(&mut self) {
-        self.game_ctx.time.update();
+    pub fn update(&mut self) -> GameTimeEvent {
         // Update timers first?
         self.game_ctx.events.update_timers();
 
@@ -167,6 +166,8 @@ impl Game {
         self.job_manager
             .farm_manager
             .update(&mut self.game_ctx.events, &mut self.grid);
+        
+        self.game_ctx.time.update()
     }
 
     pub fn spawn_gnome(&mut self, pos: Pos) {
