@@ -1,7 +1,11 @@
-use quad_lib::tileset::Sprite;
-
 use crate::{
-    block::{BlockId, BlockType}, draw::sprites, event::{Event, EventId, EventManager}, game::{GameCtx, Tick, FURNACE_ID}, grid::{BlockUpdateEvent, Grid, Pos}, item::{ItemId, ItemType}, tile::{Entity, TileBiome}
+    block::{BlockId, BlockType},
+    draw::sprites,
+    event::{Event, EventId, EventManager},
+    game::{FURNACE_ID, GameCtx, Tick},
+    grid::{BlockUpdateEvent, Grid, Pos},
+    item::{ItemId, ItemType},
+    tile::{Entity, TileBiome},
 };
 
 use super::{Job, JobManager};
@@ -19,13 +23,13 @@ const WHEAT_2_ID: BlockId = BLK_GRP | 2;
 const WHEAT_3_ID: BlockId = BLK_GRP | 3;
 const WHEAT_4_ID: BlockId = BLK_GRP | 4;
 
-const GROWTH_TIME: Tick = 60 * 60;
+const GROWTH_TIME: Tick = 60 * 2;
 
 const ITM_GRP: ItemId = 200;
 
 pub const WHEAT_SEED: ItemId = ITM_GRP | 0;
 pub const WHEAT_GRAIN: ItemId = ITM_GRP | 1;
-const BREAD_ID: ItemId = ITM_GRP | 2;
+pub const BREAD_ID: ItemId = ITM_GRP | 2;
 
 const FARM_EVENT_ID: EventId = 200;
 
@@ -40,38 +44,38 @@ impl FarmManager {
     pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
         game_ctx
             .items
-            .add_item(WHEAT_SEED, ItemType::new(Sprite::new(2, 3)));
+            .add_item(WHEAT_SEED, ItemType::new(sprites::WHEAT_SEED));
         game_ctx
             .items
-            .add_item(WHEAT_GRAIN, ItemType::new(Sprite::new(2, 7)));
+            .add_item(WHEAT_GRAIN, ItemType::new(sprites::WHEAT_GRAIN));
 
         game_ctx.blocks.add_block(
             WHEAT_0_ID,
-            BlockType::new(Sprite::new(1, 3), vec![])
+            BlockType::new(sprites::WHEAT_0, vec![])
                 .walkable()
                 .grow((GROWTH_TIME, Some(WHEAT_1_ID))),
         );
         game_ctx.blocks.add_block(
             WHEAT_1_ID,
-            BlockType::new(Sprite::new(1, 4), vec![])
+            BlockType::new(sprites::WHEAT_1, vec![])
                 .walkable()
                 .grow((GROWTH_TIME, Some(WHEAT_2_ID))),
         );
         game_ctx.blocks.add_block(WHEAT_2_ID, BlockType {
-            sprite: Sprite::new(1, 5),
+            sprite: sprites::WHEAT_2,
             walkable: true,
             growth: Some((GROWTH_TIME, Some(WHEAT_3_ID))),
             ..Default::default()
         });
         game_ctx.blocks.add_block(
             WHEAT_3_ID,
-            BlockType::new(Sprite::new(1, 6), vec![])
+            BlockType::new(sprites::WHEAT_3, vec![])
                 .walkable()
                 .grow((GROWTH_TIME, Some(WHEAT_4_ID))),
         );
         game_ctx.blocks.add_block(
             WHEAT_4_ID,
-            BlockType::new(Sprite::new(1, 7), vec![
+            BlockType::new(sprites::WHEAT_4, vec![
                 (1.0, WHEAT_GRAIN),
                 (1.0, WHEAT_SEED),
                 (0.2, WHEAT_SEED),
@@ -121,6 +125,7 @@ impl FarmManager {
         event: Event,
     ) -> Option<Job> {
         if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
+            log::info!("Farm update event");
             self.tile_changed(events, grid, &block_update_event.pos)
         } else {
             log::warn!("Unkown event dispached to farm event queue");
@@ -131,6 +136,7 @@ impl FarmManager {
     fn tile_changed(&mut self, _events: &mut EventManager, grid: &Grid, pos: &Pos) -> Option<Job> {
         if !self.farm_pos.contains(pos) {
             // must have been dezoned
+            log::info!("Farm update for dezoned???");
             return None;
         }
         let tile = grid.get_tile(*pos)?;
@@ -139,9 +145,9 @@ impl FarmManager {
             return None;
         }
 
-        if tile
-            .get_block()
-            .is_none_or(|block| block < WHEAT_0_ID || block > WHEAT_4_ID)
+        let block = tile.get_block().unwrap_or(0);
+
+        if  block < WHEAT_0_ID || block > WHEAT_4_ID
         {
             // till
             Some(Job::new(
@@ -150,10 +156,11 @@ impl FarmManager {
                 Some(Entity::Block(WHEAT_0_ID)),
                 vec![WHEAT_SEED],
             ))
-        } else if tile.get_block().is_some_and(|block| block == WHEAT_4_ID) {
+        } else if block == WHEAT_4_ID {
             // harvest
             Some(Job::new(*pos, HARVEST_TIME, None, vec![]))
         } else {
+            log::info!("Block is something weird: {}", block);
             None
         }
     }

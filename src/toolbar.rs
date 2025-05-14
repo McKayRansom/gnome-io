@@ -132,10 +132,10 @@ impl<V> Toolbar<V> {
             draw_texture_ex(
                 &ctx.tileset.texture,
                 item_rect.x,
-                item_rect.y - item_rect.h, // JANK FOR DOUBLE HIGH SPRITES
+                item_rect.y , // JANK FOR DOUBLE HIGH SPRITES
                 toolbar_item.color,
                 DrawTextureParams {
-                    dest_size: Some(vec2(item_rect.w, item_rect.h * 2.)), // JANK FOR DOUBLE HIGH SPRITES
+                    dest_size: Some(vec2(item_rect.w, item_rect.h )), // JANK FOR DOUBLE HIGH SPRITES
                     source: Some(spr_rect),
                     ..Default::default()
                 },

@@ -39,16 +39,16 @@ const SCROLL_SENSITIVITY: f32 = 0.05;
 impl Gameplay {
     pub fn new(ctx: &mut Context) -> Self {
         ctx.camera.change_zoom(0.9);
-        ctx.camera.camera = vec2(500., 500.);
+        ctx.camera.camera = vec2(-100., 300.);
         Self {
             game: Game::generate(),
             mouse_down_pos: None,
             draw_details_pos: None,
             action_toolbar: Toolbar::new(crate::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', Sprite::new(3, 0)),
-                ToolbarItem::new(GameAction::Build, "Build stuff", '2', Sprite::new(3, 1)),
-                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', Sprite::new(3, 2)),
-                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', Sprite::new(3, 3)),
+                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', Sprite::new(7, 0)),
+                ToolbarItem::new(GameAction::Build, "Build stuff", '2', Sprite::new(7, 1)),
+                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', Sprite::new(7, 2)),
+                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', Sprite::new(7, 3)),
             ]),
             build_toolbar: Toolbar::new(crate::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),

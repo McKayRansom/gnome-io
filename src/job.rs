@@ -2,9 +2,10 @@ use farm::FarmManager;
 
 use crate::{
     event::{EventManager, JobId},
-    game::GameCtx,
+    game::{GameCtx, Tick},
     grid::{Grid, Pos},
-    item::ItemId, tile::Entity,
+    item::ItemId,
+    tile::Entity,
 };
 
 pub mod build;
@@ -16,11 +17,11 @@ pub mod mine;
  * Job optimization is two-fold:
  * - Optimal data locality for performance
  *   - Jobs should perform the minimum possible pathfinding calls.
- *   - 
+ *   -
  * - Optimal Gnome allocation for gameplay
  *   - At minimum: Only mine reachable blocks
  *   - Nice: Path to closest job that matches our priority
- * 
+ *
  * Options:
  * - Global job queue (first implementation): Simple, FIFO makes sense
  *   - However, difficult to tell if we can path to a tile until later
@@ -29,9 +30,9 @@ pub mod mine;
  * - Store jobs on tiles
  *   - Easy to lookup jobs on a tile, can pathfind for current pos to find closest job
  *     - **DO WE NEED Optimally closest job, or is manhatten distance closest good enough**
- * 
+ *
  * Specifically with mining we need a way to find the closest mining job with a valid path...
- * 
+ *
  */
 #[derive(Clone, Debug)]
 pub struct Job {
@@ -41,6 +42,13 @@ pub struct Job {
     pub time: u16,
     pub entity: Option<Entity>,
     pub requires: Vec<ItemId>,
+}
+
+pub enum JobAction {
+    Aquire(ItemId),
+    Goto(Pos),
+    Wait(Tick),
+    Finished,
 }
 
 impl Job {
@@ -53,6 +61,67 @@ impl Job {
             entity,
             requires,
         }
+    }
+
+    // special flag so we don't build ourselves into a block
+    pub fn is_build(&self) -> bool {
+        matches!(self.entity, Some(Entity::Block(_)))
+    }
+
+    pub fn update(
+        &mut self,
+        pos: Pos,
+        items: &mut Vec<ItemId>,
+        grid: &mut Grid,
+        game_ctx: &mut GameCtx,
+    ) -> JobAction {
+        // collect items
+        for required_item in self.requires.iter() {
+            if !items.contains(required_item) {
+                if let Some(item) = grid.remove_entity(pos, Entity::Item(*required_item)) {
+                    let Entity::Item(item) = item else { panic!() };
+                    items.push(item);
+                    log::info!("Take item {} from tile", item);
+                } else {
+                    log::info!("AQUIRE");
+                    return JobAction::Aquire(*required_item);
+                }
+            }
+        }
+        // this is >1 instead of >0 so that we can mine and craft on blocks that are not pathable
+        // there may be a better solution for this
+        if pos.diff(self.pos) > 1 {
+            log::info!("GOTO");
+            return JobAction::Goto(self.pos);
+        }
+        // we are here!
+        if self.time > 0 {
+            let time = self.time;
+            self.time = 0;
+            return JobAction::Wait(time);
+        }
+        // perform the job
+        items.retain(|item| !self.requires.contains(item));
+        let _ = match self.entity {
+            Some(Entity::Item(item_id)) => grid.add_entity(self.pos, Entity::Item(item_id)),
+            Some(Entity::Block(block_id)) => grid.place_block(self.pos, Some(block_id), game_ctx),
+            None => grid.place_block(self.pos, None, game_ctx),
+            Some(_) => todo!(),
+        };
+
+        log::info!("Finished job: {:?}", self);
+        self.success(grid, game_ctx);
+        JobAction::Finished
+    }
+
+    pub fn fail(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        game_ctx.events.remove_job(self.id);
+        grid.remove_entity(self.pos, Entity::Job(self.id));
+    }
+
+    pub fn success(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        game_ctx.events.remove_job(self.id);
+        grid.remove_entity(self.pos, Entity::Job(self.id));
     }
 }
 

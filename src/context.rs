@@ -6,6 +6,8 @@ use macroquad::{
 };
 use quad_lib::{camera::Camera, tileset::Tileset};
 
+// use crate::draw::SPRITES;
+
 pub struct Context {
     pub camera: Camera,
     pub tileset: Tileset,

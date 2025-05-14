@@ -73,6 +73,7 @@ impl Grid {
                 }
             }
             tile.walkable = true;
+            tile.remove_entity(&Entity::Block(old_block_id));
         }
 
         if let Some(block_id) = block {
@@ -101,10 +102,7 @@ impl Grid {
                 }
             }
             tile.add_entity(Entity::Block(block_id));
-        } else if let Some(old_block_id) = old_block {
-            tile.remove_entity(&Entity::Block(old_block_id));
-            tile.walkable = true;
-        }
+        } 
         log::info!("Setting {:?} to {:?}", tile, block);
 
         Some(())
@@ -120,6 +118,15 @@ impl Grid {
         self.get_tile_mut(pos)
             .unwrap()
             .remove_entity(&Entity::Gnome(id));
+    }
+
+    pub fn gnome_move(&mut self, id: GnomeId, start: Pos, end: Pos) -> Option<Pos> {
+        if !self.get_tile(end)?.is_passable() {
+            return None;
+        }
+        self.gnome_exit(start, id);
+        self.gnome_enter(end, id);
+        Some(end)
     }
 
     pub fn remove_entity(&mut self, pos: Pos, entity: Entity) -> Option<Entity> {

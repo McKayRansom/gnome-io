@@ -3,7 +3,7 @@ use std::collections::HashMap;
 
 use crate::{
     block::{BlockId, BlockType, Blocks}, draw::sprites, event::EventManager, gnome::{Gnome, GnomeId}, grid::{Grid, Pos}, item::{ItemId, ItemType, Items}, job::{
-        build, farm::{WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager
+        build, farm::{BREAD_ID, WHEAT_GRAIN, WHEAT_SEED}, mine::mine, JobManager
     }, tile::Entity
 };
 
@@ -36,6 +36,7 @@ const TREE_ID: BlockId = 102;
 const WOOD_ID: ItemId = 103;
 pub const CRAFT_TABLE_ID: BlockId = 104;
 pub const FURNACE_ID: BlockId = 105;
+pub const BED_ID: BlockId = 106;
 
 impl Game {
     pub fn new() -> Game {
@@ -75,6 +76,13 @@ impl Game {
             requires: vec![WOOD_ID],
             ..Default::default()
         });
+        game.game_ctx.blocks.add_block(BED_ID, BlockType {
+            sprite: sprites::BED,
+            drops: vec![(1.0, WOOD_ID)],
+            walkable: false,
+            requires: vec![WOOD_ID],
+            ..Default::default()
+        });
         game.game_ctx.blocks.add_block(FURNACE_ID, BlockType {
             sprite: sprites::FURNACE,
             drops: vec![(1.0, STONE_ITEM_ID)],
@@ -83,6 +91,7 @@ impl Game {
             // TODO: Update to remove craft jobs when block removed
             ..Default::default()
         });
+
 
         game.game_ctx.blocks.add_block(STONE_BLOCK_ID, BlockType {
             sprite: sprites::STONE,
@@ -103,17 +112,28 @@ impl Game {
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
+        let start_pos = Pos::new(6, 11);
 
         // spawn some seeds
         for _ in 0..16 {
-            game.grid.add_entity(Pos::new(14, 14), Entity::Item(WHEAT_SEED));
-            game.grid.add_entity(Pos::new(14, 14), Entity::Item(WHEAT_GRAIN));
+            game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
+            game.grid.add_entity(start_pos, Entity::Item(WHEAT_GRAIN));
+            game.grid.add_entity(start_pos, Entity::Item(BREAD_ID));
         }
 
         // spawn some gnomes
         for _ in 0..4 {
-            game.spawn_gnome(Pos::new(13, 13));
+            game.spawn_gnome(start_pos);
         }
+
+        // clear area
+        // game.grid.place_block(start_pos, None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(13, 14), None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(14, 13), None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
+        // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
 
         game
     }
