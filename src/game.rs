@@ -28,6 +28,13 @@ pub enum GameSpeed {
     FastForward,
 }
 
+/*
+ * Mutli-faction:
+ * Shared:
+ * - Blocks, Items, time
+ * Instanced:
+ * - gnomes/gnomeId, job manager(or refactor to store faction_id), stocks (move out of grid?)
+ */
 pub struct GameCtx {
     pub time: time::GameTime,
     pub blocks: Blocks,

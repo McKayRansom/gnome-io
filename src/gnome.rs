@@ -10,6 +10,31 @@ use crate::{
 
 pub type GnomeId = u32;
 
+/*
+ * Thoughts on gnome combat:
+ * - To support eventual multiplayer, I DON'T want goblins to be a special class
+ * - Either: A special military mode where we re-path toward/away from enimies every frame
+ * -  OR: Military "JOBS" somehow
+ * 
+ * Basic logic
+ *  - Attack order: Head toward POS, attack anything on the way
+ *  - Fight enitty order: Head toward ENTITIY, if close attack
+ *  - Retreat order: Run toward POS
+ *  - Defend order: stay at X pos, attack anything you see maybe?
+ *  - Stand ground: stay at X pos, don't move
+ * 
+ * Attack event:
+ *  - How can we lookup a gnome from within gnome update??? May need to add faction to gnomeId or make it a struct...
+ *  - for now, given our mutable approach, we have to emit an attack event (or just return one)
+ *  - an event manager (or game loop) needs to take that attack event
+ * 
+ * Goblin raid:
+ *  - X number of goblins ordered to attack X pos, should stay mostly together
+ * 
+ * Wild animals:
+ *  - attack or defend type order
+ * 
+ */
 pub struct Gnome {
     pub id: GnomeId,
     pub job: Option<Job>,
@@ -28,11 +53,11 @@ pub struct Gnome {
 const GNOME_SPEED: Tick = 20;
 
 const BASE_TIRED: u16 = hours(20);
-const SLOW_TIRED: u16 = hours(10);
-const BASE_FOOD: u16 = hours(10);
+const SLOW_TIRED: u16 = hours(2);
+const BASE_FOOD: u16 = hours(20);
 
-pub const SLEEP_TIRED: u16 = hours(1);
-pub const FOOD_EAT: u16 = hours(1);
+pub const SLEEP_TIRED: u16 = hours(4);
+pub const FOOD_EAT: u16 = hours(4);
 
 const PASS_OUT_TIME: u16 = hours(6);
 const SLEEP_TIME: u16 = hours(4);
@@ -95,6 +120,9 @@ impl Gnome {
                 self.sleeping = true;
                 self.tired = BASE_TIRED;
                 self.timer = SLEEP_TIME;
+                if self.health < BASE_HEALTH { 
+                    self.health += 1;
+                }
                 return;
             } else if let Some(path) =
                 grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID)))

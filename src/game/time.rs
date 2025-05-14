@@ -4,14 +4,14 @@ use super::Tick;
 
 // pub const TICKS_PER_MINUTE: Tick = 1;
 // pub type Minute = u8;
-pub const TICKS_PER_HOUR: Tick = 60; // 1 IRL second
+pub const TICKS_PER_HOUR: Tick = 120; // 2 IRL seconds
 pub type Hour = u8;
-pub const HOURS_PER_DAY: Hour = 24; // 24 IRL seconds
+pub const HOURS_PER_DAY: Hour = 24; // 48 IRL seconds
 pub const fn hours(hours: Hour) -> Tick {
     hours as Tick * TICKS_PER_HOUR
 }
 pub type Day = u8;
-pub const DAYS_PER_SEASON: Day = 10; // ~5 IRL minutes
+pub const DAYS_PER_SEASON: Day = 5; // ~ 5 IRL minutes
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Season {
