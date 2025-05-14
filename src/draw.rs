@@ -23,6 +23,7 @@ pub mod sprites {
     use quad_lib::tileset::Sprite;
 
     pub const GNOME: Sprite = Sprite::new(3, 0);
+    pub const GNOME_DEAD: Sprite = Sprite::new(3, 0); // TODO
 
     pub const GRASS: Sprite = Sprite::new(3, 1);
     pub const STONE: Sprite = Sprite::new(7, 5);

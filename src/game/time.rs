@@ -3,15 +3,15 @@
 use super::Tick;
 
 // pub const TICKS_PER_MINUTE: Tick = 1;
-pub type Minute = u8;
-pub const MINUTES_PER_HOUR: Minute = 60; // 1 IRL second
+// pub type Minute = u8;
+pub const TICKS_PER_HOUR: Tick = 60; // 1 IRL second
 pub type Hour = u8;
 pub const HOURS_PER_DAY: Hour = 24; // 24 IRL seconds
 pub const fn hours(hours: Hour) -> Tick {
-    hours as Tick * MINUTES_PER_HOUR as Tick
+    hours as Tick * TICKS_PER_HOUR
 }
 pub type Day = u8;
-pub const DAYS_PER_SEASON: Day = 10; // 10 IRL minutes
+pub const DAYS_PER_SEASON: Day = 10; // ~5 IRL minutes
 
 #[derive(Debug, PartialEq, Eq, Default)]
 pub enum Season {
@@ -37,7 +37,7 @@ pub type Year = u32;
 
 #[derive(Default)]
 pub struct GameTime {
-    pub minute: Minute,
+    pub tick_off: Tick,
     pub hour: Hour,
     pub day: Day,
     pub season: Season,
@@ -52,11 +52,11 @@ pub enum GameTimeEvent {
 
 impl GameTime {
     pub fn update(&mut self) -> GameTimeEvent {
-        self.minute += 1;
-        if self.minute < MINUTES_PER_HOUR {
+        self.tick_off += 1;
+        if self.tick_off < TICKS_PER_HOUR {
             return GameTimeEvent::None;
         }
-        self.minute = 0;
+        self.tick_off = 0;
         self.hour += 1;
         if self.hour < HOURS_PER_DAY {
             return GameTimeEvent::None;

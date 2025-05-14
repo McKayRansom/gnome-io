@@ -1,7 +1,11 @@
 use macroquad::rand::rand;
 
 use crate::{
-    draw::sprites::GNOME, game::{time::hours, GameCtx, Tick, BED_ID}, grid::{pos::dirs, Grid, Pos}, item::ItemId, job::{farm::BREAD_ID, Job}, tile::Entity
+    game::{BED_ID, GameCtx, Tick, time::hours},
+    grid::{Grid, Pos, pos::dirs},
+    item::ItemId,
+    job::{Job, farm::BREAD_ID},
+    tile::Entity,
 };
 
 pub type GnomeId = u32;
@@ -17,12 +21,14 @@ pub struct Gnome {
     // feel like this could be elsewhere?
     pub tired: u16,
     pub food: u16,
+    pub health: u8,
     pub sleeping: bool,
 }
 
 const GNOME_SPEED: Tick = 20;
 
 const BASE_TIRED: u16 = hours(20);
+const SLOW_TIRED: u16 = hours(10);
 const BASE_FOOD: u16 = hours(10);
 
 pub const SLEEP_TIRED: u16 = hours(1);
@@ -30,6 +36,8 @@ pub const FOOD_EAT: u16 = hours(1);
 
 const PASS_OUT_TIME: u16 = hours(6);
 const SLEEP_TIME: u16 = hours(4);
+
+const BASE_HEALTH: u8 = 10;
 
 impl Gnome {
     pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
@@ -45,6 +53,7 @@ impl Gnome {
 
             tired: BASE_TIRED,
             food: BASE_FOOD,
+            health: BASE_HEALTH,
             sleeping: false,
         }
     }
@@ -62,7 +71,11 @@ impl Gnome {
         if !self.path.is_empty() {
             if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
                 self.pos = pos;
-                self.timer = GNOME_SPEED;
+                self.timer = if self.tired < SLOW_TIRED {
+                    GNOME_SPEED * 2
+                } else {
+                    GNOME_SPEED
+                };
             } else {
                 //impassable terrain
                 self.path.clear();
@@ -82,21 +95,24 @@ impl Gnome {
                 self.sleeping = true;
                 self.tired = BASE_TIRED;
                 self.timer = SLEEP_TIME;
+                return;
             } else if let Some(path) =
                 grid.find_path(self.pos, self.pos, Some(Entity::Block(BED_ID)))
             {
+                // move to bed
+                // TODO: Only unoccupied bed...
                 self.path = path;
+                return;
             } else {
                 // log::warn("Unable to find bed...")
-                self.move_random(grid, game_ctx);
                 if self.tired == 0 {
                     // pass out on the spot
                     self.tired = BASE_TIRED;
                     self.timer = PASS_OUT_TIME;
                     self.sleeping = true;
+                    return;
                 }
             }
-            return;
         }
 
         if self.food < FOOD_EAT {
@@ -114,10 +130,14 @@ impl Gnome {
             {
                 self.path = path;
                 return;
-            } else {
+            } else if self.food == 0 {
+                self.health = self.health.saturating_sub(1);
+                if self.health == 0 {
+                    return;
+                }
                 // log::warn!("Unable to find food!");
-                self.move_random(grid, game_ctx);
-                return;
+                // self.move_random(grid, game_ctx);
+                // return;
             }
         }
 

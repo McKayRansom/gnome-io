@@ -50,6 +50,7 @@ pub struct Game {
 const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
 const STONE_ITEM_ID: ItemId = 100;
+const GNOME_DEAD_ID: ItemId = 666;
 pub const STONE_BLOCK_ID: BlockId = 100;
 const ORE_ID: BlockId = 101;
 const TREE_ID: BlockId = 102;
@@ -83,6 +84,12 @@ impl Game {
         generate::generate(&mut game.grid);
 
         // why
+
+        game.game_ctx.items.add_item(GNOME_DEAD_ID, ItemType {
+            name: "dead gnome",
+            sprite: sprites::GNOME_DEAD,
+            recipe: None,
+        });
 
         game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
             name: "stone",
@@ -164,6 +171,7 @@ impl Game {
 
     pub fn should_update(&mut self, frame_time: f64) -> bool {
         if matches!(self.speed, GameSpeed::Paused) {
+            self.next_frame_time = frame_time;
             return false;
         }
         if self.next_frame_time < frame_time {
@@ -185,8 +193,21 @@ impl Game {
         // no idea on this ordering..
         self.grid.update_growth(&mut self.game_ctx);
         // Update game state
+        let mut remove_id: Vec<GnomeId> = Vec::new();
         for gnome in self.gnomes.values_mut() {
             gnome.update(&mut self.grid, &mut self.game_ctx);
+            if gnome.health == 0 {
+                remove_id.push(gnome.id);
+            }
+        }
+        // should this be in gnome?
+        for id in remove_id {
+            let gnome = self.gnomes.remove(&id).unwrap();
+            self.grid.gnome_exit(gnome.pos, gnome.id);
+            if let Some(job) = gnome.job {
+                job.fail(&mut self.grid, &mut self.game_ctx);
+            }
+            self.grid.add_entity(gnome.pos, Entity::Item(GNOME_DEAD_ID));
         }
 
         self.job_manager
