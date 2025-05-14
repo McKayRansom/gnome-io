@@ -32,7 +32,7 @@ const GNOME_SPEED: Tick = 20;
 const BASE_TIRED: u16 = 24;
 const BASE_FOOD: u16 = 24;
 
-pub const SLEEP_TIRED: u16 = 6;
+pub const _SLEEP_TIRED: u16 = 6;
 pub const FOOD_EAT: u16 = 12;
 
 const PASS_OUT_TIME: u16 = 240;
@@ -95,6 +95,8 @@ impl Gnome {
         }
         if self.food < FOOD_EAT {
             // TODO: This is the same as below...
+            // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
+            // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
             if let Some(item) = grid.remove_entity(self.pos, Entity::Item(BREAD_ID)) {
                 let Entity::Item(item) = item else { panic!() };
                 // self.items.push(item);

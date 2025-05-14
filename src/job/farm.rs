@@ -44,10 +44,10 @@ impl FarmManager {
     pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
         game_ctx
             .items
-            .add_item(WHEAT_SEED, ItemType::new(sprites::WHEAT_SEED));
+            .add_item(WHEAT_SEED, ItemType::new("seeds", sprites::WHEAT_SEED));
         game_ctx
             .items
-            .add_item(WHEAT_GRAIN, ItemType::new(sprites::WHEAT_GRAIN));
+            .add_item(WHEAT_GRAIN, ItemType::new("wheat", sprites::WHEAT_GRAIN));
 
         game_ctx.blocks.add_block(
             WHEAT_0_ID,
@@ -86,6 +86,7 @@ impl FarmManager {
         );
 
         game_ctx.items.add_item(BREAD_ID, ItemType {
+            name: "bread",
             sprite: sprites::BREAD,
             recipe: Some((FURNACE_ID, vec![WHEAT_GRAIN])),
         });

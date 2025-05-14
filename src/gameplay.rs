@@ -10,11 +10,11 @@ use crate::{
     block::BlockId,
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{Game, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
+    game::{CRAFT_TABLE_ID, FURNACE_ID, Game, STONE_BLOCK_ID},
     grid::Pos,
     job::{Job, JobManager},
     tile::Entity,
-    toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
+    toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
 };
 
 pub enum GameAction {
@@ -115,7 +115,10 @@ impl Gameplay {
             .ui(&mut root_ui(), |ui| {
                 let tile = self.game.grid.get_tile(draw_details_pos).unwrap();
                 let workshops: Vec<BlockId> = vec![CRAFT_TABLE_ID, FURNACE_ID];
-                if tile.get_block().is_some_and(|block| workshops.contains(&block)) {
+                if tile
+                    .get_block()
+                    .is_some_and(|block| workshops.contains(&block))
+                {
                     let workshop_block = tile.get_block().unwrap();
                     // show recipes instead
                     for (item_id, item) in self.game.game_ctx.items.iter_items() {
@@ -124,7 +127,7 @@ impl Gameplay {
                             .as_ref()
                             .is_some_and(|recipe| recipe.0 == workshop_block)
                         {
-                            if ui.button(None, format!("{:?}", item_id).as_str()) {
+                            if ui.button(None, format!("{:?}", item.name).as_str()) {
                                 // make this recipe!
                                 JobManager::create_job(
                                     &mut self.game.grid,
@@ -141,7 +144,18 @@ impl Gameplay {
                     }
                 } else {
                     for item in tile.iter_entities() {
-                        ui.label(None, format!("{:?}", item).as_str());
+                        ui.label(
+                            None,
+                            format!(
+                                "{:?}",
+                                if let Entity::Item(item) = item {
+                                    self.game.game_ctx.items.get_item(item).unwrap().name
+                                } else {
+                                    ""
+                                }
+                            )
+                            .as_str(),
+                        );
                     }
                 }
             }) == false

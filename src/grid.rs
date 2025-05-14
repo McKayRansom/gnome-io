@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use crate::{
     block::BlockId,
     event::{Event, EventManager},
@@ -15,6 +17,7 @@ pub use pos::Pos;
 pub struct Grid {
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
+    pub stocks: HashMap<ItemId, usize>,
 }
 
 pub struct BlockUpdateEvent {
@@ -30,7 +33,11 @@ impl Grid {
         game_ctx.events.add_event_class(GROWTH_EVENT);
         let cells =
             vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
-        Grid { size, cells }
+        Grid {
+            size,
+            cells,
+            stocks: HashMap::new(),
+        }
     }
 
     pub fn is_valid_pos(&self, pos: Pos) -> bool {
@@ -42,8 +49,8 @@ impl Grid {
     }
 
     // not pub to ensure correctness!
-    fn get_tile_mut(&mut self, pos: Pos) -> Option<&mut Tile> {
-        self.cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
+    fn get_tile_mut(cells: &mut Vec<Vec<Tile>>, pos: Pos) -> Option<&mut Tile> {
+        cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
     }
 
     pub fn place_block(
@@ -52,15 +59,13 @@ impl Grid {
         block: Option<BlockId>,
         game_ctx: &mut GameCtx,
     ) -> Option<()> {
-        let tile = self.get_tile_mut(pos)?;
+        let tile = Self::get_tile_mut(&mut self.cells, pos)?;
         let old_block = tile.get_block();
         if let Some(old_block_id) = old_block {
+            tile.walkable = true;
+            tile.remove_entity(&Entity::Block(old_block_id));
+
             if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
-                for (chance, item_id) in old_block.drops.iter() {
-                    if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
-                        tile.add_entity(Entity::Item(*item_id));
-                    }
-                }
                 if let Some(mine_event) = old_block.mine_event {
                     game_ctx.events.push_event(Event {
                         id: mine_event,
@@ -71,9 +76,14 @@ impl Grid {
                         }),
                     });
                 }
+                for (chance, item_id) in old_block.drops.iter() {
+                    if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
+                        // TODO: Dedup!
+                        tile.add_entity(Entity::Item(*item_id));
+                        *self.stocks.entry(*item_id).or_insert(0) += 1;
+                    }
+                }
             }
-            tile.walkable = true;
-            tile.remove_entity(&Entity::Block(old_block_id));
         }
 
         if let Some(block_id) = block {
@@ -102,20 +112,20 @@ impl Grid {
                 }
             }
             tile.add_entity(Entity::Block(block_id));
-        } 
+        }
         log::info!("Setting {:?} to {:?}", tile, block);
 
         Some(())
     }
 
     pub fn gnome_enter(&mut self, pos: Pos, id: GnomeId) {
-        self.get_tile_mut(pos)
+        Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .add_entity(Entity::Gnome(id));
     }
 
     pub fn gnome_exit(&mut self, pos: Pos, id: GnomeId) {
-        self.get_tile_mut(pos)
+        Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .remove_entity(&Entity::Gnome(id));
     }
@@ -129,8 +139,20 @@ impl Grid {
         Some(end)
     }
 
+    pub fn add_entity(&mut self, pos: Pos, entity: Entity) -> Option<()> {
+        Self::get_tile_mut(&mut self.cells, pos)?.add_entity(entity);
+        if let Entity::Item(id) = entity {
+            *self.stocks.entry(id).or_insert(0) += 1;
+        }
+        None
+    }
+
     pub fn remove_entity(&mut self, pos: Pos, entity: Entity) -> Option<Entity> {
-        self.get_tile_mut(pos).unwrap().remove_entity(&entity)
+        let entity = Self::get_tile_mut(&mut self.cells, pos)?.remove_entity(&entity)?;
+        if let Entity::Item(id) = entity {
+            *self.stocks.get_mut(&id).expect("Map stock mismatch") -= 1;
+        }
+        Some(entity)
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -216,7 +238,7 @@ impl Grid {
     }
 
     pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
-        let tile = self.get_tile_mut(pos).unwrap();
+        let tile = Self::get_tile_mut(&mut self.cells, pos).unwrap();
         tile.entities.retain(|entity| {
             if let Entity::Job(job_id) = entity {
                 events.jobs.remove(job_id);
@@ -235,10 +257,5 @@ impl Grid {
                 log::warn!("Unkown event pushed to growth queue");
             }
         }
-    }
-
-    pub fn add_entity(&mut self, pos: Pos, entity: Entity) -> Option<()> {
-        self.get_tile_mut(pos)?.add_entity(entity);
-        None
     }
 }

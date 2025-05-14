@@ -3,6 +3,7 @@ use macroquad::{
     color::{Color, colors},
     math::{Rect, vec2},
     shapes::draw_rectangle_lines,
+    text::draw_text,
 };
 
 use crate::{
@@ -11,7 +12,7 @@ use crate::{
     gnome,
     grid::{
         Grid, Pos,
-        pos::{GRID_CELL_SIZE, PIXEL_SIZE, dirs},
+        pos::{PIXEL_SIZE, dirs},
     },
     tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
@@ -27,7 +28,7 @@ pub mod sprites {
     pub const GRASS: Sprite = Sprite::new(3, 1);
     pub const STONE: Sprite = Sprite::new(7, 5);
     pub const STONE_FLOOR: Sprite = Sprite::new(1, 2);
-    pub const DIRT: Sprite = Sprite::new(1, 1);
+    pub const _DIRT: Sprite = Sprite::new(1, 1);
     pub const WATER: Sprite = Sprite::new(3, 2);
 
     pub const ORE: Sprite = Sprite::new(7, 6);
@@ -59,7 +60,7 @@ pub mod sprites {
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.gnomes);
-    // draw_gnomes(&game.gnomes, ctx);
+    draw_stocks(&game.grid, &game.game_ctx, ctx);
 }
 
 fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
@@ -87,54 +88,67 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                 &dest,
                 colors::WHITE,
             );
+
+            // draw block first?
+            if let Some(block) = tile.get_block() {
+                let Some(block) = game_ctx.blocks.get_block(&block) else {
+                    panic!("No block found fo id {}", block);
+                };
+                ctx.tileset.draw_tile(block.sprite, &dest, colors::WHITE);
+            }
+            // then draw items
             for item in tile.iter_entities() {
-                match item {
-                    Entity::Item(item) => {
-                        ctx.tileset.draw_tile(
-                            if let Some(item) = game_ctx.items.get_item(item) {
-                                item.sprite
+                if let Entity::Item(item) = item {
+                    ctx.tileset.draw_tile(
+                        if let Some(item) = game_ctx.items.get_item(item) {
+                            item.sprite
+                        } else {
+                            sprites::UNKOWN_ITEM
+                        },
+                        &dest,
+                        colors::WHITE,
+                    );
+                }
+            }
+
+            // then gnomes
+            for item in tile.iter_entities() {
+                if let Entity::Gnome(gnome) = item {
+                    // ctx.tileset.draw_tile(sprites, dest, color);
+                    let gnome = gnomes.get(gnome).unwrap();
+                    let think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
+                    if gnome.sleeping {
+                        ctx.tileset
+                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                        ctx.tileset
+                            .draw_tile(sprites::SLEEP, &think_box, colors::WHITE);
+                    } else if gnome.food < gnome::FOOD_EAT {
+                        ctx.tileset
+                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                        ctx.tileset
+                            .draw_tile(sprites::BREAD, &think_box, colors::WHITE);
+                    }
+                    ctx.tileset.draw_tile(sprites::GNOME, &dest, colors::WHITE);
+                }
+            }
+
+            // draw jobs last (on top)
+            for item in tile.iter_entities() {
+                if let Entity::Job(job) = item {
+                    draw_tile_outline(
+                        grid,
+                        &pos,
+                        if let Some(job) = game_ctx.events.jobs.get(job) {
+                            if job.in_progress {
+                                Color::new(0., 0.3, 0., 1.0)
                             } else {
-                                sprites::UNKOWN_ITEM
-                            },
-                            &dest,
-                            colors::WHITE,
-                        );
-                    }
-                    Entity::Gnome(gnome) => {
-                        // ctx.tileset.draw_tile(sprites, dest, color);
-                        let gnome = gnomes.get(gnome).unwrap();
-                        let think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
-                        if gnome.sleeping {
-                            ctx.tileset.draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                            ctx.tileset.draw_tile(sprites::SLEEP, &think_box, colors::WHITE);
-                        } else if gnome.food < gnome::FOOD_EAT {
-                            ctx.tileset.draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                            ctx.tileset.draw_tile(sprites::BREAD, &think_box, colors::WHITE);
-                        }
-                        ctx.tileset.draw_tile(sprites::GNOME, &dest, colors::WHITE);
-                    }
-                    Entity::Block(block) => {
-                        let Some(block) = game_ctx.blocks.get_block(&block) else {
-                            panic!("No block found fo id {}", block);
-                        };
-                        ctx.tileset.draw_tile(block.sprite, &dest, colors::WHITE);
-                    }
-                    Entity::Job(job) => {
-                        draw_tile_outline(
-                            grid,
-                            &pos,
-                            if let Some(job) = game_ctx.events.jobs.get(job) {
-                                if job.in_progress {
-                                    Color::new(0., 0.3, 0., 1.0)
-                                } else {
-                                    Color::new(0.3, 0.3, 0., 1.0)
-                                }
-                            } else {
-                                Color::new(0.3, 0.0, 0., 1.0)
-                            },
-                            ctx,
-                        );
-                    }
+                                Color::new(0.3, 0.3, 0., 1.0)
+                            }
+                        } else {
+                            Color::new(0.3, 0.0, 0., 1.0)
+                        },
+                        ctx,
+                    );
                 }
             }
         }
@@ -169,4 +183,21 @@ pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     // } else {
     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
     // }
+}
+
+fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, _ctx: &Context) {
+    // this really shouldn't be random order but here we are
+    let mut pos = vec2(10., 20.);
+    draw_text("Stocks:", pos.x, pos.y, 24., colors::WHITE);
+    pos.y += 30.;
+    for (item, stock) in grid.stocks.iter() {
+        draw_text(
+            format!("{}: {}", game_ctx.items.get_item(item).unwrap().name, stock).as_str(),
+            pos.x,
+            pos.y,
+            24.,
+            colors::WHITE,
+        );
+        pos.y += 26.;
+    }
 }

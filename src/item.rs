@@ -7,6 +7,7 @@ use crate::{block::BlockId, draw::sprites};
 pub type ItemId = u32;
 
 pub struct ItemType {
+    pub name: &'static str,
     pub sprite: Sprite,
     pub recipe: Option<(BlockId, Vec<ItemId>)>,
     // food value?
@@ -15,6 +16,7 @@ pub struct ItemType {
 impl Default for ItemType {
     fn default() -> Self {
         Self {
+            name: "unnamed",
             sprite: sprites::UNKOWN_ITEM,
             recipe: None,
         }
@@ -22,8 +24,9 @@ impl Default for ItemType {
 }
 
 impl ItemType {
-    pub fn new(sprite: Sprite) -> Self {
+    pub fn new(name: &'static str, sprite: Sprite) -> Self {
         Self {
+            name,
             sprite,
             recipe: None,
         }

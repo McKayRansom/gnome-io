@@ -62,31 +62,33 @@ impl Game {
         // why
 
         game.game_ctx.items.add_item(STONE_ITEM_ID, ItemType {
+            name: "stone",
             sprite: sprites::STONE_ITEM,
             recipe: None,
         });
         game.game_ctx.items.add_item(WOOD_ID, ItemType {
+            name: "wood",
             sprite: sprites::WOOD,
             recipe: None,
         });
         game.game_ctx.blocks.add_block(CRAFT_TABLE_ID, BlockType {
             sprite: sprites::CRAFT_TABLE,
             drops: vec![(1.0, WOOD_ID)],
-            walkable: false,
+            walkable: true,
             requires: vec![WOOD_ID],
             ..Default::default()
         });
         game.game_ctx.blocks.add_block(BED_ID, BlockType {
             sprite: sprites::BED,
             drops: vec![(1.0, WOOD_ID)],
-            walkable: false,
+            walkable: true,
             requires: vec![WOOD_ID],
             ..Default::default()
         });
         game.game_ctx.blocks.add_block(FURNACE_ID, BlockType {
             sprite: sprites::FURNACE,
             drops: vec![(1.0, STONE_ITEM_ID)],
-            walkable: false,
+            walkable: true, // walkable for now so that gnomes can use it properly...
             requires: vec![STONE_ITEM_ID],
             // TODO: Update to remove craft jobs when block removed
             ..Default::default()
