@@ -1,10 +1,11 @@
 use macroquad::{
     color::{self, Color},
-    input::is_mouse_button_down,
+    input::{is_mouse_button_down, mouse_position},
     math::{vec2, Rect, Vec2},
     shapes::draw_rectangle,
     text::draw_text,
     texture::{draw_texture_ex, DrawTextureParams},
+    ui::{hash, root_ui},
 };
 use quad_lib::tileset::Sprite;
 
@@ -104,21 +105,27 @@ impl<V> Toolbar<V> {
         // Old color: Factorio type grey
         // let window_color = Color::from_hex(0x585858);
         // New color: Darker Mindustry grey
-        let mut window_color = Color::from_hex(0x181818);
-        window_color.a = 0.8;
+        // let mut window_color = Color::from_hex(0x181818);
+        // window_color.a = 0.8;
         let mouse_down = is_mouse_button_down(macroquad::input::MouseButton::Left);
-
+        let mouse_pos = mouse_position().into();
         if !mouse_down {
             self.mouse_down = None;
         }
 
-        draw_rectangle(
-            self.rect.x,
-            self.rect.y,
-            self.rect.w,
-            self.rect.h,
-            window_color,
-        );
+        macroquad::ui::widgets::Window::new(
+            hash!() + x as u64 + y as u64,
+            self.rect.point(),
+            self.rect.size(),
+        )
+        .ui(&mut root_ui(), |_ui| {});
+        // draw_rectangle(
+        //     self.rect.x,
+        //     self.rect.y,
+        //     self.rect.w,
+        //     self.rect.h,
+        //     window_color,
+        // );
 
         let mut item_rect = Rect::new(
             self.rect.x + TOOLBAR_ITEM_PAD / 2.,
@@ -133,10 +140,10 @@ impl<V> Toolbar<V> {
             draw_texture_ex(
                 &ctx.tileset.texture,
                 item_rect.x,
-                item_rect.y , // JANK FOR DOUBLE HIGH SPRITES
+                item_rect.y, // JANK FOR DOUBLE HIGH SPRITES
                 toolbar_item.color,
                 DrawTextureParams {
-                    dest_size: Some(vec2(item_rect.w, item_rect.h )), // JANK FOR DOUBLE HIGH SPRITES
+                    dest_size: Some(vec2(item_rect.w, item_rect.h)), // JANK FOR DOUBLE HIGH SPRITES
                     source: Some(spr_rect),
                     ..Default::default()
                 },
@@ -165,28 +172,28 @@ impl<V> Toolbar<V> {
                 );
             }
 
-            if let Some(mouse_pos) = ctx.mouse_pos {
-                if item_rect.contains(mouse_pos) {
-                    tooltip = Some((toolbar_item.tooltip, mouse_pos));
+            // if let Some(mouse_pos) = ctx.mouse_pos {
+            if item_rect.contains(mouse_pos) {
+                tooltip = Some((toolbar_item.tooltip, mouse_pos));
 
-                    draw_rectangle(
-                        item_rect.x - 5.,
-                        item_rect.y - 5.,
-                        item_rect.w + 10.,
-                        item_rect.h + 10.,
-                        Color::new(1.0, 1.0, 1.0, 0.1),
-                    );
+                draw_rectangle(
+                    item_rect.x - 5.,
+                    item_rect.y - 5.,
+                    item_rect.w + 10.,
+                    item_rect.h + 10.,
+                    Color::new(1.0, 1.0, 1.0, 0.1),
+                );
 
-                    if mouse_down && self.mouse_down.is_none() {
-                        if self.selected.is_none() || self.selected != Some(i) {
-                            self.selected = Some(i);
-                        } else {
-                            self.selected = None;
-                        }
-                        self.mouse_down = Some(i);
+                if mouse_down && self.mouse_down.is_none() {
+                    if self.selected.is_none() || self.selected != Some(i) {
+                        self.selected = Some(i);
+                    } else {
+                        self.selected = None;
                     }
+                    self.mouse_down = Some(i);
                 }
             }
+            // }
 
             if self.kind == ToolbarType::Horizontal {
                 item_rect.x += TOOLBAR_ITEM_WIDTH + TOOLBAR_ITEM_PAD;
@@ -196,13 +203,7 @@ impl<V> Toolbar<V> {
         }
 
         if let Some(tooltip) = tooltip {
-            draw_text(
-                tooltip.0,
-                tooltip.1.x,
-                tooltip.1.y,
-                24.,
-                color::WHITE,
-            );
+            draw_text(tooltip.0, tooltip.1.x, tooltip.1.y, 24., color::WHITE);
         }
 
         if let Some(mouse_pos) = ctx.mouse_pos {

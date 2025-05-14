@@ -51,14 +51,17 @@ impl GameTime {
         if self.minute < MINUTES_PER_HOUR {
             return GameTimeEvent::None;
         }
+        self.minute = 0;
         self.hour += 1;
         if self.hour < HOURS_PER_DAY {
             return GameTimeEvent::None;
         }
+        self.hour = 0;
         self.day += 1;
         if self.day < DAYS_PER_SEASON {
             return GameTimeEvent::None;
         }
+        self.day = 0;
         self.season = self.season.next();
         if self.season != Season::Spring {
             return GameTimeEvent::None;

@@ -1,6 +1,7 @@
 use macroquad::{
     input::{get_char_pressed, mouse_position},
     math::Vec2,
+    text::Font,
     ui::root_ui,
     window::{screen_height, screen_width},
 };
@@ -9,6 +10,7 @@ use quad_lib::{camera::Camera, tileset::Tileset};
 // use crate::draw::SPRITES;
 
 pub struct Context {
+    pub font: Font,
     pub camera: Camera,
     pub tileset: Tileset,
     pub key_pressed: Option<char>,
@@ -19,6 +21,7 @@ pub struct Context {
 impl Context {
     pub async fn new() -> Self {
         Self {
+            font: crate::ui::skin::init().await,
             camera: Camera::new(),
             tileset: Tileset::new().await,
             key_pressed: None,

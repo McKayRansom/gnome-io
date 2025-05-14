@@ -22,6 +22,12 @@ pub mod time;
 
 pub type Tick = u16;
 
+pub enum GameSpeed {
+    Paused,
+    Normal,
+    FastForward,
+}
+
 pub struct GameCtx {
     pub time: time::GameTime,
     pub blocks: Blocks,
@@ -32,6 +38,8 @@ pub struct GameCtx {
 pub type Gnomes = HashMap<GnomeId, Gnome>;
 
 pub struct Game {
+    pub next_frame_time: f64,
+    pub speed: GameSpeed,
     pub gnomes: Gnomes,
     pub gnome_id: GnomeId,
     pub grid: Grid,
@@ -51,7 +59,7 @@ pub const FURNACE_ID: BlockId = 105;
 pub const BED_ID: BlockId = 106;
 
 impl Game {
-    pub fn new() -> Game {
+    pub fn new(frame_time: f64) -> Game {
         let mut game_ctx = GameCtx {
             time: GameTime::default(),
             blocks: Blocks::new(),
@@ -59,6 +67,8 @@ impl Game {
             events: EventManager::new(),
         };
         Game {
+            next_frame_time: frame_time,
+            speed: GameSpeed::Normal,
             gnomes: HashMap::new(),
             gnome_id: 1,
             grid: Grid::new(DEFAULT_SIZE, &mut game_ctx),
@@ -67,8 +77,8 @@ impl Game {
         }
     }
 
-    pub fn generate() -> Game {
-        let mut game = Game::new();
+    pub fn generate(frame_time: f64) -> Game {
+        let mut game = Game::new(frame_time);
 
         generate::generate(&mut game.grid);
 
@@ -152,6 +162,22 @@ impl Game {
         game
     }
 
+    pub fn should_update(&mut self, frame_time: f64) -> bool {
+        if matches!(self.speed, GameSpeed::Paused) {
+            return false;
+        }
+        if self.next_frame_time < frame_time {
+            self.next_frame_time += match self.speed {
+                GameSpeed::Paused => unreachable!(),
+                GameSpeed::Normal => 1. / 60.,
+                GameSpeed::FastForward => 1. / 120.,
+            };
+            true
+        } else {
+            false
+        }
+    }
+
     pub fn update(&mut self) -> GameTimeEvent {
         // Update timers first?
         self.game_ctx.events.update_timers();
@@ -166,7 +192,7 @@ impl Game {
         self.job_manager
             .farm_manager
             .update(&mut self.game_ctx.events, &mut self.grid);
-        
+
         self.game_ctx.time.update()
     }
 
@@ -210,7 +236,7 @@ mod tests {
 
     #[test]
     fn test_game_update() {
-        let mut game = Game::new();
+        let mut game = Game::new(0.);
         game.update();
         // Add assertions to check the state after update
     }

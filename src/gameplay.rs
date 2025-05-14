@@ -2,6 +2,7 @@ use macroquad::{
     color::Color,
     input::{KeyCode, is_key_down, is_mouse_button_pressed, is_mouse_button_released, mouse_wheel},
     math::vec2,
+    time::get_time,
     ui::{hash, root_ui, widgets::Window},
 };
 use quad_lib::tileset::Sprite;
@@ -10,11 +11,15 @@ use crate::{
     block::BlockId,
     context::Context,
     draw::{draw_game, draw_tile_outline, sprites},
-    game::{time::GameTimeEvent, Game, BED_ID, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
+    game::{time::GameTimeEvent, Game, GameSpeed, BED_ID, CRAFT_TABLE_ID, FURNACE_ID, STONE_BLOCK_ID},
     grid::Pos,
     job::{Job, JobManager},
     tile::Entity,
-    toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
+    ui::{
+        menu::{Menu, MenuItem},
+        popup::{Popup, PopupResult},
+        toolbar::{Toolbar, ToolbarItem, TOOLBAR_SPACE},
+    },
 };
 
 pub enum GameAction {
@@ -24,12 +29,29 @@ pub enum GameAction {
     Cancel,
 }
 
+#[derive(PartialEq, Eq)]
+pub enum TimeSelect {
+    Pause,
+    FastForward,
+    Menu,
+}
+
+enum PauseMenuSelect {
+    Continue,
+    Save,
+    Quit,
+    // Restart,
+}
+
 pub struct Gameplay {
     game: Game,
     mouse_down_pos: Option<Pos>,
     draw_details_pos: Option<Pos>,
     action_toolbar: Toolbar<GameAction>,
     build_toolbar: Toolbar<BlockId>,
+    time_select: Toolbar<TimeSelect>,
+    popup: Option<Popup>,
+    pause_menu: Menu<PauseMenuSelect>,
 }
 
 const WASD_MOVE_SENSITIVITY: f32 = 20.;
@@ -41,33 +63,59 @@ impl Gameplay {
         ctx.camera.change_zoom(0.9);
         ctx.camera.camera = vec2(-100., 300.);
         Self {
-            game: Game::generate(),
+            game: Game::generate(get_time()),
             mouse_down_pos: None,
             draw_details_pos: None,
-            action_toolbar: Toolbar::new(crate::toolbar::ToolbarType::Horizontal, vec![
+            action_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', Sprite::new(7, 0)),
                 ToolbarItem::new(GameAction::Build, "Build stuff", '2', Sprite::new(7, 1)),
                 ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', Sprite::new(7, 2)),
                 ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', Sprite::new(7, 3)),
             ]),
-            build_toolbar: Toolbar::new(crate::toolbar::ToolbarType::Horizontal, vec![
+            build_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
                 ToolbarItem::new(CRAFT_TABLE_ID, "Crafting table", '2', sprites::CRAFT_TABLE),
                 ToolbarItem::new(FURNACE_ID, "Furnace", '3', sprites::FURNACE),
                 ToolbarItem::new(BED_ID, "Bed", '4', sprites::BED),
             ]),
+            time_select: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
+                ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', sprites::PAUSE),
+                // ToolbarItem::new(TimeSelect::Play, "Play game", ' ', Sprite::new(10, 1)),
+                ToolbarItem::new(
+                    TimeSelect::FastForward,
+                    "Fast Forward game",
+                    ' ',
+                    sprites::FAST_FORWARD,
+                ),
+                ToolbarItem::new(TimeSelect::Menu, "Pause Menu", '\u{1b}', sprites::MENU),
+            ]),
+            popup: None,
+            pause_menu: Menu::new(vec![
+                MenuItem::new(PauseMenuSelect::Continue, "Close".to_string()),
+                MenuItem::new(PauseMenuSelect::Save, "Save".to_string()),
+                MenuItem::new(PauseMenuSelect::Quit, "Menu".to_string()),
+                // MenuItem::new(PauseMenuSelect::Restart, "Restart".to_string()),
+            ]),
         }
     }
 
     pub fn update(&mut self, ctx: &mut Context) {
-        match self.game.update() {
-            GameTimeEvent::None => {},
-            GameTimeEvent::YearEnd => {
-                // self.popup = Popup::new(format!("You survived Year {}!").as_str());
-            },
+        while self.game.should_update(get_time()) {
+            match self.game.update() {
+                GameTimeEvent::None => {}
+                GameTimeEvent::YearEnd => {
+                    self.popup = Some(Popup::new(format!(
+                        "You survived Year {}!",
+                        self.game.game_ctx.time.year - 1
+                    )));
+                }
+            }
         }
         if self.game.gnomes.len() == 0 {
-            // self.popup = Popup::new(format!("Game over, you survived until {:?} Year {}", game.game_ctx.time.season, game.game_ctx.time.year)
+            self.popup = Some(Popup::new(format!(
+                "Game over, you survived until {:?} Year {}",
+                self.game.game_ctx.time.season, self.game.game_ctx.time.year
+            )));
         }
 
         // check WASD
@@ -112,6 +160,48 @@ impl Gameplay {
                 ctx.screen_size.y - TOOLBAR_SPACE * 2.,
             );
         }
+
+        self.time_select.draw(ctx, ctx.screen_size.x - TOOLBAR_SPACE * 1.5, 0.);
+        match self.time_select.get_selected() {
+            Some(TimeSelect::Pause) => {
+                self.game.speed = GameSpeed::Paused;
+                self.time_select.items[0].sprite = sprites::PLAY;
+            }
+            Some(TimeSelect::FastForward) => {
+                self.time_select.items[0].sprite = sprites::PLAY;
+                self.game.speed = GameSpeed::FastForward;
+            }
+            Some(TimeSelect::Menu) => {
+                self.time_select.items[0].sprite = sprites::PLAY;
+                self.game.speed = GameSpeed::Paused;
+                if let Some(selected) = self.pause_menu.draw(hash!()) {
+                    match selected {
+                        PauseMenuSelect::Continue => {
+                            self.time_select.clear_selected();
+                        }
+                        PauseMenuSelect::Save => {
+                            // map.save().expect("Failed to save!");
+                            // println!("SAVED GAME");
+                        }
+                        PauseMenuSelect::Quit => {
+                            // ctx.switch_scene_to = Some(crate::scene::EScene::MainMenu)
+                        } // PauseMenuSelect::Restart => {
+                          // ctx.switch_scene_to = Some(crate::scene::EScene::Gameplay(Box::new(
+                          //     new_level(map.metadata.level_number),
+                          // )))
+                          // }
+                    }
+                }
+            }
+            None => {
+                self.game.speed = GameSpeed::Normal;
+                self.time_select.items[0].sprite = Sprite::new(10, 0);
+            }
+        }
+
+        // if let Some(chr) = ctx.key_pressed {
+
+        // }
 
         if let Some(draw_details_pos) = self.draw_details_pos {
             // special behaviour for workshops
@@ -210,6 +300,26 @@ impl Gameplay {
             // draw_selected
             for pos in self.mouse_down_pos.unwrap_or(mouse_pos).iter(mouse_pos) {
                 draw_tile_outline(&self.game.grid, &pos, Color::new(1., 1., 1., 0.3), ctx);
+            }
+        }
+
+        if let Some(popup) = &self.popup {
+            self.game.speed = GameSpeed::Paused;
+            match popup.draw() {
+                Some(PopupResult::Ok) => {
+                    self.popup = None;
+                    // let level_number = self.map.metadata.level_number + 1;
+                    // ctx.switch_scene_to = if level_number < LEVEL_COUNT {
+                    //     Some(EScene::Gameplay(Box::new(new_level(level_number))))
+                    // } else {
+                    //     Some(EScene::MainMenu)
+                    // }
+                }
+                Some(PopupResult::Cancel) => {
+                    self.popup = None;
+                    // self.map.metadata.level_complete = true;
+                }
+                None => {}
             }
         }
     }

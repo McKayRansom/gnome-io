@@ -10,10 +10,11 @@ mod tile;
 mod context;
 mod draw;
 mod gameplay;
-mod toolbar;
+mod ui;
 mod block;
 mod item;
 mod event;
+mod text;
 
 const PKG_NAME: &str = "gnome-io";
 

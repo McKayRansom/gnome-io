@@ -3,7 +3,6 @@ use macroquad::{
     color::{Color, colors},
     math::{Rect, vec2},
     shapes::draw_rectangle_lines,
-    text::draw_text,
 };
 
 use crate::{
@@ -14,6 +13,7 @@ use crate::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
+    text::draw_text,
     tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
@@ -56,6 +56,11 @@ pub mod sprites {
     pub const WHEAT_2: Sprite = Sprite::new(3, 5);
     pub const WHEAT_3: Sprite = Sprite::new(3, 6);
     pub const WHEAT_4: Sprite = Sprite::new(3, 7);
+
+    pub const PLAY: Sprite = Sprite::new(0, 0);
+    pub const PAUSE: Sprite = Sprite::new(0, 0);
+    pub const FAST_FORWARD: Sprite = Sprite::new(0, 0);
+    pub const MENU: Sprite = Sprite::new(0, 0);
 }
 
 pub fn draw_game(game: &Game, ctx: &Context) {
@@ -191,17 +196,25 @@ pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     // }
 }
 
-fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, _ctx: &Context) {
+fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
     // this really shouldn't be random order but here we are
     let mut pos = vec2(10., 20.);
-    draw_text("Stocks:", pos.x, pos.y, 24., colors::WHITE);
+    draw_text(
+        ctx,
+        "Stocks:",
+        pos.x,
+        pos.y,
+        crate::text::Size::Small,
+        colors::WHITE,
+    );
     pos.y += 30.;
     for (item, stock) in grid.stocks.iter() {
         draw_text(
+            ctx,
             format!("{}: {}", game_ctx.items.get_item(item).unwrap().name, stock).as_str(),
             pos.x,
             pos.y,
-            24.,
+            crate::text::Size::Small,
             colors::WHITE,
         );
         pos.y += 26.;
@@ -211,10 +224,11 @@ fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, _ctx: &Context) {
 fn draw_status(game: &Game, ctx: &Context) {
     let time = &game.game_ctx.time;
     draw_text(
+        ctx,
         format!("Day {} of {:?} Year {}", time.day, time.season, time.year).as_str(),
         ctx.screen_size.x - 100.,
         20.,
-        24.,
+        crate::text::Size::Medium,
         colors::WHITE,
     );
 }

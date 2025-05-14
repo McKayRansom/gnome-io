@@ -9,19 +9,24 @@ The point should be more trying to survivie (rimworld but way simpler) an inters
 The one exception is I want there to be multiple races that play very differently and interact in interesting ways.
 This will be almost impossible to balance, but I'm hoping to make it casual enough that it doesn't super matter.
 
-# MVP:
+# MVP: Survive Winter (requires seasons) 
 - [x] Tile-based drawing and sprites
 - [x] Procedural terrain
 - [x] Mining
 - [x] Farming
-- [ ] Hauling
+- [ ] Hauling?
 - [x] Crafting (Just crafting table/furnace for now)
+  - [ ] auto-craft bread for now
 - [x] Hunger/Sleep
-- [ ] Goal: Survive Winter (requires seasons) 
 - [ ] Saving
+- [ ] Winter storms with snow would be nice but not required I guess...
 - [ ] UI
-  - [ ] Toolbar
-  - [ ] Menus
+  - [x] Toolbar
+    - [x] Fix toolbar skin
+  - [x] Time select
+  - [x] Skin (steal macroquad example for now...)
+  - [x] Menus
+  - [x] Popups
   - [x] Tile details
   - [x] Stocks
   - [x] 1st day of spring
