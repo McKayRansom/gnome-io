@@ -91,7 +91,7 @@ impl Gameplay {
                     ' ',
                     sprites::FAST_FORWARD,
                 ),
-                ToolbarItem::new(TimeSelect::Menu, "Pause Menu", '\u{1b}', sprites::MENU),
+                ToolbarItem::new(TimeSelect::Menu, "Menu", '\u{1b}', sprites::MENU),
             ]),
             popup: None,
             pause_menu: Menu::new(vec![

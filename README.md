@@ -10,27 +10,21 @@ The one exception is I want there to be multiple races that play very differentl
 This will be almost impossible to balance, but I'm hoping to make it casual enough that it doesn't super matter.
 
 # MVP: Survive Winter (requires seasons) 
-- [x] Tile-based drawing and sprites
-- [x] Procedural terrain
-- [x] Mining
-- [x] Farming
-- [ ] Hauling?
-- [x] Crafting (Just crafting table/furnace for now)
-  - [x] auto-craft bread for now
-- [x] Hunger/Sleep
-- [ ] Saving
-- [ ] Winter storms with snow would be nice but not required I guess...
-- [ ] UI
-  - [x] Toolbar
-    - [x] Fix toolbar skin
-  - [x] Time select
-  - [x] Skin (steal macroquad example for now...)
-  - [x] Menus
-  - [x] Popups
-  - [x] Tile details
-  - [x] Stocks
-  - [x] 1st day of spring
-
+-  Tile-based drawing and sprites
+-  Procedural terrain
+-  Mining
+-  Farming
+-  Crafting (Just crafting bread automatically for now)
+-  Saving
+-  UI basics (Toolbar, Menu, tile details, skin, stocks)
+Thoughts after MVP completion:
+- Balance of timing is tricky, seasons feel long but days are too short (Gnomes barely reach 30 tiles)
+- Bug testing is a little tricker because the reproduce time is longer. Will need read savefiles and command line.
+- Some kind of scripting or JSON for the block/item/sprite definitions would make so much sense
+- Managing of different struct mutability in Rust is hard, but at this point it would be so much work to switch
+- Maybe Rust can be justified due to performance + correctness of rare edge cases
+- Start on unit tests once structure is finalized? At the very least start adding tests for bug cases
+- Have enimies show up in the winter? (Winter is coming?) (White walkers?)
 
 ## Features
 - Grow a colony of gnomes and other fantasy races and survive the seasons and goblin raids.
@@ -39,6 +33,15 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - Performant and highly-scalable to large maps and large numbers of gnomes
 - Highly abstracted and modable
 - Eventually multiplayer co-op or vs
+
+
+### Modding design
+Factorio modding design seems reasonable. Lua files for settings, data, and control.
+Settings and data are called on game load, control can register event handlers.
+
+Seems pretty reasonable, but a large amount of work. The changes they had to make to make lua deterministic are concerning. (Although it looks like the default rust HashMap is also non-deterministic to prevent DOS). Having a dedicated storage table in lua for saving and multiplayer also makes sense. 
+
+A first step would be just data creation, control could be done later.
 
 
 ## Gnomoria comparisons:
@@ -67,11 +70,13 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - Duplicate/similar items. The base game will probably just have 1 type of food and 1 type of ore, 
 Maybe mods can add this but I want to keep the base game as simple as possible.
 - Mechanisms: Add mod support for these sorts of features if time
-- Traits/professions (for now) 
+- Complex damage simulation
 
 ### Undecided:
+- Traits/professions (We need some way to decide which tasks are prioritized...)
 - Mining vs infinite mining workshops? how well does this work on 2d
 - Enemies in the mines... Would be cool to mine too greedily and too deep
 - Combat: Could be simplified, could keep it similar
 - Stockpiles: Simpler would be nice but how would that be done?
+  - Consider specific building size like in Timberborn.
 - Professions at all? is a lot of work to do this...
