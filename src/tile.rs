@@ -99,4 +99,13 @@ impl Tile {
     pub(crate) fn is_passable(&self) -> bool {
         self.walkable
     }
+    
+    pub(crate) fn get_job(&self) -> Option<JobId> {
+        for entity in &self.entities {
+            if let Entity::Job(id) = entity {
+                return Some(*id);
+            }
+        }
+        return None
+    }
 }

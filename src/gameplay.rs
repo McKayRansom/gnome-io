@@ -5,7 +5,6 @@ use macroquad::{
     time::get_time,
     ui::{hash, root_ui, widgets::Window},
 };
-use quad_lib::tileset::Sprite;
 
 use crate::{
     block::{BlockId, blocks},
@@ -67,10 +66,10 @@ impl Gameplay {
             mouse_down_pos: None,
             draw_details_pos: None,
             action_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', Sprite::new(7, 0)),
-                ToolbarItem::new(GameAction::Build, "Build stuff", '2', Sprite::new(7, 1)),
-                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', Sprite::new(7, 2)),
-                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', Sprite::new(7, 3)),
+                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', sprites::MINE),
+                ToolbarItem::new(GameAction::Build, "Build stuff", '2', sprites::BUILD),
+                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', sprites::FARM),
+                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', sprites::CANCEL),
             ]),
             build_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
                 ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
@@ -207,7 +206,7 @@ impl Gameplay {
             }
             None => {
                 self.game.speed = GameSpeed::Normal;
-                self.time_select.items[0].sprite = Sprite::new(10, 0);
+                self.time_select.items[0].sprite = sprites::PAUSE;
             }
         }
 

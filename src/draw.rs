@@ -64,6 +64,11 @@ pub mod sprites {
     pub const PAUSE: Sprite = Sprite::new(6, 5);
     pub const FAST_FORWARD: Sprite = Sprite::new(6, 6);
     pub const MENU: Sprite = Sprite::new(6, 7);
+
+    pub const MINE: Sprite = Sprite::new(7, 0);
+    pub const BUILD: Sprite = Sprite::new(7, 1);
+    pub const FARM: Sprite = Sprite::new(7, 2);
+    pub const CANCEL: Sprite = Sprite::new(7, 3);
 }
 
 pub fn draw_game(game: &Game, ctx: &Context) {

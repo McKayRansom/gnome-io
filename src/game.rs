@@ -106,7 +106,7 @@ impl Game {
         let start_pos = Pos::new(6, 11);
 
         // spawn some wheat
-        for _ in 0..16 {
+        for _ in 0..32 {
             // game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
             game.grid
                 .add_entity(start_pos, Entity::Item(items::WHEAT_GRAIN));

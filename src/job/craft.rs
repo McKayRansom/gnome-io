@@ -43,36 +43,42 @@ impl CraftManager {
         if grid
             .stocks
             .get(&items::BREAD_ID)
-            .is_none_or(|stock| *stock < 10)
+            .is_none_or(|stock| *stock < 16)
+            && grid
+                .stocks
+                .get(&items::WHEAT_GRAIN)
+                .is_some_and(|stock| *stock > 8)
         {
             if let Some(pos) = self.workshop_pos.first() {
-                craft(grid, *pos, items::BREAD_ID, game_ctx);
+                if grid.get_tile(*pos).unwrap().get_job().is_none() {
+                    craft(grid, *pos, items::BREAD_ID, game_ctx);
+                }
             }
         }
         while let Some(block_update_event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-                log::info!("Craft update event at {:?}", block_update_event.value.pos);
-                // self.tile_changed(events, grid, &block_update_event.pos)
-                if block_update_event.value.new == Some(blocks::FURNACE_ID) {
-                    self.workshop_pos.push(block_update_event.value.pos);
-                } else {
-                    self.workshop_pos
-                        .retain(|pos| pos != &block_update_event.value.pos);
-                    // remove crafting jobs at this pos
-                    for entity in grid
-                        .get_tile(block_update_event.value.pos)
-                        .unwrap()
-                        .iter_entities()
-                    {
-                        if let Entity::Job(job_id) = entity {
-                            if let Some(job) = game_ctx.events.jobs.get(job_id) {
-                                if job.is_craft() {
-                                    game_ctx.events.remove_job(job_id);
-                                }
+            log::info!("Craft update event at {:?}", block_update_event.value.pos);
+            // self.tile_changed(events, grid, &block_update_event.pos)
+            if block_update_event.value.new == Some(blocks::FURNACE_ID) {
+                self.workshop_pos.push(block_update_event.value.pos);
+            } else {
+                self.workshop_pos
+                    .retain(|pos| pos != &block_update_event.value.pos);
+                // remove crafting jobs at this pos
+                for entity in grid
+                    .get_tile(block_update_event.value.pos)
+                    .unwrap()
+                    .iter_entities()
+                {
+                    if let Entity::Job(job_id) = entity {
+                        if let Some(job) = game_ctx.events.jobs.get(job_id) {
+                            if job.is_craft() {
+                                game_ctx.events.remove_job(job_id);
                             }
                         }
                     }
                 }
+            }
             // } else {
             //     log::warn!("Unkown event dispached to craft event queue");
             //     // None
