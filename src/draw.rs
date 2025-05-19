@@ -26,24 +26,24 @@ pub mod sprites {
     pub const GNOME: Sprite = Sprite::new(4, 5);
     pub const GNOME_DEAD: Sprite = Sprite::new(3, 0); // TODO
 
-    pub const GRASS: Sprite = Sprite::new(3, 1);
-    pub const STONE: Sprite = Sprite::new(7, 5);
+    pub const GRASS: Sprite = Sprite::new(2, 1);
+    pub const STONE: Sprite = Sprite::new(2, 3);
     pub const STONE_FLOOR: Sprite = Sprite::new(1, 2);
     pub const _DIRT: Sprite = Sprite::new(1, 1);
-    pub const WATER: Sprite = Sprite::new(3, 2);
+    pub const WATER: Sprite = Sprite::new(2, 2);
 
     pub const ORE: Sprite = Sprite::new(7, 6);
     pub const STONE_ITEM: Sprite = Sprite::new(5, 2);
 
-    pub const TREE: Sprite = Sprite::new(7, 4);
-    pub const WOOD: Sprite = Sprite::new(5, 5);
+    pub const TREE: Sprite = Sprite::new(2, 4);
+    pub const WOOD: Sprite = Sprite::new(2, 6);
 
     pub const FURNACE: Sprite = Sprite::new(1, 5);
     pub const CRAFT_TABLE: Sprite = Sprite::new(1, 6);
     pub const _CHEST: Sprite = Sprite::new(1, 7);
-    pub const BED: Sprite = Sprite::new(0, 6);
+    pub const BED: Sprite = Sprite::new(2, 5);
 
-    pub const BREAD: Sprite = Sprite::new(7, 7);
+    pub const BREAD: Sprite = Sprite::new(2, 7);
 
     pub const UNKNOWN_ITEM: Sprite = Sprite::new(7, 0);
     pub const THINK: Sprite = Sprite::new(6, 0);

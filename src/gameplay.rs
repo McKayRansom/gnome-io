@@ -59,7 +59,7 @@ const SCROLL_SENSITIVITY: f32 = 0.05;
 
 impl Gameplay {
     pub fn new(ctx: &mut Context) -> Self {
-        ctx.camera.change_zoom(0.9);
+        ctx.camera.change_zoom(0.2);
         ctx.camera.camera = vec2(-100., 300.);
         Self {
             game: Game::generate(get_time()),
