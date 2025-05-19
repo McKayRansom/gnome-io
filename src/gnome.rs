@@ -2,7 +2,12 @@ use macroquad::rand::rand;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::blocks, game::{time::hours, GameCtx, Tick}, grid::{pos::dirs, Grid, Pos}, item::{items, ItemId}, job::Job, tile::Entity
+    block::blocks,
+    game::{GameCtx, Tick, time::hours},
+    grid::{Grid, Pos, pos::dirs},
+    item::{ItemId, items},
+    job::Job,
+    tile::Entity,
 };
 
 pub type GnomeId = u32;
@@ -12,32 +17,34 @@ pub type GnomeId = u32;
  * - To support eventual multiplayer, I DON'T want goblins to be a special class
  * - Either: A special military mode where we re-path toward/away from enimies every frame
  * -  OR: Military "JOBS" somehow
- * 
+ *
  * Basic logic
  *  - Attack order: Head toward POS, attack anything on the way
  *  - Fight enitty order: Head toward ENTITIY, if close attack
  *  - Retreat order: Run toward POS
  *  - Defend order: stay at X pos, attack anything you see maybe?
  *  - Stand ground: stay at X pos, don't move
- * 
+ *
  * Attack event:
  *  - How can we lookup a gnome from within gnome update??? May need to add faction to gnomeId or make it a struct...
  *  - for now, given our mutable approach, we have to emit an attack event (or just return one)
  *  - an event manager (or game loop) needs to take that attack event
- * 
+ *
  * Goblin raid:
  *  - X number of goblins ordered to attack X pos, should stay mostly together
- * 
+ *
  * Wild animals:
  *  - attack or defend type order
- * 
+ *
  */
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Gnome {
     pub id: GnomeId,
     pub job: Option<Job>,
     pub pos: Pos,
+    pub dir: Pos,
+    pub lag: u16,
     pub path: Vec<Pos>,
     pub timer: Tick,
     pub items: Vec<ItemId>,
@@ -71,6 +78,8 @@ impl Gnome {
             id,
             job: None,
             pos,
+            dir: dirs::NONE,
+            lag: 0,
             path: Vec::new(),
             timer: 0,
             items: Vec::new(),
@@ -89,17 +98,19 @@ impl Gnome {
             self.timer -= 1;
             return;
         }
-
+        self.lag = 0;
         self.sleeping = false;
 
         if !self.path.is_empty() {
             if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
+                self.dir = self.pos - pos;
                 self.pos = pos;
                 self.timer = if self.tired < SLOW_TIRED {
                     GNOME_SPEED * 2
                 } else {
                     GNOME_SPEED
                 };
+                self.lag = self.timer;
             } else {
                 //impassable terrain
                 self.path.clear();
@@ -119,7 +130,7 @@ impl Gnome {
                 self.sleeping = true;
                 self.tired = BASE_TIRED;
                 self.timer = SLEEP_TIME;
-                if self.health < BASE_HEALTH { 
+                if self.health < BASE_HEALTH {
                     self.health += 1;
                 }
                 return;
@@ -189,7 +200,9 @@ impl Gnome {
             self.pos,
             self.pos + dirs::ALL[rand() as usize % dirs::ALL.len()],
         ) {
+            self.dir = self.pos - pos;
             self.pos = pos;
+            self.lag = GNOME_SPEED * 2;
         }
         self.timer = GNOME_SPEED * 2; // move slower since we have no destination
     }

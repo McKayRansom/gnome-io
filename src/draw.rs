@@ -1,7 +1,7 @@
 // use hecs::World;
 use macroquad::{
     color::{Color, colors},
-    math::{Rect, vec2},
+    math::{Rect, Vec2, vec2},
     shapes::draw_rectangle_lines,
 };
 
@@ -10,7 +10,8 @@ use crate::{
     game::{Game, GameCtx, Gnomes},
     gnome::{self, SLEEP_TIRED},
     grid::{
-        pos::{dirs, PIXEL_SIZE}, Grid, Pos
+        Grid, Pos,
+        pos::{PIXEL_SIZE, dirs},
     },
     text::{draw_text, draw_text_screen_centered},
     tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
@@ -22,7 +23,7 @@ use crate::{
 pub mod sprites {
     use quad_lib::tileset::Sprite;
 
-    pub const GNOME: Sprite = Sprite::new(3, 0);
+    pub const GNOME: Sprite = Sprite::new(4, 5);
     pub const GNOME_DEAD: Sprite = Sprite::new(3, 0); // TODO
 
     pub const GRASS: Sprite = Sprite::new(3, 1);
@@ -124,30 +125,52 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                     );
                 }
             }
-
+        }
+    }
+    for y in 0..grid.size.y {
+        for x in 0..grid.size.x {
+            let pos: Pos = (x, y).into();
+            // skip invisible tiles
+            let tile = grid.get_tile(pos).unwrap();
             // then gnomes
             for item in tile.iter_entities() {
                 if let Entity::Gnome(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     let gnome = gnomes.get(gnome).unwrap();
                     let think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
-                    if gnome.tired < SLEEP_TIRED {
-                        ctx.tileset
-                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                        ctx.tileset
-                            .draw_tile(sprites::BED, &think_box, colors::WHITE);
-                    } else if gnome.sleeping {
-                        ctx.tileset
-                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                        ctx.tileset
-                            .draw_tile(sprites::SLEEP, &think_box, colors::WHITE);
-                    } else if gnome.food < gnome::FOOD_EAT {
-                        ctx.tileset
-                            .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                        ctx.tileset
-                            .draw_tile(sprites::BREAD, &think_box, colors::WHITE);
+
+                    // oh g oh f
+                    let mut dest_rect: Rect = gnome.pos.into();
+                    let flip = gnome.dir == dirs::LEFT || gnome.dir == dirs::DOWN;
+
+                    if gnome.lag > 0 {
+                        let dir: Vec2 = gnome.dir.into();
+                       
+                        let offset = dir * (gnome.timer as f32 / gnome.lag as f32);
+                        dest_rect = dest_rect.offset(offset);
+                        // dbg!(gnome, offset);
                     }
-                    ctx.tileset.draw_tile(sprites::GNOME, &dest, colors::WHITE);
+                    let dest = ctx.camera.to_screen_rect(dest_rect);
+                    // let diff =
+
+                    // if gnome.tired < SLEEP_TIRED {
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::BED, &think_box, colors::WHITE);
+                    // } else if gnome.sleeping {
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::SLEEP, &think_box, colors::WHITE);
+                    // } else if gnome.food < gnome::FOOD_EAT {
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
+                    //     ctx.tileset
+                    //         .draw_tile(sprites::BREAD, &think_box, colors::WHITE);
+                    // }
+                    ctx.tileset
+                        .draw_tile_ex(sprites::GNOME, colors::WHITE, &dest, flip);
                 }
             }
 

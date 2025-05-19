@@ -1,4 +1,4 @@
-use std::ops::Add;
+use std::ops::{Add, Sub};
 
 use macroquad::math::{Rect, Vec2};
 use serde::{Deserialize, Serialize};
@@ -13,6 +13,8 @@ pub struct Pos {
 
 pub mod dirs {
     use super::Pos;
+
+    pub const NONE: Pos = Pos::new(0, 0);
 
     pub const LEFT: Pos = Pos::new(-1, 0);
     pub const RIGHT: Pos = Pos::new(1, 0);
@@ -66,6 +68,17 @@ impl Add<Pos> for Pos {
         Self {
             x: self.x + rhs.x,
             y: self.y + rhs.y,
+        }
+    }
+}
+
+impl Sub<Pos> for Pos {
+    type Output = Pos;
+
+    fn sub(self, rhs: Pos) -> Self::Output {
+        Self {
+            x: self.x - rhs.x,
+            y: self.y - rhs.y,
         }
     }
 }

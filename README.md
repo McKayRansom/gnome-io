@@ -73,6 +73,8 @@ Maybe mods can add this but I want to keep the base game as simple as possible.
 - Complex damage simulation
 
 ### Undecided:
+- Realistic Pixel (Gnomoria) vs Minimalistic Pixel (Gnorp) graphics
+- Base builder OR RTS?? How does every game I make turn into an RTS!
 - Traits/professions (We need some way to decide which tasks are prioritized...)
 - Mining vs infinite mining workshops? how well does this work on 2d
 - Enemies in the mines... Would be cool to mine too greedily and too deep
