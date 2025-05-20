@@ -84,14 +84,14 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
             let pos: Pos = (x, y).into();
             // skip invisible tiles
             let tile = grid.get_tile(pos).unwrap();
-            if tile.biome == TileBiome::Stone
-                && !dirs::ALL.iter().any(|dir| {
-                    grid.get_tile(pos + *dir)
-                        .is_some_and(|tile| tile.is_passable())
-                })
-            {
-                continue;
-            }
+            // if tile.biome == TileBiome::Stone
+            //     && !dirs::ALL.iter().any(|dir| {
+            //         grid.get_tile(pos + *dir)
+            //             .is_some_and(|tile| tile.is_passable())
+            //     })
+            // {
+            //     continue;
+            // }
             let dest: Rect = ctx.camera.to_screen_rect(pos.into());
             ctx.tileset.draw_tile(
                 match tile.biome {
