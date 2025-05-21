@@ -7,14 +7,14 @@ mod grid;
 mod job;
 mod tile;
 // mod tileset;
+pub mod block;
 mod context;
 mod draw;
-mod gameplay;
-mod ui;
-pub mod block;
-pub mod item;
 mod event;
+mod gameplay;
+pub mod item;
 mod text;
+mod ui;
 
 const PKG_NAME: &str = "gnome-io";
 
@@ -41,7 +41,7 @@ fn window_conf() -> Conf {
         },
         default_filter_mode: miniquad::FilterMode::Nearest,
         ..Default::default()
-}
+    }
 }
 
 #[macroquad::main(window_conf)]
@@ -62,13 +62,12 @@ async fn main() {
     }
 
     let mut ctx = context::Context::new().await;
-
     let mut g = Gameplay::new(&mut ctx);
 
     log::info!("Finished init");
 
     loop {
-        ctx.update();
+        ctx.update().await;
         g.update(&mut ctx);
         g.draw(&mut ctx);
         next_frame().await;

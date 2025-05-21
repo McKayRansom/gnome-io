@@ -7,6 +7,7 @@ edition = "2024"
 env_logger = "0.11.8"
 log = "0.4.27"
 macroquad = "0.4.14"
+nanoserde = "0.2.1"
 noise = "0.9.0"
 pathfinding = "4.14.0"
 quad-lib = {path = "quad-lib"}
