@@ -59,14 +59,14 @@ pub struct Gnome {
 const GNOME_SPEED: Tick = 20;
 
 const BASE_TIRED: u16 = hours(20);
-const SLOW_TIRED: u16 = hours(2);
+// const SLOW_TIRED: u16 = hours(2);
 const BASE_FOOD: u16 = hours(20);
 
-pub const SLEEP_TIRED: u16 = hours(4);
+// pub const SLEEP_TIRED: u16 = hours(4);
 pub const FOOD_EAT: u16 = hours(4);
 
-const PASS_OUT_TIME: u16 = hours(6);
-const SLEEP_TIME: u16 = hours(4);
+// const PASS_OUT_TIME: u16 = hours(6);
+// const SLEEP_TIME: u16 = hours(4);
 
 const BASE_HEALTH: u8 = 10;
 
@@ -105,11 +105,11 @@ impl Gnome {
             if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
                 self.dir = self.pos - pos;
                 self.pos = pos;
-                self.timer = if self.tired < SLOW_TIRED {
-                    GNOME_SPEED * 2
-                } else {
-                    GNOME_SPEED
-                };
+                self.timer = //if self.tired < SLOW_TIRED {
+                    // GNOME_SPEED * 2
+                // } else {
+                    GNOME_SPEED;
+                // };
                 self.lag = self.timer;
             } else {
                 //impassable terrain
@@ -119,39 +119,39 @@ impl Gnome {
         }
 
         // this feels a bit not-optimial but IDK
-        if self.tired < SLEEP_TIRED {
-            if grid
-                .get_tile(self.pos)
-                .unwrap()
-                .get_block()
-                .is_some_and(|block| block == blocks::BED_ID)
-            {
-                // great, sleep here
-                self.sleeping = true;
-                self.tired = BASE_TIRED;
-                self.timer = SLEEP_TIME;
-                if self.health < BASE_HEALTH {
-                    self.health += 1;
-                }
-                return;
-            } else if let Some(path) =
-                grid.find_path(self.pos, self.pos, Some(Entity::Block(blocks::BED_ID)))
-            {
-                // move to bed
-                // TODO: Only unoccupied bed...
-                self.path = path;
-                return;
-            } else {
-                // log::warn("Unable to find bed...")
-                if self.tired == 0 {
-                    // pass out on the spot
-                    self.tired = BASE_TIRED;
-                    self.timer = PASS_OUT_TIME;
-                    self.sleeping = true;
-                    return;
-                }
-            }
-        }
+        // if self.tired < SLEEP_TIRED {
+        //     if grid
+        //         .get_tile(self.pos)
+        //         .unwrap()
+        //         .get_block()
+        //         .is_some_and(|block| block == blocks::BED_ID)
+        //     {
+        //         // great, sleep here
+        //         self.sleeping = true;
+        //         self.tired = BASE_TIRED;
+        //         self.timer = SLEEP_TIME;
+        //         if self.health < BASE_HEALTH {
+        //             self.health += 1;
+        //         }
+        //         return;
+        //     } else if let Some(path) =
+        //         grid.find_path(self.pos, self.pos, Some(Entity::Block(blocks::BED_ID)))
+        //     {
+        //         // move to bed
+        //         // TODO: Only unoccupied bed...
+        //         self.path = path;
+        //         return;
+        //     } else {
+        //         // log::warn("Unable to find bed...")
+        //         if self.tired == 0 {
+        //             // pass out on the spot
+        //             self.tired = BASE_TIRED;
+        //             self.timer = PASS_OUT_TIME;
+        //             self.sleeping = true;
+        //             return;
+        //         }
+        //     }
+        // }
 
         if self.food < FOOD_EAT {
             // TODO: This is the same as below...
