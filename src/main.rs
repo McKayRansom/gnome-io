@@ -41,7 +41,7 @@ fn window_conf() -> Conf {
         },
         default_filter_mode: miniquad::FilterMode::Nearest,
         ..Default::default()
-    }
+}
 }
 
 #[macroquad::main(window_conf)]

@@ -82,3 +82,18 @@ Maybe mods can add this but I want to keep the base game as simple as possible.
 - Stockpiles: Simpler would be nice but how would that be done?
   - Consider specific building size like in Timberborn.
 - Professions at all? is a lot of work to do this...
+
+### Ideas:
+How will muliplayer work? Maybe we should go with sim-ant style instead?
+Choices:
+High-level priorites: Mining vs Farming vs Woodcutting?
+Building layout still b/c that's fun
+Attack/defend priorities?
+
+Factions:
+- Mants: Only move via hormones, limited high-level control but can eat plants and reproduce faster, weaker in combat but numbers
+- Dwarves: Give jobs, limited attack/defend, good at mining
+- Humans: good at building
+- Goblins: Hide in mountains and steal food
+- Orcs: Only attack and steal stuff
+
