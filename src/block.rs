@@ -1,9 +1,8 @@
 use std::collections::HashMap;
 
-use quad_lib::tileset::Sprite;
 use serde::{Deserialize, Serialize};
 
-use crate::{draw::sprites, event::EventId, game::Tick, item::ItemId};
+use crate::{event::EventId, game::Tick, item::ItemId};
 
 pub mod blocks;
 
@@ -11,7 +10,7 @@ pub type BlockId = u32;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockType {
-    pub sprite: Sprite, // should this be elsewhere?
+    pub sprite: String, // should this be elsewhere?
     pub drops: Vec<(f32, ItemId)>,
     pub walkable: bool, // will need other path information eventually
     pub growth: Option<(Tick, Option<BlockId>)>, // time until it grows into something else
@@ -24,7 +23,7 @@ pub struct BlockType {
 impl Default for BlockType {
     fn default() -> Self {
         Self {
-            sprite: sprites::UNKNOWN_ITEM,
+            sprite: "unknown".into(),
             drops: Vec::new(),
             walkable: false,
             growth: None,
@@ -37,7 +36,7 @@ impl Default for BlockType {
 
 // builder pattern
 impl BlockType {
-    pub fn new(sprite: Sprite, drops: Vec<(f32, ItemId)>) -> Self {
+    pub fn new(sprite: String, drops: Vec<(f32, ItemId)>) -> Self {
         Self {
             sprite,
             drops,

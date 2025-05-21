@@ -1,29 +1,26 @@
 use macroquad::{
     color::{self, Color, colors},
     input::{is_mouse_button_down, mouse_position},
-    math::{Rect, Vec2, vec2},
+    math::{Rect, Vec2},
     shapes::draw_rectangle,
-    texture::{DrawTextureParams, draw_texture_ex},
 };
-use quad_lib::tileset::Sprite;
 
 use crate::{
     context::Context,
-    draw::sprites,
     text::{draw_text, measure_text},
 };
 
-#[derive(Clone, Copy)]
+#[derive(Clone)]
 pub struct ToolbarItem<V> {
     pub value: V,
     pub tooltip: &'static str,
     pub shortcut: char,
-    pub sprite: Sprite,
+    pub sprite: String,
     pub color: Color,
 }
 
 impl<V> ToolbarItem<V> {
-    pub fn new(value: V, tooltip: &'static str, shortcut: char, sprite: Sprite) -> Self {
+    pub fn new(value: V, tooltip: &'static str, shortcut: char, sprite: String) -> Self {
         Self {
             value,
             tooltip,
@@ -43,7 +40,7 @@ where
             value: Default::default(),
             tooltip: "",
             shortcut: Default::default(),
-            sprite: Sprite::new(0, 0),
+            sprite: "unknown".into(),
             color: color::WHITE,
         }
     }
@@ -146,37 +143,23 @@ impl<V> Toolbar<V> {
         );
         let mut tooltip: Option<(&'static str, Vec2)> = None;
         for (i, toolbar_item) in self.items.iter().enumerate() {
-            let spr_rect = ctx
-                .tileset
-                .sprite_rect(if i == 0 || i == self.items.len() - 1 {
-                    sprites::TOOLBAR_EDGE
+            ctx.tileset.draw_tile_ex(
+                if i == 0 || i == self.items.len() - 1 {
+                    "toolbar_edge"
                 } else {
-                    sprites::TOOLBAR_MID
-                });
-            draw_texture_ex(
-                &ctx.tileset.texture,
-                background_rect.x,
-                background_rect.y, // JANK FOR DOUBLE HIGH SPRITES
-                colors::WHITE,
-                DrawTextureParams {
-                    dest_size: Some(vec2(background_rect.w, background_rect.h)), // JANK FOR DOUBLE HIGH SPRITES
-                    source: Some(spr_rect),
-                    flip_x: i == self.items.len() - 1,
-                    ..Default::default()
+                    "toolbar_mid"
                 },
+                colors::WHITE,
+                &background_rect,
+                i == self.items.len() - 1,
             );
 
-            let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
-            draw_texture_ex(
-                &ctx.tileset.texture,
-                item_rect.x,
-                item_rect.y, // JANK FOR DOUBLE HIGH SPRITES
+            // let spr_rect = ctx.tileset.sprite_rect(toolbar_item.sprite);
+            ctx.tileset.draw_tile_ex(
+                &toolbar_item.sprite,
                 toolbar_item.color,
-                DrawTextureParams {
-                    dest_size: Some(vec2(item_rect.w, item_rect.h)), // JANK FOR DOUBLE HIGH SPRITES
-                    source: Some(spr_rect),
-                    ..Default::default()
-                },
+                &item_rect,
+                i == self.items.len() - 1,
             );
 
             if ctx.key_pressed == Some(toolbar_item.shortcut) {

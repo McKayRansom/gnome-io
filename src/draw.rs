@@ -8,7 +8,6 @@ use macroquad::{
 use crate::{
     context::Context,
     game::{Game, GameCtx, Gnomes},
-    gnome::{self, SLEEP_TIRED},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
@@ -17,60 +16,99 @@ use crate::{
     tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
-// pub const SPRITES: &[&[&str]] = &[&["", "", "", "", "", "", "bed", ""],
-// &["gnome", "grass", ]];
+pub const SPRITES: &[&[&str]] = &[
+    &["", "", "", "", "", "", "bed", ""],
+    &[
+        "",
+        "dirt",
+        "stone_floor",
+        "stone",
+        "ore",
+        "furnace",
+        "craft_table",
+        "chest",
+    ],
+    &["", "stone", "water", "stone", "_tree_outline"],
+    &[
+        "gnome", "grass", "water", "wheat_0", "wheat_1", "wheat_2", "wheat_3", "wheat_4",
+    ],
+    &["", "_ant", "_gnorp"],
+    &[
+        "unknown",
+        "",
+        "stone_item",
+        "wheat_seed",
+        "tree_old",
+        "wood",
+        "tree?",
+        "wheat_grain",
+    ],
+    &[
+        "think",
+        "sleep",
+        "toolbar_edge",
+        "toolbar_mid",
+        "play",
+        "pause",
+        "fast_forward",
+        "menu",
+    ],
+    &[
+        "mine", "buid", "farm", "cancel", "tree", "stone", "ore", "bread",
+    ],
+];
 
-pub mod sprites {
-    use quad_lib::tileset::Sprite;
+// pub mod sprites {
+//     use quad_lib::tileset::Sprite;
 
-    pub const GNOME: Sprite = Sprite::new(4, 5);
-    pub const GNOME_DEAD: Sprite = Sprite::new(3, 0); // TODO
+//     pub const GNOME: Sprite = Sprite::new(4, 5);
+//     pub const GNOME_DEAD: Sprite = Sprite::new(3, 0); // TODO
 
-    pub const GRASS: Sprite = Sprite::new(2, 1);
-    pub const STONE: Sprite = Sprite::new(2, 3);
-    pub const STONE_FLOOR: Sprite = Sprite::new(1, 2);
-    pub const _DIRT: Sprite = Sprite::new(1, 1);
-    pub const WATER: Sprite = Sprite::new(2, 2);
+//     pub const GRASS: Sprite = Sprite::new(2, 1);
+//     pub const STONE: Sprite = Sprite::new(2, 3);
+//     pub const STONE_FLOOR: Sprite = Sprite::new(1, 2);
+//     pub const _DIRT: Sprite = Sprite::new(1, 1);
+//     pub const WATER: Sprite = Sprite::new(2, 2);
 
-    pub const ORE: Sprite = Sprite::new(7, 6);
-    pub const STONE_ITEM: Sprite = Sprite::new(5, 2);
+//     pub const ORE: Sprite = Sprite::new(7, 6);
+//     pub const STONE_ITEM: Sprite = Sprite::new(5, 2);
 
-    pub const TREE: Sprite = Sprite::new(2, 4);
-    pub const WOOD: Sprite = Sprite::new(2, 6);
+//     pub const TREE: Sprite = Sprite::new(2, 4);
+//     pub const WOOD: Sprite = Sprite::new(2, 6);
 
-    pub const FURNACE: Sprite = Sprite::new(1, 5);
-    pub const CRAFT_TABLE: Sprite = Sprite::new(1, 6);
-    pub const _CHEST: Sprite = Sprite::new(1, 7);
-    pub const BED: Sprite = Sprite::new(2, 5);
+//     pub const FURNACE: Sprite = Sprite::new(1, 5);
+//     pub const CRAFT_TABLE: Sprite = Sprite::new(1, 6);
+//     pub const _CHEST: Sprite = Sprite::new(1, 7);
+//     pub const BED: Sprite = Sprite::new(2, 5);
 
-    pub const BREAD: Sprite = Sprite::new(2, 7);
+//     pub const BREAD: Sprite = Sprite::new(2, 7);
 
-    pub const UNKNOWN_ITEM: Sprite = Sprite::new(7, 0);
-    pub const THINK: Sprite = Sprite::new(6, 0);
-    pub const SLEEP: Sprite = Sprite::new(6, 1);
+//     pub const UNKNOWN_ITEM: Sprite = Sprite::new(7, 0);
+//     pub const THINK: Sprite = Sprite::new(6, 0);
+//     pub const SLEEP: Sprite = Sprite::new(6, 1);
 
-    // pub const WHEAT_SEED: Sprite = Sprite::new(5, 3);
-    pub const WHEAT_GRAIN: Sprite = Sprite::new(5, 7);
+//     // pub const WHEAT_SEED: Sprite = Sprite::new(5, 3);
+//     pub const WHEAT_GRAIN: Sprite = Sprite::new(5, 7);
 
-    pub const WHEAT_0: Sprite = Sprite::new(3, 3);
-    pub const WHEAT_1: Sprite = Sprite::new(3, 4);
-    pub const WHEAT_2: Sprite = Sprite::new(3, 5);
-    pub const WHEAT_3: Sprite = Sprite::new(3, 6);
-    pub const WHEAT_4: Sprite = Sprite::new(3, 7);
+//     pub const WHEAT_0: Sprite = Sprite::new(3, 3);
+//     pub const WHEAT_1: Sprite = Sprite::new(3, 4);
+//     pub const WHEAT_2: Sprite = Sprite::new(3, 5);
+//     pub const WHEAT_3: Sprite = Sprite::new(3, 6);
+//     pub const WHEAT_4: Sprite = Sprite::new(3, 7);
 
-    pub const TOOLBAR_EDGE: Sprite = Sprite::new(6, 2);
-    pub const TOOLBAR_MID: Sprite = Sprite::new(6, 3);
+//     pub const TOOLBAR_EDGE: Sprite = Sprite::new(6, 2);
+//     pub const TOOLBAR_MID: Sprite = Sprite::new(6, 3);
 
-    pub const PLAY: Sprite = Sprite::new(6, 4);
-    pub const PAUSE: Sprite = Sprite::new(6, 5);
-    pub const FAST_FORWARD: Sprite = Sprite::new(6, 6);
-    pub const MENU: Sprite = Sprite::new(6, 7);
+//     pub const PLAY: Sprite = Sprite::new(6, 4);
+//     pub const PAUSE: Sprite = Sprite::new(6, 5);
+//     pub const FAST_FORWARD: Sprite = Sprite::new(6, 6);
+//     pub const MENU: Sprite = Sprite::new(6, 7);
 
-    pub const MINE: Sprite = Sprite::new(7, 0);
-    pub const BUILD: Sprite = Sprite::new(7, 1);
-    pub const FARM: Sprite = Sprite::new(7, 2);
-    pub const CANCEL: Sprite = Sprite::new(7, 3);
-}
+//     pub const MINE: Sprite = Sprite::new(7, 0);
+//     pub const BUILD: Sprite = Sprite::new(7, 1);
+//     pub const FARM: Sprite = Sprite::new(7, 2);
+//     pub const CANCEL: Sprite = Sprite::new(7, 3);
+// }
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.gnomes);
@@ -95,9 +133,9 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
             let dest: Rect = ctx.camera.to_screen_rect(pos.into());
             ctx.tileset.draw_tile(
                 match tile.biome {
-                    TileBiome::Dirt => sprites::GRASS,
-                    TileBiome::Stone => sprites::STONE_FLOOR,
-                    TileBiome::Water => sprites::WATER,
+                    TileBiome::Dirt => "grass",
+                    TileBiome::Stone => "stone_floor",
+                    TileBiome::Water => "water",
                     // _ => Sprite::new(0, 5),
                 },
                 &dest,
@@ -109,16 +147,16 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                 let Some(block) = game_ctx.blocks.get_block(&block) else {
                     panic!("No block found fo id {}", block);
                 };
-                ctx.tileset.draw_tile(block.sprite, &dest, colors::WHITE);
+                ctx.tileset.draw_tile(&block.sprite, &dest, colors::WHITE);
             }
             // then draw items
             for item in tile.iter_entities() {
                 if let Entity::Item(item) = item {
                     ctx.tileset.draw_tile(
                         if let Some(item) = game_ctx.items.get_item(item) {
-                            item.sprite
+                            &item.sprite
                         } else {
-                            sprites::UNKNOWN_ITEM
+                            "unknown"
                         },
                         &dest,
                         colors::WHITE,
@@ -137,7 +175,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                 if let Entity::Gnome(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     let gnome = gnomes.get(gnome).unwrap();
-                    let think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
+                    let _think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
 
                     // oh g oh f
                     let mut dest_rect: Rect = gnome.pos.into();
@@ -145,7 +183,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
 
                     if gnome.lag > 0 {
                         let dir: Vec2 = gnome.dir.into();
-                       
+
                         let offset = dir * (gnome.timer as f32 / gnome.lag as f32);
                         dest_rect = dest_rect.offset(offset);
                         // dbg!(gnome, offset);
@@ -170,7 +208,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
                     //         .draw_tile(sprites::BREAD, &think_box, colors::WHITE);
                     // }
                     ctx.tileset
-                        .draw_tile_ex(sprites::GNOME, colors::WHITE, &dest, flip);
+                        .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
                 }
             }
 

@@ -547,9 +547,7 @@ dependencies = [
  "log",
  "macroquad",
  "quad-storage",
- "ron",
  "sapp-console-log",
- "serde",
 ]
 
 [[package]]

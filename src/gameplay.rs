@@ -9,7 +9,7 @@ use macroquad::{
 use crate::{
     block::{BlockId, blocks},
     context::Context,
-    draw::{draw_game, draw_tile_outline, sprites},
+    draw::{draw_game, draw_tile_outline},
     game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
     tile::Entity,
@@ -66,32 +66,32 @@ impl Gameplay {
             mouse_down_pos: None,
             draw_details_pos: None,
             action_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', sprites::MINE),
-                ToolbarItem::new(GameAction::Build, "Build stuff", '2', sprites::BUILD),
-                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', sprites::FARM),
-                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', sprites::CANCEL),
+                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', "mine".into()),
+                ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
+                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
+                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', "cancel".into()),
             ]),
             build_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', sprites::STONE),
+                ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', "stone".into()),
                 ToolbarItem::new(
                     blocks::CRAFT_TABLE_ID,
                     "Crafting table",
                     '2',
-                    sprites::CRAFT_TABLE,
+                    "craft_table".into(),
                 ),
-                ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', sprites::FURNACE),
-                ToolbarItem::new(blocks::BED_ID, "Bed", '4', sprites::BED),
+                ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', "furnace".into()),
+                ToolbarItem::new(blocks::BED_ID, "Bed", '4', "bed".into()),
             ]),
             time_select: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', sprites::PAUSE),
+                ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', "pause".into()),
                 // ToolbarItem::new(TimeSelect::Play, "Play game", ' ', Sprite::new(10, 1)),
                 ToolbarItem::new(
                     TimeSelect::FastForward,
                     "Fast Forward game",
                     ' ',
-                    sprites::FAST_FORWARD,
+                    "fast_forward".into(),
                 ),
-                ToolbarItem::new(TimeSelect::Menu, "Menu", '\u{1b}', sprites::MENU),
+                ToolbarItem::new(TimeSelect::Menu, "Menu", '\u{1b}', "menu".into()),
             ]),
             popup: None,
             pause_menu: Menu::new(vec![
@@ -171,14 +171,14 @@ impl Gameplay {
         match self.time_select.get_selected() {
             Some(TimeSelect::Pause) => {
                 self.game.speed = GameSpeed::Paused;
-                self.time_select.items[0].sprite = sprites::PLAY;
+                self.time_select.items[0].sprite = "play".into();
             }
             Some(TimeSelect::FastForward) => {
-                self.time_select.items[0].sprite = sprites::PLAY;
+                self.time_select.items[0].sprite = "play".into();
                 self.game.speed = GameSpeed::FastForward;
             }
             Some(TimeSelect::Menu) => {
-                self.time_select.items[0].sprite = sprites::PLAY;
+                self.time_select.items[0].sprite = "play".into();
                 self.game.speed = GameSpeed::Paused;
                 if let Some(selected) = self.pause_menu.draw(hash!()) {
                     match selected {
@@ -206,7 +206,7 @@ impl Gameplay {
             }
             None => {
                 self.game.speed = GameSpeed::Normal;
-                self.time_select.items[0].sprite = sprites::PAUSE;
+                self.time_select.items[0].sprite = "pause".into();
             }
         }
 

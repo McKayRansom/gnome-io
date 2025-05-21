@@ -1,7 +1,7 @@
 use crate::{
-    draw::sprites,
     game::{
-        time::{hours, HOURS_PER_DAY}, Tick
+        Tick,
+        time::{HOURS_PER_DAY, hours},
     },
     item::items,
     job::{craft::CRAFT_EVENT_ID, farm::FARM_EVENT_ID},
@@ -29,14 +29,14 @@ pub const GROWTH_TIME: Tick = hours(HOURS_PER_DAY);
 
 pub fn init(blocks: &mut Blocks) {
     blocks.add_block(CRAFT_TABLE_ID, BlockType {
-        sprite: sprites::CRAFT_TABLE,
+        sprite: "craft_table".into(),
         drops: vec![(1.0, WOOD_ID)],
         walkable: true,
         requires: vec![WOOD_ID],
         ..Default::default()
     });
     blocks.add_block(BED_ID, BlockType {
-        sprite: sprites::BED,
+        sprite: "bed".into(),
         drops: vec![(1.0, WOOD_ID)],
         walkable: true,
         requires: vec![WOOD_ID],
@@ -44,24 +44,24 @@ pub fn init(blocks: &mut Blocks) {
     });
 
     blocks.add_block(STONE_BLOCK_ID, BlockType {
-        sprite: sprites::STONE,
+        sprite: "stone".into(),
         drops: vec![(1.0, items::STONE_ITEM_ID)],
         requires: vec![items::STONE_ITEM_ID],
         ..Default::default()
     });
     blocks.add_block(ORE_ID, BlockType {
-        sprite: sprites::ORE,
+        sprite: "ore".into(),
         drops: vec![(1.0, items::STONE_ITEM_ID)],
         ..Default::default()
     });
     blocks.add_block(TREE_ID, BlockType {
-        sprite: sprites::TREE,
+        sprite: "tree".into(),
         drops: vec![(1.0, WOOD_ID)],
         ..Default::default()
     });
 
     blocks.add_block(FURNACE_ID, BlockType {
-        sprite: sprites::FURNACE,
+        sprite: "furnace".into(),
         drops: vec![(1.0, items::STONE_ITEM_ID)],
         walkable: true, // walkable for now so that gnomes can use it properly...
         requires: vec![items::STONE_ITEM_ID],
@@ -72,31 +72,31 @@ pub fn init(blocks: &mut Blocks) {
 
     blocks.add_block(
         WHEAT_0_ID,
-        BlockType::new(sprites::WHEAT_0, vec![])
+        BlockType::new("wheat_0".into(), vec![])
             .walkable()
             .grow((GROWTH_TIME, Some(WHEAT_1_ID))),
     );
     blocks.add_block(
         WHEAT_1_ID,
-        BlockType::new(sprites::WHEAT_1, vec![])
+        BlockType::new("wheat_1".into(), vec![])
             .walkable()
             .grow((GROWTH_TIME, Some(WHEAT_2_ID))),
     );
     blocks.add_block(WHEAT_2_ID, BlockType {
-        sprite: sprites::WHEAT_2,
+        sprite: "wheat_2".into(),
         walkable: true,
         growth: Some((GROWTH_TIME, Some(WHEAT_3_ID))),
         ..Default::default()
     });
     blocks.add_block(
         WHEAT_3_ID,
-        BlockType::new(sprites::WHEAT_3, vec![])
+        BlockType::new("wheat_3".into(), vec![])
             .walkable()
             .grow((GROWTH_TIME, Some(WHEAT_4_ID))),
     );
     blocks.add_block(
         WHEAT_4_ID,
-        BlockType::new(sprites::WHEAT_4, vec![
+        BlockType::new("wheat_4".into(), vec![
             (1.0, items::WHEAT_GRAIN),
             (1.0, items::WHEAT_GRAIN),
             (0.2, items::WHEAT_GRAIN),

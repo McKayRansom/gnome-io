@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use quad_lib::storage::{LoadResult, SaveError, SaveResult, Storage};
+use quad_lib::storage::{LoadResult, SaveResult, Storage};
 use serde::{Deserialize, Serialize};
 use time::{GameTime, GameTimeEvent};
 
@@ -84,13 +84,16 @@ impl Game {
     }
 
     pub fn save(&self) -> SaveResult {
-        Storage::new("save")
-            .save(ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())?.as_str())
+        Storage::new("save", ".ron").save(
+            ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
+                .unwrap()
+                .as_str(),
+        )
     }
 
     pub fn load() -> LoadResult<Self> {
-        let ron_str = Storage::new("save").load()?;
-        Ok(ron::from_str(ron_str.as_str()).map_err(|err| SaveError::Deserialize(err))?)
+        let ron_str = Storage::new("save", ".ron").load()?;
+        Ok(ron::from_str(ron_str.as_str()).unwrap())
     }
 
     pub fn generate(frame_time: f64) -> Game {

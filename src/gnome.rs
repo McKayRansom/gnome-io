@@ -2,7 +2,6 @@ use macroquad::rand::rand;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::blocks,
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, pos::dirs},
     item::{ItemId, items},

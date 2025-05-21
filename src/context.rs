@@ -7,6 +7,8 @@ use macroquad::{
 };
 use quad_lib::{camera::Camera, tileset::Tileset};
 
+use crate::draw::SPRITES;
+
 // use crate::draw::SPRITES;
 
 pub struct Context {
@@ -23,7 +25,7 @@ impl Context {
         Self {
             font: crate::ui::skin::init().await,
             camera: Camera::new(),
-            tileset: Tileset::new().await,
+            tileset: Tileset::new(SPRITES).await,
             key_pressed: None,
             mouse_pos: None,
             screen_size: Vec2::new(0., 0.),

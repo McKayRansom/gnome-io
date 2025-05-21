@@ -1,8 +1,6 @@
 use std::collections::HashMap;
 
-use quad_lib::tileset::Sprite;
-
-use crate::{block::BlockId, draw::sprites};
+use crate::{block::BlockId};
 
 pub type ItemId = u32;
 
@@ -10,7 +8,7 @@ pub mod items;
 
 pub struct ItemType {
     pub name: &'static str,
-    pub sprite: Sprite,
+    pub sprite: String,
     pub recipe: Option<(BlockId, Vec<ItemId>)>,
     // food value?
 }
@@ -19,14 +17,14 @@ impl Default for ItemType {
     fn default() -> Self {
         Self {
             name: "unnamed",
-            sprite: sprites::UNKNOWN_ITEM,
+            sprite: "unknown".into(),
             recipe: None,
         }
     }
 }
 
 impl ItemType {
-    pub fn new(name: &'static str, sprite: Sprite) -> Self {
+    pub fn new(name: &'static str, sprite: String) -> Self {
         Self {
             name,
             sprite,
