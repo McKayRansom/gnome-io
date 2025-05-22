@@ -1,4 +1,5 @@
 (
+    path: "assets/tileset_new.png",
     sprites: [
     [
         "",
@@ -39,12 +40,12 @@
     ],
     [
         "",
-        "_ant",
+        "ant",
         "_gnorp",
     ],
     [
         "unknown",
-        "",
+        "gnome",
         "stone_item",
         "wheat_seed",
         "tree_old",

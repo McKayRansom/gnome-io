@@ -562,6 +562,7 @@ dependencies = [
  "env_logger",
  "log",
  "macroquad",
+ "nanoserde 0.2.1",
  "quad-storage",
  "sapp-console-log",
 ]

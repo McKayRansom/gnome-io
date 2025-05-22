@@ -17,11 +17,6 @@ pub struct Context {
     pub screen_size: Vec2,
 }
 
-#[derive(nanoserde::DeRon)]
-pub struct DataTileset {
-    sprites: Vec<Vec<String>>,
-}
-
 impl Context {
     pub async fn new() -> Self {
         Self {
@@ -35,16 +30,8 @@ impl Context {
     }
 
     async fn load_tieset() -> Tileset {
-        let data_tileset: DataTileset = {
-            let input = &std::fs::read_to_string("assets/data/tileset.ron").unwrap();
-            let mut state = DeRonState::default();
-            let mut chars = input.chars();
-            state.next(&mut chars);
-            state.next_tok(&mut chars).unwrap();
-            DeRon::de_ron(&mut state, &mut chars)
-        }
-        .unwrap();
-        Tileset::new(&data_tileset.sprites).await
+        
+        Tileset::new("assets/data/tileset.ron").await
     }
 
     pub async fn update(&mut self) {
