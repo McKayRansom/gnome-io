@@ -25,6 +25,15 @@ Thoughts after MVP completion:
 - Maybe Rust can be justified due to performance + correctness of rare edge cases
 - Start on unit tests once structure is finalized? At the very least start adding tests for bug cases
 - Have enimies show up in the winter? (Winter is coming?) (White walkers?)
+- Hauling structures like in Beaver game
+
+# MMVP: Kingdom
+- Four supply chains:
+  - Grain -> Bread
+  - Ore -> Metal -> Weapons?
+  - Wood -> ??
+  - Soldiers will pick up available weapons
+- Assign to professions FTL style
 
 ## Features
 - Grow a colony of gnomes and other fantasy races and survive the seasons and goblin raids.
@@ -84,14 +93,79 @@ Maybe mods can add this but I want to keep the base game as simple as possible.
 - Professions at all? is a lot of work to do this...
 
 ### Ideas:
-How will muliplayer work? Maybe we should go with sim-ant style instead?
+#### Side-view instead of top-down
+ - goes better with gnorp style we were considering
+ - Goes better with building "big" and "tall" kingdoms
+ - potentially simplifies a lot!
+ - Easier graphically let's be honest
+ - Simplifies combat a lot (just pick left or right lol)
+ - Allows mining clearly and understandably
+ - Downside: multiplayer is now inheirly unfair because someone is in the midde (fix: looping world!!!)
+ - Downside: walls are CHEAP AF now??? (fix: unclimbable walls are VERY expensive...)
+
+      -----------
+      |bbb  bbbb|     |
+      -----------     |
+ . .  |     cccc|  ...|
+*********** *************
+*********** *************
+*********** *************
+*********** *************
+*********** *************
+*******           ********
+*********** *************
+*********** *************
+
+
 Choices:
 High-level priorites: Mining vs Farming vs Woodcutting?
 Building layout still b/c that's fun
 Attack/defend priorities?
 
+Allocate people FTL-style with bars?
+
 Factions:
 - Mants: Only move via hormones, limited high-level control but can eat plants and reproduce faster, weaker in combat but numbers
+Blocks: 
+  - Grass
+  - Eggs
+  - Food?
+  - Nest marker?
+Mobs:
+  - Queen
+  - Worker
+  - Soldier
+Professions:
+  - Gathering: Find closest unjobed food, mark food, and bring back to nest?
+  - Nursing: Bring food to queen, move eggs/feed eggs?
+  - Digging: Dig out nest?
+
+Bees:
+Blocks:
+  - Flowers
+  - Honeycomb
+  - Honeycomb w/honey
+  - Honeycomb w/larvae
+Mobs:
+  - Queen
+  - Worker
+Professions:
+  - Gathering: Find closest flower w/pollen, and bring back to nest?
+
+Millipede/Caterpillar
+  - Move around psudo-random (but in a direction) looking for food
+  - Eventually lay eggs
+
+Spider:
+  - Move around psudeo-random looking for ants
+  - Eventually lay eggs
+
+Pillbug:
+  - Move around psudeo-random
+  - Invulnerable OR Curl into ball
+
+
+
 - Dwarves: Give jobs, limited attack/defend, good at mining
 - Humans: good at building
 - Goblins: Hide in mountains and steal food

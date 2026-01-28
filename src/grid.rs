@@ -221,6 +221,7 @@ impl Grid {
                                 found_job = Some(job.clone());
                                 // log::info!("Found job at {:?}", pos);
                                 true
+                            // TEMP: Consider all items?
                             } else {
                                 // log::info!("No jobs at {:?}", pos);
                                 false

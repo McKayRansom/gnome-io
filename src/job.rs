@@ -14,6 +14,7 @@ pub mod build;
 pub mod farm;
 pub mod mine;
 pub mod craft;
+pub mod store;
 
 /*
  * Theory of Job optimization:
