@@ -74,6 +74,7 @@ impl CraftManager {
                         if let Some(job) = game_ctx.events.jobs.get(job_id) {
                             if job.is_craft() {
                                 game_ctx.events.remove_job(job_id);
+                                // TODO: Also remove this from the grid?
                             }
                         }
                     }

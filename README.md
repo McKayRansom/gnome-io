@@ -28,12 +28,14 @@ Thoughts after MVP completion:
 - Hauling structures like in Beaver game
 
 # MMVP: Kingdom
-- Four supply chains:
-  - Grain -> Bread
-  - Ore -> Metal -> Weapons?
-  - Wood -> ??
+- Four MORE INTERESTING supply chains:
+  - MUSHROOMS -> MORE MUSHROOMS
+  - Berries -> MORE BERRIES
+  - Some cool ore -> Metal -> Weapons?
   - Soldiers will pick up available weapons
 - Assign to professions FTL style
+  - People assigned to soldiers can be moved, and will auto-attack on sight
+  - Anyone not assigned to soldiers will auto-flee on sight
 
 ## Features
 - Grow a colony of gnomes and other fantasy races and survive the seasons and goblin raids.
@@ -139,6 +141,8 @@ Professions:
   - Gathering: Find closest unjobed food, mark food, and bring back to nest?
   - Nursing: Bring food to queen, move eggs/feed eggs?
   - Digging: Dig out nest?
+Unuique:
+  - Transform the terrain as they grow by destroying anythign that isn't grass/aphids
 
 Bees:
 Blocks:
