@@ -6,12 +6,12 @@ use time::{GameTime, GameTimeEvent};
 
 use crate::{
     block::{BlockId, Blocks},
+    entity::{Entity, EntityAction, EntityId, gnome::Gnome},
     event::EventManager,
-    gnome::{Gnome, GnomeId},
     grid::{Grid, Pos},
     item::{
         Items,
-        items::{self, GNOME_DEAD_ID},
+        items::{self},
     },
     job::{JobManager, build, mine::mine},
     tile::Content,
@@ -37,24 +37,24 @@ pub enum GameSpeed {
  * Instanced:
  * - gnomes/gnomeId, job manager(or refactor to store faction_id), stocks (move out of grid?)
  */
-#[derive(Serialize, Deserialize)]
+// #[derive(Serialize, Deserialize)]
 pub struct GameCtx {
     pub time: time::GameTime,
-    #[serde(skip_deserializing, skip_serializing)]
+    // #[serde(skip_deserializing, skip_serializing)]
     pub blocks: Blocks,
-    #[serde(skip_deserializing, skip_serializing)]
+    // #[serde(skip_deserializing, skip_serializing)]
     pub items: Items,
     pub events: EventManager,
 }
 
-pub type Gnomes = HashMap<GnomeId, Gnome>;
+pub type Entities = HashMap<EntityId, Entity>;
 
-#[derive(Serialize, Deserialize)]
+// #[derive(Serialize, Deserialize)]
 pub struct Game {
     pub next_frame_time: f64,
     pub speed: GameSpeed,
-    pub gnomes: Gnomes,
-    pub gnome_id: GnomeId,
+    pub entities: Entities,
+    pub gnome_id: EntityId,
     pub grid: Grid,
     pub job_manager: JobManager,
     pub game_ctx: GameCtx,
@@ -75,7 +75,7 @@ impl Game {
         Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
-            gnomes: HashMap::new(),
+            entities: HashMap::new(),
             gnome_id: 1,
             grid: Grid::new(DEFAULT_SIZE, &mut game_ctx),
             job_manager: JobManager::new(&mut game_ctx),
@@ -84,16 +84,18 @@ impl Game {
     }
 
     pub fn save(&self) -> SaveResult {
-        Storage::new("save", ".ron").save(
-            ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
-                .unwrap()
-                .as_str(),
-        )
+        // Storage::new("save", ".ron").save(
+        //     ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
+        //         .unwrap()
+        //         .as_str(),
+        // )
+        todo!()
     }
 
     pub fn load() -> LoadResult<Self> {
-        let ron_str = Storage::new("save", ".ron").load()?;
-        Ok(ron::from_str(ron_str.as_str()).unwrap())
+        // let ron_str = Storage::new("save", ".ron").load()?;
+        // Ok(ron::from_str(ron_str.as_str()).unwrap())
+        todo!()
     }
 
     pub fn generate(frame_time: f64) -> Game {
@@ -111,10 +113,8 @@ impl Game {
         // spawn some wheat
         for _ in 0..32 {
             // game.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
-            game.grid
-                .add(start_pos, Content::Item(items::WHEAT_GRAIN));
-            game.grid
-                .add(start_pos, Content::Item(items::BREAD_ID));
+            game.grid.add(start_pos, Content::Item(items::WHEAT_GRAIN));
+            game.grid.add(start_pos, Content::Item(items::BREAD_ID));
         }
 
         // spawn some gnomes
@@ -158,21 +158,23 @@ impl Game {
         // no idea on this ordering..
         self.grid.update_growth(&mut self.game_ctx);
         // Update game state
-        let mut remove_id: Vec<GnomeId> = Vec::new();
-        for gnome in self.gnomes.values_mut() {
-            gnome.update(&mut self.grid, &mut self.game_ctx);
-            if gnome.health == 0 {
-                remove_id.push(gnome.id);
+        let mut actions: Vec<EntityAction> = Vec::new();
+        for entity in self.entities.values_mut() {
+            if let Some(action) = entity.update(&mut self.grid, &mut self.game_ctx) {
+                actions.push(action);
             }
         }
-        // should this be in gnome?
-        for id in remove_id {
-            let gnome = self.gnomes.remove(&id).unwrap();
-            self.grid.gnome_exit(gnome.pos, gnome.id);
-            if let Some(job) = gnome.job {
-                job.fail(&mut self.grid, &mut self.game_ctx);
+        for action in actions {
+            match action {
+                EntityAction::Die(id) => {
+                    let entity = self.entities.remove(&id).unwrap();
+                    entity.die(&mut self.grid, &mut self.game_ctx);
+                }
+                EntityAction::Birth(id) => todo!(),
+                EntityAction::Attack(id) => {
+                    self.entities.get_mut(&id).unwrap().attacked();
+                },
             }
-            self.grid.add(gnome.pos, Content::Item(GNOME_DEAD_ID));
         }
 
         self.job_manager.update(&mut self.game_ctx, &mut self.grid);
@@ -181,9 +183,9 @@ impl Game {
     }
 
     pub fn spawn_gnome(&mut self, pos: Pos) {
-        self.gnomes.insert(
+        self.entities.insert(
             self.gnome_id,
-            Gnome::new(self.gnome_id, pos, &mut self.grid),
+            Box::new(Gnome::new(self.gnome_id, pos, &mut self.grid)),
         );
         self.gnome_id += 1;
     }

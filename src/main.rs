@@ -2,10 +2,10 @@ use gameplay::Gameplay;
 use macroquad::{conf::Conf, miniquad, window::next_frame};
 
 mod game;
-mod gnome;
 mod grid;
 mod job;
 mod tile;
+mod entity;
 // mod tileset;
 pub mod block;
 mod context;

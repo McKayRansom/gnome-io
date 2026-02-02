@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{block::BlockId, event::JobId, gnome::GnomeId, item::ItemId};
+use crate::{block::BlockId, entity::EntityId, event::JobId, item::ItemId};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
@@ -14,7 +14,7 @@ pub enum TileBiome {
 #[derive(Serialize, Deserialize)]
 pub enum Content {
     Item(ItemId),
-    Gnome(GnomeId),
+    Entity(EntityId),
     Block(BlockId),
     Job(JobId),
 }

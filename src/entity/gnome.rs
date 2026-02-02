@@ -1,10 +1,11 @@
-use macroquad::rand::rand;
-use serde::{Deserialize, Serialize};
+// use macroquad::rand::rand;
+// use serde::{Deserialize, Serialize};
 
 use crate::{
+    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, pos::dirs},
-    item::{ItemId, items},
+    item::{ItemId, items::{self, GNOME_DEAD_ID}},
     job::Job,
     tile::Content,
 };
@@ -37,25 +38,22 @@ pub type GnomeId = u32;
  *
  */
 
-#[derive(Serialize, Deserialize, Default, Debug)]
+// #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Gnome {
-    pub id: GnomeId,
+    pub base: BaseEntity,
+
     pub job: Option<Job>,
-    pub pos: Pos,
-    pub dir: Pos,
-    pub lag: u16,
     pub path: Vec<Pos>,
-    pub timer: Tick,
     pub items: Vec<ItemId>,
 
     // feel like this could be elsewhere?
     pub tired: u16,
     pub food: u16,
-    pub health: u8,
     pub sleeping: bool,
 }
 
-const GNOME_SPEED: Tick = 20;
+pub const GNOME_SPEED: Tick = 20;
+const GNOME_FACTION: Faction = 1;
 
 const BASE_TIRED: u16 = hours(20);
 // const SLOW_TIRED: u16 = hours(2);
@@ -70,51 +68,120 @@ pub const FOOD_EAT: u16 = hours(4);
 const BASE_HEALTH: u8 = 10;
 
 impl Gnome {
-    pub fn new(id: GnomeId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
+    pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
         grid.gnome_enter(pos, id);
 
         Gnome {
-            id,
+            base: BaseEntity {
+                id,
+                faction: GNOME_FACTION,
+                pos,
+                dir: dirs::NONE,
+                lag: 0,
+                food: BASE_FOOD,
+                health: BASE_HEALTH,
+                timer: 0,
+            },
             job: None,
-            pos,
-            dir: dirs::NONE,
-            lag: 0,
             path: Vec::new(),
-            timer: 0,
             items: Vec::new(),
 
             tired: BASE_TIRED,
             food: BASE_FOOD,
-            health: BASE_HEALTH,
             sleeping: false,
         }
     }
 
-    pub fn update(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut GameCtx) {
-        self.tired = self.tired.saturating_sub(1);
-        self.food = self.food.saturating_sub(1);
-        if self.timer > 0 {
-            self.timer -= 1;
-            return;
+
+    fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        let job = self.job.as_mut().unwrap();
+        // collect items
+        match job.update(self.base.pos, &mut self.items, grid, game_ctx) {
+            crate::job::JobAction::Aquire(item) => {
+                if let Some(path) = grid.find_path(self.base.pos, job.pos, Some(Content::Item(item))) {
+                    self.path = path;
+                } else {
+                    log::warn!("Unable to find item {} for job", item);
+
+                    job.fail(grid, game_ctx);
+                    self.job = None;
+                }
+            }
+            crate::job::JobAction::Goto(pos) => {
+                // we found the path earlier...
+                if !self.path.is_empty() {
+                    // fix for building ourselves into a wall!
+                    // TODO: Move out of the way if we are equal to job pos...
+                    log::info!("Use prev path!");
+                    if job.is_build() {
+                        self.path.pop();
+                    }
+                    return;
+                }
+
+                if let Some(path) = grid.find_path(self.base.pos, pos, None) {
+                    log::info!("path");
+                    self.path = path;
+                } else {
+                    log::warn!("Job at {:?} is unreachable", pos);
+                    job.fail(grid, game_ctx);
+                    self.job = None;
+                }
+            }
+            crate::job::JobAction::Wait(time) => self.base.timer = time,
+            crate::job::JobAction::Finished => {
+                // jank city, population Jank Jankerton III
+                // move ourself out of the way so we're not stuck
+                // for pos in pos::dirs::ALL {
+                //     if let Some(pos) = grid.gnome_move(self.id, self.pos, self.pos + pos) {
+                //         self.pos = pos;
+                //         break;
+                //     }
+                // }
+                self.job = None;
+            }
         }
-        self.lag = 0;
+    }
+
+}
+
+impl EntityBehaviour for Gnome {
+
+    fn die(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if let Some(job) = &self.job {
+            job.fail(grid, game_ctx);
+        }
+        grid.add(self.base.pos, Content::Item(GNOME_DEAD_ID));
+        self.base.die(grid);
+    }
+
+    fn update(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
+        if let Some(action) = self.base.update(grid) {
+            return Some(action);
+        }
+        if self.base.timer > 0 {
+            return None;
+        }
+
+        self.tired = self.tired.saturating_sub(1);
+        self.base.lag = 0;
         self.sleeping = false;
 
         if !self.path.is_empty() {
-            if let Some(pos) = grid.gnome_move(self.id, self.pos, self.path.remove(0)) {
-                self.dir = self.pos - pos;
-                self.pos = pos;
-                self.timer = //if self.tired < SLOW_TIRED {
+            if let Some(pos) = grid.gnome_move(self.base.id, self.base.pos, self.path.remove(0)) {
+                self.base.dir = self.base.pos - pos;
+                self.base.pos = pos;
+                self.base.timer = //if self.tired < SLOW_TIRED {
                     // GNOME_SPEED * 2
                 // } else {
                     GNOME_SPEED;
                 // };
-                self.lag = self.timer;
+                self.base.lag = self.base.timer;
             } else {
                 //impassable terrain
                 self.path.clear();
             }
-            return;
+            return None;
         }
 
         // this feels a bit not-optimial but IDK
@@ -156,21 +223,21 @@ impl Gnome {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
-            if let Some(item) = grid.remove(self.pos, Content::Item(items::BREAD_ID)) {
+            if let Some(item) = grid.remove(self.base.pos, Content::Item(items::BREAD_ID)) {
                 let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
             } else if let Some(path) =
-                grid.find_path(self.pos, self.pos, Some(Content::Item(items::BREAD_ID)))
+                grid.find_path(self.base.pos, self.base.pos, Some(Content::Item(items::BREAD_ID)))
             {
                 self.path = path;
-                return;
+                return None;
             } else if self.food == 0 {
-                self.health = self.health.saturating_sub(1);
-                if self.health == 0 {
-                    return;
+                self.base.health = self.base.health.saturating_sub(1);
+                if self.base.health == 0 {
+                    return None;
                 }
                 // log::warn!("Unable to find food!");
                 // self.move_random(grid, game_ctx);
@@ -180,7 +247,7 @@ impl Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let (Some(path), Some(job)) = grid.find_job(self.pos, &mut game_ctx.events) {
+            if let (Some(path), Some(job)) = grid.find_job(self.base.pos, &mut game_ctx.events) {
                 self.path = path;
                 self.job = Some(job);
             }
@@ -189,70 +256,17 @@ impl Gnome {
         if self.job.is_some() {
             self.job_update(grid, game_ctx);
         } else {
-            self.move_random(grid, game_ctx);
+            self.base.move_random(grid, game_ctx);
         }
+
+        None
     }
 
-    fn move_random(&mut self, grid: &mut Grid, _game_ctx: &mut GameCtx) {
-        if let Some(pos) = grid.gnome_move(
-            self.id,
-            self.pos,
-            self.pos + dirs::ALL[rand() as usize % dirs::ALL.len()],
-        ) {
-            self.dir = self.pos - pos;
-            self.pos = pos;
-            self.lag = GNOME_SPEED * 2;
-        }
-        self.timer = GNOME_SPEED * 2; // move slower since we have no destination
+    fn attacked(&mut self) {
+        self.base.attacked()
     }
-
-    fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        let job = self.job.as_mut().unwrap();
-        // collect items
-        match job.update(self.pos, &mut self.items, grid, game_ctx) {
-            crate::job::JobAction::Aquire(item) => {
-                if let Some(path) = grid.find_path(self.pos, job.pos, Some(Content::Item(item))) {
-                    self.path = path;
-                } else {
-                    log::warn!("Unable to find item {} for job", item);
-
-                    job.fail(grid, game_ctx);
-                    self.job = None;
-                }
-            }
-            crate::job::JobAction::Goto(pos) => {
-                // we found the path earlier...
-                if !self.path.is_empty() {
-                    // fix for building ourselves into a wall!
-                    // TODO: Move out of the way if we are equal to job pos...
-                    log::info!("Use prev path!");
-                    if job.is_build() {
-                        self.path.pop();
-                    }
-                    return;
-                }
-
-                if let Some(path) = grid.find_path(self.pos, pos, None) {
-                    log::info!("path");
-                    self.path = path;
-                } else {
-                    log::warn!("Job at {:?} is unreachable", pos);
-                    job.fail(grid, game_ctx);
-                    self.job = None;
-                }
-            }
-            crate::job::JobAction::Wait(time) => self.timer = time,
-            crate::job::JobAction::Finished => {
-                // jank city, population Jank Jankerton III
-                // move ourself out of the way so we're not stuck
-                // for pos in pos::dirs::ALL {
-                //     if let Some(pos) = grid.gnome_move(self.id, self.pos, self.pos + pos) {
-                //         self.pos = pos;
-                //         break;
-                //     }
-                // }
-                self.job = None;
-            }
-        }
+    
+    fn base(&self) -> &BaseEntity {
+        &self.base
     }
 }

@@ -116,7 +116,7 @@ impl Gameplay {
                 }
             }
         }
-        if self.game.gnomes.len() == 0 {
+        if self.game.entities.len() == 0 {
             self.popup = Some(Popup::new(format!(
                 "Game over, you survived until {:?} Year {}",
                 self.game.game_ctx.time.season, self.game.game_ctx.time.year

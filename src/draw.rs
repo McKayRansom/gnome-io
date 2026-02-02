@@ -7,7 +7,7 @@ use macroquad::{
 
 use crate::{
     context::Context,
-    game::{Game, GameCtx, Gnomes},
+    game::{Entities, Game, GameCtx},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
@@ -17,12 +17,12 @@ use crate::{
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
-    draw_tiles(&game.grid, &game.game_ctx, ctx, &game.gnomes);
+    draw_tiles(&game.grid, &game.game_ctx, ctx, &game.entities);
     draw_stocks(&game.grid, &game.game_ctx, ctx);
     draw_status(game, ctx);
 }
 
-fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
+fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entities) {
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
             let pos: Pos = (x, y).into();
@@ -78,9 +78,9 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
             let tile = grid.get_tile(pos).unwrap();
             // then gnomes
             for item in tile.iter_entities() {
-                if let Content::Gnome(gnome) = item {
+                if let Content::Entity(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
-                    let gnome = gnomes.get(gnome).unwrap();
+                    let gnome = entities.get(gnome).unwrap().base();
                     let _think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
 
                     // oh g oh f
