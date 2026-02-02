@@ -13,7 +13,7 @@ use crate::{
         pos::{PIXEL_SIZE, dirs},
     },
     text::{draw_text, draw_text_screen_centered},
-    tile::{Entity, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
+    tile::{Content, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
@@ -57,7 +57,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
             }
             // then draw items
             for item in tile.iter_entities() {
-                if let Entity::Item(item) = item {
+                if let Content::Item(item) = item {
                     ctx.tileset.draw_tile(
                         if let Some(item) = game_ctx.items.get_item(item) {
                             &item.sprite
@@ -78,7 +78,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
             let tile = grid.get_tile(pos).unwrap();
             // then gnomes
             for item in tile.iter_entities() {
-                if let Entity::Gnome(gnome) = item {
+                if let Content::Gnome(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     let gnome = gnomes.get(gnome).unwrap();
                     let _think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
@@ -120,7 +120,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, gnomes: &Gnomes) {
 
             // draw jobs last (on top)
             for item in tile.iter_entities() {
-                if let Entity::Job(job) = item {
+                if let Content::Job(job) = item {
                     draw_tile_outline(
                         grid,
                         &pos,

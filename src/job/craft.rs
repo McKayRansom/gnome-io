@@ -6,7 +6,7 @@ use crate::{
     game::{CRAFTING_TIME, GameCtx},
     grid::{Grid, Pos},
     item::{ItemId, items},
-    tile::Entity,
+    tile::Content,
 };
 
 use super::{Job, JobManager};
@@ -18,7 +18,7 @@ pub fn craft(grid: &mut Grid, pos: Pos, id: ItemId, game_ctx: &mut GameCtx) -> O
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::new(pos, CRAFTING_TIME, Some(Entity::Item(id)), recipe.1.clone()),
+        Job::new(pos, CRAFTING_TIME, Some(Content::Item(id)), recipe.1.clone()),
     );
     None
 }
@@ -65,12 +65,12 @@ impl CraftManager {
                 self.workshop_pos
                     .retain(|pos| pos != &block_update_event.value.pos);
                 // remove crafting jobs at this pos
-                for entity in grid
+                for content in grid
                     .get_tile(block_update_event.value.pos)
                     .unwrap()
                     .iter_entities()
                 {
-                    if let Entity::Job(job_id) = entity {
+                    if let Content::Job(job_id) = content {
                         if let Some(job) = game_ctx.events.jobs.get(job_id) {
                             if job.is_craft() {
                                 game_ctx.events.remove_job(job_id);

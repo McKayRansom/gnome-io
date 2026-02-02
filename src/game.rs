@@ -14,7 +14,7 @@ use crate::{
         items::{self, GNOME_DEAD_ID},
     },
     job::{JobManager, build, mine::mine},
-    tile::Entity,
+    tile::Content,
 };
 
 mod generate;
@@ -110,11 +110,11 @@ impl Game {
 
         // spawn some wheat
         for _ in 0..32 {
-            // game.grid.add_entity(start_pos, Entity::Item(WHEAT_SEED));
+            // game.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
             game.grid
-                .add_entity(start_pos, Entity::Item(items::WHEAT_GRAIN));
+                .add(start_pos, Content::Item(items::WHEAT_GRAIN));
             game.grid
-                .add_entity(start_pos, Entity::Item(items::BREAD_ID));
+                .add(start_pos, Content::Item(items::BREAD_ID));
         }
 
         // spawn some gnomes
@@ -172,7 +172,7 @@ impl Game {
             if let Some(job) = gnome.job {
                 job.fail(&mut self.grid, &mut self.game_ctx);
             }
-            self.grid.add_entity(gnome.pos, Entity::Item(GNOME_DEAD_ID));
+            self.grid.add(gnome.pos, Content::Item(GNOME_DEAD_ID));
         }
 
         self.job_manager.update(&mut self.game_ctx, &mut self.grid);

@@ -7,7 +7,7 @@ use crate::{
     gnome::GnomeId,
     item::ItemId,
     job::Job,
-    tile::{Entity, Tile},
+    tile::{Content, Tile},
 };
 
 pub mod pos;
@@ -59,7 +59,7 @@ impl Grid {
         let old_block = tile.get_block();
         if let Some(old_block_id) = old_block {
             tile.walkable = true;
-            tile.remove_entity(&Entity::Block(old_block_id));
+            tile.remove(&Content::Block(old_block_id));
 
             if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
                 if let Some(mine_event) = old_block.mine_event {
@@ -75,7 +75,7 @@ impl Grid {
                 for (chance, item_id) in old_block.drops.iter() {
                     if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
                         // TODO: Dedup!
-                        tile.add_entity(Entity::Item(*item_id));
+                        tile.add(Content::Item(*item_id));
                         *self.stocks.entry(*item_id).or_insert(0) += 1;
                     }
                 }
@@ -107,7 +107,7 @@ impl Grid {
                     });
                 }
             }
-            tile.add_entity(Entity::Block(block_id));
+            tile.add(Content::Block(block_id));
         }
         log::info!("Setting {:?} to {:?}", tile, block);
 
@@ -117,13 +117,13 @@ impl Grid {
     pub fn gnome_enter(&mut self, pos: Pos, id: GnomeId) {
         Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
-            .add_entity(Entity::Gnome(id));
+            .add(Content::Gnome(id));
     }
 
     pub fn gnome_exit(&mut self, pos: Pos, id: GnomeId) {
         Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
-            .remove_entity(&Entity::Gnome(id));
+            .remove(&Content::Gnome(id));
     }
 
     pub fn gnome_move(&mut self, id: GnomeId, start: Pos, end: Pos) -> Option<Pos> {
@@ -135,20 +135,20 @@ impl Grid {
         Some(end)
     }
 
-    pub fn add_entity(&mut self, pos: Pos, entity: Entity) -> Option<()> {
-        Self::get_tile_mut(&mut self.cells, pos)?.add_entity(entity);
-        if let Entity::Item(id) = entity {
+    pub fn add(&mut self, pos: Pos, content: Content) -> Option<()> {
+        Self::get_tile_mut(&mut self.cells, pos)?.add(content);
+        if let Content::Item(id) = content {
             *self.stocks.entry(id).or_insert(0) += 1;
         }
         None
     }
 
-    pub fn remove_entity(&mut self, pos: Pos, entity: Entity) -> Option<Entity> {
-        let entity = Self::get_tile_mut(&mut self.cells, pos)?.remove_entity(&entity)?;
-        if let Entity::Item(id) = entity {
+    pub fn remove(&mut self, pos: Pos, content: Content) -> Option<Content> {
+        let old_contents = Self::get_tile_mut(&mut self.cells, pos)?.remove(&content)?;
+        if let Content::Item(id) = old_contents {
             *self.stocks.get_mut(&id).expect("Map stock mismatch") -= 1;
         }
-        Some(entity)
+        Some(old_contents)
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -159,7 +159,7 @@ impl Grid {
 
     // pub fn successors(&self, pos: &Pos) -> Option<
 
-    pub fn find_path(&self, start: Pos, end: Pos, entity: Option<Entity>) -> Option<Vec<Pos>> {
+    pub fn find_path(&self, start: Pos, end: Pos, content: Option<Content>) -> Option<Vec<Pos>> {
         let is_passable = self.get_tile(end)?.is_passable();
         pathfinding::prelude::bfs(
             &start,
@@ -175,8 +175,8 @@ impl Grid {
                 .collect::<Vec<Pos>>()
             },
             |pos| {
-                if let Some(entity) = entity {
-                    self.get_tile(*pos).unwrap().contains(&entity)
+                if let Some(content) = content {
+                    self.get_tile(*pos).unwrap().contains(&content)
                 } else if is_passable {
                     pos == &end
                 } else {
@@ -210,8 +210,8 @@ impl Grid {
                 },
                 |pos| {
                     self.get_tile(*pos).is_some_and(|tile| {
-                        tile.iter_entities().any(|entity| {
-                            if let Entity::Job(job_id) = entity {
+                        tile.iter_entities().any(|content| {
+                            if let Content::Job(job_id) = content {
                                 let job = events.jobs.get_mut(job_id).expect("LEAKED JOB");
                                 if job.in_progress {
                                     // log::info!("Job in progress at {:?}", pos);
@@ -236,8 +236,8 @@ impl Grid {
 
     pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
         let tile = Self::get_tile_mut(&mut self.cells, pos).unwrap();
-        tile.entities.retain(|entity| {
-            if let Entity::Job(job_id) = entity {
+        tile.contents.retain(|content| {
+            if let Content::Job(job_id) = content {
                 events.jobs.remove(job_id);
                 false
             } else {

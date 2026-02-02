@@ -26,7 +26,7 @@ pub fn build(grid: &mut Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> 
         Job::new(
             pos,
             BUILD_TIME,
-            Some(crate::tile::Entity::Block(id)),
+            Some(crate::tile::Content::Block(id)),
             game_ctx.blocks.get_block(&id).unwrap().requires.clone(),
         ),
     );

@@ -7,7 +7,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemId,
-    tile::Entity,
+    tile::Content,
 };
 
 pub mod build;
@@ -53,7 +53,7 @@ pub struct Job {
     pub in_progress: bool,
     pub pos: Pos,
     pub time: u16,
-    pub entity: Option<Entity>,
+    pub content: Option<Content>,
     pub requires: Vec<ItemId>,
 }
 
@@ -65,25 +65,25 @@ pub enum JobAction {
 }
 
 impl Job {
-    pub fn new(pos: Pos, time: u16, entity: Option<Entity>, requires: Vec<ItemId>) -> Self {
+    pub fn new(pos: Pos, time: u16, content: Option<Content>, requires: Vec<ItemId>) -> Self {
         Job {
             id: 0,
             in_progress: false,
             pos,
             time,
-            entity,
+            content,
             requires,
         }
     }
 
     // special flag so we don't build ourselves into a block
     pub fn is_build(&self) -> bool {
-        matches!(self.entity, Some(Entity::Block(_)))
+        matches!(self.content, Some(Content::Block(_)))
     }
 
     // will this always be true?
     pub fn is_craft(&self) -> bool {
-        matches!(self.entity, Some(Entity::Item(_)))
+        matches!(self.content, Some(Content::Item(_)))
     }
 
     pub fn update(
@@ -96,8 +96,8 @@ impl Job {
         // collect items
         for required_item in self.requires.iter() {
             if !items.contains(required_item) {
-                if let Some(item) = grid.remove_entity(pos, Entity::Item(*required_item)) {
-                    let Entity::Item(item) = item else { panic!() };
+                if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {
+                    let Content::Item(item) = item else { panic!() };
                     items.push(item);
                     log::info!("Take item {} from tile", item);
                 } else {
@@ -120,9 +120,9 @@ impl Job {
         }
         // perform the job
         items.retain(|item| !self.requires.contains(item));
-        let _ = match self.entity {
-            Some(Entity::Item(item_id)) => grid.add_entity(self.pos, Entity::Item(item_id)),
-            Some(Entity::Block(block_id)) => grid.place_block(self.pos, Some(block_id), game_ctx),
+        let _ = match self.content {
+            Some(Content::Item(item_id)) => grid.add(self.pos, Content::Item(item_id)),
+            Some(Content::Block(block_id)) => grid.place_block(self.pos, Some(block_id), game_ctx),
             None => grid.place_block(self.pos, None, game_ctx),
             Some(_) => todo!(),
         };
@@ -134,12 +134,12 @@ impl Job {
 
     pub fn fail(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         game_ctx.events.remove_job(&self.id);
-        grid.remove_entity(self.pos, Entity::Job(self.id));
+        grid.remove(self.pos, Content::Job(self.id));
     }
 
     pub fn success(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         game_ctx.events.remove_job(&self.id);
-        grid.remove_entity(self.pos, Entity::Job(self.id));
+        grid.remove(self.pos, Content::Job(self.id));
     }
 }
 
@@ -171,7 +171,7 @@ impl JobManager {
         log::info!("Creating new job at {:?}", job);
         let pos = job.pos;
         let id = events.add_job(job);
-        grid.add_entity(pos, Entity::Job(id));
+        grid.add(pos, Content::Job(id));
     }
 
     // pub fn find_job(events: &mut EventManager) -> Option<Box<Job>> {

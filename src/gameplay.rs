@@ -12,7 +12,7 @@ use crate::{
     draw::{draw_game, draw_tile_outline},
     game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
-    tile::Entity,
+    tile::Content,
     ui::{
         menu::{Menu, MenuItem},
         popup::{Popup, PopupResult},
@@ -251,7 +251,7 @@ impl Gameplay {
                 //                     Job::new(
                 //                         draw_details_pos,
                 //                         CRAFTING_TIME,
-                //                         Some(Entity::Item(*item_id)),
+                //                         Some(Content::Item(*item_id)),
                 //                         item.recipe.as_ref().unwrap().1.clone(),
                 //                     ),
                 //                 );
@@ -264,7 +264,7 @@ impl Gameplay {
                         None,
                         format!(
                             "{:?}",
-                            if let Entity::Item(item) = item {
+                            if let Content::Item(item) = item {
                                 self.game.game_ctx.items.get_item(item).unwrap().name
                             } else {
                                 ""

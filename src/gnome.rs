@@ -6,7 +6,7 @@ use crate::{
     grid::{Grid, Pos, pos::dirs},
     item::{ItemId, items},
     job::Job,
-    tile::Entity,
+    tile::Content,
 };
 
 pub type GnomeId = u32;
@@ -134,7 +134,7 @@ impl Gnome {
         //         }
         //         return;
         //     } else if let Some(path) =
-        //         grid.find_path(self.pos, self.pos, Some(Entity::Block(blocks::BED_ID)))
+        //         grid.find_path(self.pos, self.pos, Some(Content::Block(blocks::BED_ID)))
         //     {
         //         // move to bed
         //         // TODO: Only unoccupied bed...
@@ -156,14 +156,14 @@ impl Gnome {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
-            if let Some(item) = grid.remove_entity(self.pos, Entity::Item(items::BREAD_ID)) {
-                let Entity::Item(item) = item else { panic!() };
+            if let Some(item) = grid.remove(self.pos, Content::Item(items::BREAD_ID)) {
+                let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
             } else if let Some(path) =
-                grid.find_path(self.pos, self.pos, Some(Entity::Item(items::BREAD_ID)))
+                grid.find_path(self.pos, self.pos, Some(Content::Item(items::BREAD_ID)))
             {
                 self.path = path;
                 return;
@@ -211,7 +211,7 @@ impl Gnome {
         // collect items
         match job.update(self.pos, &mut self.items, grid, game_ctx) {
             crate::job::JobAction::Aquire(item) => {
-                if let Some(path) = grid.find_path(self.pos, job.pos, Some(Entity::Item(item))) {
+                if let Some(path) = grid.find_path(self.pos, job.pos, Some(Content::Item(item))) {
                     self.path = path;
                 } else {
                     log::warn!("Unable to find item {} for job", item);

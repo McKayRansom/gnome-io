@@ -6,7 +6,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::items,
-    tile::{Entity, TileBiome},
+    tile::{Content, TileBiome},
 };
 
 use super::{Job, JobManager};
@@ -93,7 +93,7 @@ impl FarmManager {
             Some(Job::new(
                 *pos,
                 TILL_TIME,
-                Some(Entity::Block(blocks::WHEAT_0_ID)),
+                Some(Content::Block(blocks::WHEAT_0_ID)),
                 vec![items::WHEAT_GRAIN],
             ))
         } else if block == blocks::WHEAT_4_ID {

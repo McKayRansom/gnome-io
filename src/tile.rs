@@ -1,5 +1,3 @@
-// use hecs::Entity;
-
 use serde::{Deserialize, Serialize};
 
 use crate::{block::BlockId, event::JobId, gnome::GnomeId, item::ItemId};
@@ -14,7 +12,7 @@ pub enum TileBiome {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[derive(Serialize, Deserialize)]
-pub enum Entity {
+pub enum Content {
     Item(ItemId),
     Gnome(GnomeId),
     Block(BlockId),
@@ -32,7 +30,7 @@ pub enum Entity {
 #[derive(Serialize, Deserialize)]
 pub struct Tile {
     // should this be hashmap?
-    pub entities: Vec<Entity>,
+    pub contents: Vec<Content>,
     pub biome: TileBiome,
     // TODO: PathfindingInfo{}
     pub walkable: bool,
@@ -42,7 +40,7 @@ pub struct Tile {
 impl Tile {
     pub fn new(biome: TileBiome) -> Tile {
         Tile {
-            entities: Vec::new(),
+            contents: Vec::new(),
             biome,
             walkable: biome != TileBiome::Water,
         }
@@ -50,59 +48,47 @@ impl Tile {
 
     pub fn new_block(biome: TileBiome, block: BlockId) -> Tile {
         Tile {
-            entities: vec![Entity::Block(block)],
+            contents: vec![Content::Block(block)],
             biome,
             walkable: false,
         }
     }
 
     pub fn get_block(&self) -> Option<BlockId> {
-        for entity in self.entities.iter() {
-            if let Entity::Block(block_id) = *entity {
+        for content in self.contents.iter() {
+            if let Content::Block(block_id) = *content {
                 return Some(block_id);
             }
         }
         None
     }
 
-    pub fn remove_entity(&mut self, remove: &Entity) -> Option<Entity> {
+    pub fn remove(&mut self, remove: &Content) -> Option<Content> {
         Some(
-            self.entities
-                .remove(self.entities.iter().position(|entity| entity == remove)?),
+            self.contents
+                .remove(self.contents.iter().position(|content| content == remove)?),
         )
     }
 
-    pub fn add_entity(&mut self, entity: Entity) {
-        self.entities.push(entity);
+    pub fn add(&mut self, content: Content) {
+        self.contents.push(content);
     }
 
-    pub fn contains(&self, entity: &Entity) -> bool {
-        self.entities.contains(entity)
+    pub fn contains(&self, content: &Content) -> bool {
+        self.contents.contains(content)
     }
 
-    pub fn iter_entities(&self) -> std::slice::Iter<'_, Entity> {
-        self.entities.iter()
+    pub fn iter_entities(&self) -> std::slice::Iter<'_, Content> {
+        self.contents.iter()
     }
-
-    // pub fn set_item(&mut self, item: Entity) {
-    //     self.item = Some(item);
-    // }
-
-    // pub fn set_gnome(&mut self, gnome: Entity) {
-    //     self.gnome = Some(gnome);
-    // }
-
-    // pub fn set_passable(&mut self, passable: bool) {
-    //     self.is_passable = passable;
-    // }
 
     pub(crate) fn is_passable(&self) -> bool {
         self.walkable
     }
     
     pub(crate) fn get_job(&self) -> Option<JobId> {
-        for entity in &self.entities {
-            if let Entity::Job(id) = entity {
+        for content in &self.contents {
+            if let Content::Job(id) = content {
                 return Some(*id);
             }
         }
