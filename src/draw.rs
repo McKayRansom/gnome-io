@@ -80,7 +80,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
             for item in tile.iter_entities() {
                 if let Content::Entity(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
-                    let gnome = entities.get(gnome).unwrap().base();
+                    let gnome = entities.get(&gnome.1).unwrap().base();
                     let _think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
 
                     // oh g oh f

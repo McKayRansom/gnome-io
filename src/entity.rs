@@ -3,7 +3,9 @@
 use macroquad::rand::rand;
 
 use crate::{
-    entity::gnome::GNOME_SPEED, game::{GameCtx, Tick}, grid::{Grid, Pos, pos::dirs}
+    entity::gnome::GNOME_SPEED,
+    game::{GameCtx, Tick, time::hours},
+    grid::{Grid, Pos, pos::dirs},
 };
 
 pub mod gnome;
@@ -41,13 +43,28 @@ pub struct BaseEntity {
     pub timer: Tick,
 }
 
+impl Default for BaseEntity {
+    fn default() -> Self {
+        Self {
+            id: 0,
+            faction: 0,
+            pos: dirs::NONE,
+            dir: dirs::NONE,
+            lag: 0,
+            food: hours(24),
+            health: 10,
+            timer: 0,
+        }
+    }
+}
+
 impl BaseEntity {
     pub fn die(&self, grid: &mut Grid) {
-        grid.gnome_exit(self.pos, self.id);
+        grid.gnome_exit(self.pos, (self.faction, self.id));
     }
 
     pub fn attacked(&mut self) {
-        self.health.saturating_sub(1);
+        self.health = self.health.saturating_sub(1);
     }
 
     pub fn update(&mut self, _grid: &mut Grid) -> Option<EntityAction> {
@@ -62,16 +79,24 @@ impl BaseEntity {
         None
     }
 
-    fn move_random(&mut self, grid: &mut Grid, _game_ctx: &mut GameCtx) {
-        if let Some(pos) = grid.gnome_move(
-            self.id,
-            self.pos,
-            self.pos + dirs::ALL[rand() as usize % dirs::ALL.len()],
-        ) {
+    fn move_to(&mut self, pos: Pos, speed: Tick, grid: &mut Grid) -> bool {
+        if let Some(pos) = grid.gnome_move((self.faction, self.id), self.pos, pos) {
             self.dir = self.pos - pos;
             self.pos = pos;
-            self.lag = GNOME_SPEED * 2;
+            self.timer = speed;
+            self.lag = self.timer;
+            true
+        } else {
+            false
         }
-        self.timer = GNOME_SPEED * 2; // move slower since we have no destination
+    }
+
+    fn move_random(&mut self, grid: &mut Grid) {
+        // move slower since we have no destination
+        self.move_to(
+            self.pos + dirs::ALL[rand() as usize % dirs::ALL.len()],
+            GNOME_SPEED * 2,
+            grid,
+        );
     }
 }

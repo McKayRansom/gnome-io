@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::{
-    block::{BlockId, blocks::GROWTH_TIME}, entity::EntityId, event::{BlockUpdateEvent, Event, EventManager}, game::{GameCtx, time::Season}, item::ItemId, job::Job, tile::{Content, Tile}
+    block::{BlockId, blocks::GROWTH_TIME}, entity::{EntityId, Faction}, event::{BlockUpdateEvent, Event, EventManager}, game::{GameCtx, time::Season}, item::ItemId, job::Job, tile::{Content, Tile}
 };
 
 pub mod pos;
@@ -108,19 +108,19 @@ impl Grid {
         Some(())
     }
 
-    pub fn gnome_enter(&mut self, pos: Pos, id: EntityId) {
+    pub fn gnome_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
         Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .add(Content::Entity(id));
     }
 
-    pub fn gnome_exit(&mut self, pos: Pos, id: EntityId) {
+    pub fn gnome_exit(&mut self, pos: Pos, id: (Faction, EntityId)) {
         Self::get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .remove(&Content::Entity(id));
     }
 
-    pub fn gnome_move(&mut self, id: EntityId, start: Pos, end: Pos) -> Option<Pos> {
+    pub fn gnome_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<Pos> {
         if !self.get_tile(end)?.is_passable() {
             return None;
         }

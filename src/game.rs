@@ -6,7 +6,7 @@ use time::{GameTime, GameTimeEvent};
 
 use crate::{
     block::{BlockId, Blocks},
-    entity::{Entity, EntityAction, EntityId, gnome::Gnome},
+    entity::{Entity, EntityAction, EntityId, gnome::Gnome, goblin::Goblin},
     event::EventManager,
     grid::{Grid, Pos},
     item::{
@@ -54,7 +54,7 @@ pub struct Game {
     pub next_frame_time: f64,
     pub speed: GameSpeed,
     pub entities: Entities,
-    pub gnome_id: EntityId,
+    pub entity_id: EntityId,
     pub grid: Grid,
     pub job_manager: JobManager,
     pub game_ctx: GameCtx,
@@ -76,7 +76,7 @@ impl Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
             entities: HashMap::new(),
-            gnome_id: 1,
+            entity_id: 1,
             grid: Grid::new(DEFAULT_SIZE, &mut game_ctx),
             job_manager: JobManager::new(&mut game_ctx),
             game_ctx,
@@ -120,6 +120,11 @@ impl Game {
         // spawn some gnomes
         for _ in 0..4 {
             game.spawn_gnome(start_pos);
+        }
+
+        // spawn some goblins
+        for _ in 0..4 {
+            game.spawn_goblin(Pos::new(6, 17));
         }
 
         // clear area
@@ -172,7 +177,9 @@ impl Game {
                 }
                 EntityAction::Birth(id) => todo!(),
                 EntityAction::Attack(id) => {
-                    self.entities.get_mut(&id).unwrap().attacked();
+                    if let Some(entity) = self.entities.get_mut(&id) {
+                        entity.attacked();
+                    }
                 },
             }
         }
@@ -184,10 +191,18 @@ impl Game {
 
     pub fn spawn_gnome(&mut self, pos: Pos) {
         self.entities.insert(
-            self.gnome_id,
-            Box::new(Gnome::new(self.gnome_id, pos, &mut self.grid)),
+            self.entity_id,
+            Box::new(Gnome::new(self.entity_id, pos, &mut self.grid)),
         );
-        self.gnome_id += 1;
+        self.entity_id += 1;
+    }
+
+    pub fn spawn_goblin(&mut self, pos: Pos) {
+        self.entities.insert(
+            self.entity_id,
+            Box::new(Goblin::new(self.entity_id, pos, &mut self.grid)),
+        );
+        self.entity_id += 1;
     }
 
     pub fn mine(&mut self, pos: Pos) {

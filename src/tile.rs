@@ -1,20 +1,23 @@
 use serde::{Deserialize, Serialize};
 
-use crate::{block::BlockId, entity::EntityId, event::JobId, item::ItemId};
+use crate::{
+    block::BlockId,
+    entity::{EntityId, Faction},
+    event::JobId,
+    item::ItemId,
+};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileBiome {
     Dirt,
     Stone,
     Water,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Content {
     Item(ItemId),
-    Entity(EntityId),
+    Entity((Faction, EntityId)),
     Block(BlockId),
     Job(JobId),
 }
@@ -26,8 +29,7 @@ pub enum Content {
  * - This allows all pathfinding lookups to have cache hits on not have to I.E. dereference other vectors or look up in hashmaps (poor cache locality)
  * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
  */
-#[derive(Debug, Clone)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tile {
     // should this be hashmap?
     pub contents: Vec<Content>,
@@ -75,6 +77,18 @@ impl Tile {
     }
 
     pub fn contains(&self, content: &Content) -> bool {
+        if let Content::Entity((faction, id)) = content {
+            if *id == 0 {
+                for content in self.contents.iter() {
+                    if let Content::Entity((faction_2, _id_2)) = content {
+                        if faction == faction_2 {
+                            return true;
+                        }
+                    }
+                }
+                return false;
+            }
+        }
         self.contents.contains(content)
     }
 
@@ -85,13 +99,24 @@ impl Tile {
     pub(crate) fn is_passable(&self) -> bool {
         self.walkable
     }
-    
+
     pub(crate) fn get_job(&self) -> Option<JobId> {
         for content in &self.contents {
             if let Content::Job(id) = content {
                 return Some(*id);
             }
         }
-        return None
+        return None;
+    }
+
+    pub(crate) fn get_entity(&self, entity: (u8, u32)) -> u32 {
+        for content in &self.contents {
+            if let Content::Entity((faction, id)) = content {
+                if faction == &entity.0 && (entity.1 == 0 || &entity.1 == id) {
+                    return *id;
+                }
+            }
+        }
+        0
     }
 }

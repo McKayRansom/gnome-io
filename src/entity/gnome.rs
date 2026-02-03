@@ -4,7 +4,7 @@
 use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs},
+    grid::{Grid, Pos},
     item::{ItemId, items::{self, GNOME_DEAD_ID}},
     job::Job,
     tile::Content,
@@ -40,20 +40,20 @@ pub type GnomeId = u32;
 
 // #[derive(Serialize, Deserialize, Default, Debug)]
 pub struct Gnome {
-    pub base: BaseEntity,
+    base: BaseEntity,
 
-    pub job: Option<Job>,
-    pub path: Vec<Pos>,
-    pub items: Vec<ItemId>,
+    job: Option<Job>,
+    path: Vec<Pos>,
+    items: Vec<ItemId>,
 
     // feel like this could be elsewhere?
-    pub tired: u16,
-    pub food: u16,
-    pub sleeping: bool,
+    tired: u16,
+    food: u16,
+    sleeping: bool,
 }
 
 pub const GNOME_SPEED: Tick = 20;
-const GNOME_FACTION: Faction = 1;
+pub const GNOME_FACTION: Faction = 1;
 
 const BASE_TIRED: u16 = hours(20);
 // const SLOW_TIRED: u16 = hours(2);
@@ -69,18 +69,16 @@ const BASE_HEALTH: u8 = 10;
 
 impl Gnome {
     pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
-        grid.gnome_enter(pos, id);
+        grid.gnome_enter(pos, (GNOME_FACTION, id));
 
         Gnome {
             base: BaseEntity {
                 id,
                 faction: GNOME_FACTION,
                 pos,
-                dir: dirs::NONE,
-                lag: 0,
                 food: BASE_FOOD,
                 health: BASE_HEALTH,
-                timer: 0,
+                ..Default::default()
             },
             job: None,
             path: Vec::new(),
@@ -168,17 +166,13 @@ impl EntityBehaviour for Gnome {
         self.sleeping = false;
 
         if !self.path.is_empty() {
-            if let Some(pos) = grid.gnome_move(self.base.id, self.base.pos, self.path.remove(0)) {
-                self.base.dir = self.base.pos - pos;
-                self.base.pos = pos;
-                self.base.timer = //if self.tired < SLOW_TIRED {
+            //if self.tired < SLOW_TIRED {
                     // GNOME_SPEED * 2
                 // } else {
-                    GNOME_SPEED;
+                    // GNOME_SPEED;
                 // };
-                self.base.lag = self.base.timer;
-            } else {
-                //impassable terrain
+            if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid) {
+                // impassable terrain
                 self.path.clear();
             }
             return None;
@@ -256,7 +250,7 @@ impl EntityBehaviour for Gnome {
         if self.job.is_some() {
             self.job_update(grid, game_ctx);
         } else {
-            self.base.move_random(grid, game_ctx);
+            self.base.move_random(grid);
         }
 
         None
