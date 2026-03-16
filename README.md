@@ -64,6 +64,7 @@ A first step would be just data creation, control could be done later.
 - Simulate enemy or friendly factions
   - Gnomes: well-balanced overall, can grow wheat and mushrooms, can mine and build okay and reproduce medium
   - Elves: great with forests and animals, stronger but reproduce slower (if this is even possible to balance, not required)
+    - LIVE IN TREES, like og minecraft! This would be so fun!
   - Goblins: Hide in mountains, okay at mining but mostly steal.
   - Orcs: Can poorly build stuff and farm, mostly have to survive by stealing (nomadic?)
   - Dwarves: Very good at mining, as long as they don't mine too greedily or too deep. Poor at farming and do best trading metals for foods
