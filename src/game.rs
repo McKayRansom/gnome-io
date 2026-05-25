@@ -123,9 +123,9 @@ impl Game {
         }
 
         // spawn some goblins
-        for _ in 0..4 {
-            game.spawn_goblin(Pos::new(6, 17));
-        }
+        // for _ in 0..4 {
+        //     game.spawn_goblin(Pos::new(6, 17));
+        // }
 
         // clear area
         // game.grid.place_block(start_pos, None, &mut game.game_ctx);
