@@ -4,7 +4,6 @@ use macroquad::math::{Rect, Vec2};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-
 #[derive(Serialize, Deserialize, Default)]
 pub struct Pos {
     pub x: i16,
@@ -20,6 +19,8 @@ pub mod dirs {
     pub const RIGHT: Pos = Pos::new(1, 0);
     pub const UP: Pos = Pos::new(0, -1);
     pub const DOWN: Pos = Pos::new(0, 1);
+    pub const DOWN_RIGHT: Pos = Pos::new(1, 1);
+    pub const DOWN_LEFT: Pos = Pos::new(-1, 1);
 
     pub const ALL: [Pos; 4] = [LEFT, RIGHT, UP, DOWN];
 }

@@ -1,7 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    block::{BlockId, blocks::GROWTH_TIME}, entity::{EntityId, Faction}, event::{BlockUpdateEvent, Event, EventManager}, game::{GameCtx, time::Season}, item::ItemId, job::Job, tile::{Content, Tile}
+    block::{BlockId, blocks::GROWTH_TIME},
+    entity::{EntityId, Faction},
+    event::{BlockUpdateEvent, Event, EventManager},
+    game::{GameCtx, time::Season},
+    grid::pos::dirs,
+    item::ItemId,
+    job::Job,
+    tile::{Content, Tile},
 };
 
 pub mod pos;
@@ -17,6 +24,15 @@ pub struct Grid {
 }
 
 const GROWTH_EVENT: u32 = 20;
+
+// a tile is walkable if there is a solid tile in one of these positions
+pub const WALKABLE_DIRS: [Pos; 5] = [
+    pos::dirs::LEFT,
+    pos::dirs::RIGHT,
+    pos::dirs::DOWN,
+    pos::dirs::DOWN_LEFT,
+    pos::dirs::DOWN_RIGHT,
+];
 
 impl Grid {
     pub fn new(size: Pos, game_ctx: &mut GameCtx) -> Grid {
@@ -43,6 +59,19 @@ impl Grid {
         cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
     }
 
+    pub fn update_walkable(&mut self, pos: Pos) {
+        // we need to not have an impassible block
+        if let Some(tile) = self.get_tile(pos) {
+            let walkable = !tile.solid
+                && WALKABLE_DIRS
+                    .iter()
+                    .any(|dir| self.get_tile(pos + *dir).is_some_and(|t| t.solid));
+            if walkable != tile.walkable {
+                Self::get_tile_mut(&mut self.cells, pos).unwrap().walkable = walkable;
+            }
+        }
+    }
+
     pub fn place_block(
         &mut self,
         pos: Pos,
@@ -52,7 +81,7 @@ impl Grid {
         let tile = Self::get_tile_mut(&mut self.cells, pos)?;
         let old_block = tile.get_block();
         if let Some(old_block_id) = old_block {
-            tile.walkable = true;
+            tile.solid = false;
             tile.remove(&Content::Block(old_block_id));
 
             if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
@@ -78,7 +107,7 @@ impl Grid {
 
         if let Some(block_id) = block {
             if let Some(block_info) = game_ctx.blocks.get_block(&block_id) {
-                tile.walkable = block_info.walkable;
+                tile.solid = block_info.walkable;
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
@@ -91,20 +120,29 @@ impl Grid {
                 }
                 // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
                 if let Some((delay, new_block)) = block_info.growth {
-                    game_ctx.events.push_timer(delay, Event {
-                        id: GROWTH_EVENT,
-                        value: BlockUpdateEvent {
-                            pos,
-                            _old: block,
-                            new: new_block,
+                    game_ctx.events.push_timer(
+                        delay,
+                        Event {
+                            id: GROWTH_EVENT,
+                            value: BlockUpdateEvent {
+                                pos,
+                                _old: block,
+                                new: new_block,
+                            },
                         },
-                    });
+                    );
                 }
             }
             tile.add(Content::Block(block_id));
         }
         log::info!("Setting {:?} to {:?}", tile, block);
 
+        //update is_walkable for pos and adjacents
+        self.update_walkable(pos);
+        for dir in WALKABLE_DIRS {
+            // update anyone who could depend on us
+            self.update_walkable(pos - dir);
+        }
         Some(())
     }
 
@@ -244,15 +282,18 @@ impl Grid {
         // TODO: Don't do this in winter...
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
             // if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-                // delay this growth event (for now?)
-                if game_ctx.time.season == Season::Winter {
-                    game_ctx.events.push_timer(GROWTH_TIME, Event {
+            // delay this growth event (for now?)
+            if game_ctx.time.season == Season::Winter {
+                game_ctx.events.push_timer(
+                    GROWTH_TIME,
+                    Event {
                         id: GROWTH_EVENT,
                         value: event.value,
-                    });
-                } else {
-                    self.place_block(event.value.pos, event.value.new, game_ctx);
-                }
+                    },
+                );
+            } else {
+                self.place_block(event.value.pos, event.value.new, game_ctx);
+            }
             // } else {
             //     log::warn!("Unkown event pushed to growth queue");
             // }

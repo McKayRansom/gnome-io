@@ -36,7 +36,10 @@ pub struct Tile {
     pub contents: Vec<Content>,
     pub biome: TileBiome,
     // TODO: PathfindingInfo{}
+    // pathfinding can use this block
     pub walkable: bool,
+    // The block here can be passed-through
+    pub solid: bool,
     // TODO: TileFlags (walkable, biome, has_job, job_type, etc...) for whatever the bottlenecks are so we don't always have to look through entities[]
 }
 
@@ -45,15 +48,17 @@ impl Tile {
         Tile {
             contents: Vec::new(),
             biome,
-            walkable: biome != TileBiome::Water,
+            walkable: false,
+            solid: false,
         }
     }
 
-    pub fn new_block(biome: TileBiome, block: BlockId) -> Tile {
+    pub fn new_block(biome: TileBiome, block: BlockId, solid: bool) -> Tile {
         Tile {
             contents: vec![Content::Block(block)],
             biome,
             walkable: false,
+            solid,
         }
     }
 

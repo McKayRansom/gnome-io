@@ -108,7 +108,14 @@ impl Game {
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
-        let start_pos = Pos::new(6, 11);
+        let mut start_pos = Pos::new(6, 11);
+        while game
+            .grid
+            .get_tile(start_pos)
+            .is_some_and(|tile| !tile.walkable)
+        {
+            start_pos.y += 1;
+        }
 
         // spawn some wheat
         for _ in 0..32 {
@@ -180,7 +187,7 @@ impl Game {
                     if let Some(entity) = self.entities.get_mut(&id) {
                         entity.attacked();
                     }
-                },
+                }
             }
         }
 

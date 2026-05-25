@@ -1831,10 +1831,17 @@ pub fn generate(grid: &mut Grid) {
                 // } else {
                 grid.set_tile(
                     pos,
-                    Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID),
+                    Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID, true),
                 );
                 // }
             };
+        }
+    }
+
+    // fixup is_walkable
+    for y in 0..size.y {
+        for x in 0..size.x {
+            grid.update_walkable((x, y).into());
         }
     }
 }

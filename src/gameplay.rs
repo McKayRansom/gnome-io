@@ -65,34 +65,43 @@ impl Gameplay {
             game: Game::generate(get_time()),
             mouse_down_pos: None,
             draw_details_pos: None,
-            action_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', "mine".into()),
-                ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
-                ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
-                ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', "cancel".into()),
-            ]),
-            build_toolbar: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', "stone".into()),
-                ToolbarItem::new(
-                    blocks::CRAFT_TABLE_ID,
-                    "Crafting table",
-                    '2',
-                    "craft_table".into(),
-                ),
-                ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', "furnace".into()),
-                ToolbarItem::new(blocks::BED_ID, "Bed", '4', "bed".into()),
-            ]),
-            time_select: Toolbar::new(crate::ui::toolbar::ToolbarType::Horizontal, vec![
-                ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', "pause".into()),
-                // ToolbarItem::new(TimeSelect::Play, "Play game", ' ', Sprite::new(10, 1)),
-                ToolbarItem::new(
-                    TimeSelect::FastForward,
-                    "Fast Forward game",
-                    ' ',
-                    "fast_forward".into(),
-                ),
-                ToolbarItem::new(TimeSelect::Menu, "Menu", '\u{1b}', "menu".into()),
-            ]),
+            action_toolbar: Toolbar::new(
+                crate::ui::toolbar::ToolbarType::Horizontal,
+                vec![
+                    ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', "mine".into()),
+                    ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
+                    ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
+                    ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', "cancel".into()),
+                ],
+            ),
+            build_toolbar: Toolbar::new(
+                crate::ui::toolbar::ToolbarType::Horizontal,
+                vec![
+                    ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', "stone".into()),
+                    ToolbarItem::new(
+                        blocks::CRAFT_TABLE_ID,
+                        "Crafting table",
+                        '2',
+                        "craft_table".into(),
+                    ),
+                    ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', "furnace".into()),
+                    ToolbarItem::new(blocks::BED_ID, "Bed", '4', "bed".into()),
+                ],
+            ),
+            time_select: Toolbar::new(
+                crate::ui::toolbar::ToolbarType::Horizontal,
+                vec![
+                    ToolbarItem::new(TimeSelect::Pause, "Pause game", ' ', "pause".into()),
+                    // ToolbarItem::new(TimeSelect::Play, "Play game", ' ', Sprite::new(10, 1)),
+                    ToolbarItem::new(
+                        TimeSelect::FastForward,
+                        "Fast Forward game",
+                        ' ',
+                        "fast_forward".into(),
+                    ),
+                    ToolbarItem::new(TimeSelect::Menu, "Menu", '\u{1b}', "menu".into()),
+                ],
+            ),
             popup: None,
             pause_menu: Menu::new(vec![
                 MenuItem::new(PauseMenuSelect::Continue, "Close".to_string()),
@@ -286,6 +295,7 @@ impl Gameplay {
             if self.game.grid.is_valid_pos(mouse_pos) {
                 if is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                     self.mouse_down_pos = Some(mouse_pos);
+                    dbg!(self.game.grid.get_tile(mouse_pos).unwrap());
                 }
                 if is_mouse_button_released(macroquad::input::MouseButton::Left) {
                     for pos in self.mouse_down_pos.unwrap_or(mouse_pos).iter(mouse_pos) {
