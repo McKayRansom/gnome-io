@@ -3,7 +3,7 @@
     sprites: [
     [
         "",
-        "",
+        "sky",
         "",
         "",
         "",
@@ -13,9 +13,9 @@
     ],
     [
         "",
-        "dirt",
-        "stone_floor",
-        "stone",
+        "_dirt",
+        "_stone_floor",
+        "_stone",
         "ore",
         "furnace",
         "craft_table",
@@ -23,13 +23,13 @@
     ],
     [
         "",
-        "stone",
+        "stone_floor",
         "water",
         "stone",
         "_tree_outline",
     ],
     [
-        "gnome",
+        "_gnome",
         "grass",
         "water",
         "wheat_0",
@@ -42,6 +42,9 @@
         "",
         "ant",
         "_gnorp",
+        "",
+        "",
+        "gnome",
     ],
     [
         "unknown",
@@ -69,7 +72,7 @@
         "farm",
         "cancel",
         "tree",
-        "stone",
+        "_stone",
         "ore",
         "bread",
     ],

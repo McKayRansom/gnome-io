@@ -43,6 +43,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     TileBiome::Stone => "stone_floor",
                     TileBiome::Water => "water",
                     // _ => Sprite::new(0, 5),
+                    TileBiome::Sky => "sky",
                 },
                 &dest,
                 colors::WHITE,

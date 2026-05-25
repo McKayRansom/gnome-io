@@ -9,6 +9,7 @@ use crate::{
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileBiome {
+    Sky,
     Dirt,
     Stone,
     Water,

@@ -1,7 +1,7 @@
 use crate::{
     entity::{BaseEntity, EntityBehaviour, EntityId, Faction, gnome::{GNOME_FACTION, GNOME_SPEED}},
     game::time::hours,
-    grid::{Pos, pos::dirs}, tile::Content,
+    grid::Pos, tile::Content,
 };
 
 pub struct Goblin {

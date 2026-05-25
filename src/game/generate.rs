@@ -1,12 +1,12 @@
 extern crate noise;
 
-use macroquad::prelude::rand;
+// use macroquad::prelude::rand;
 use noise::{core::worley::ReturnType, utils::*, *};
 
 use crate::{
+    block::blocks,
     grid::{Grid, Pos},
     tile::{Tile, TileBiome},
-    block::blocks
 };
 
 // mod utils;
@@ -1809,7 +1809,7 @@ pub fn generate(grid: &mut Grid) {
     for y in 0..size.y {
         for x in 0..size.x {
             let pos: Pos = (x, y).into();
-            let noise = noise_map.get_value(pos.x as usize, pos.y as usize);
+            let noise = noise_map.get_value(pos.x as usize, 0);
             // perlin_noise.get([pos.x as f64 / noise_size.0, pos.y as f64 / noise_size.1]);
             let detail = detail_noise.get([
                 pos.x as f64 / detail_noise_size.0,
@@ -1818,19 +1818,22 @@ pub fn generate(grid: &mut Grid) {
             if noise < SEA_LEVEL {
                 // Tile::Water
                 grid.set_tile(pos, Tile::new(TileBiome::Water));
-            } else if noise < 2048.0 / 16384.0 {
+            } else if noise > y as f64 / size.y as f64 {
                 // Tile::Empty
-                if detail > 0.65 - rand::rand() as f64 / u32::MAX as f64 {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Dirt, blocks::TREE_ID));
-                } else {
-                    grid.set_tile(pos, Tile::new(TileBiome::Dirt));
-                }
+                // if detail > 0.65 - rand::rand() as f64 / u32::MAX as f64 {
+                // grid.set_tile(pos, Tile::new_block(TileBiome::Dirt, blocks::TREE_ID));
+                // } else {
+                grid.set_tile(pos, Tile::new(TileBiome::Sky));
+                // }
             } else {
-                if detail > 0.75 {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, blocks::ORE_ID));
-                } else {
-                    grid.set_tile(pos, Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID));
-                }
+                // if detail > 0.75 {
+                // grid.set_tile(pos, Tile::new_block(TileBiome::Stone, blocks::ORE_ID));
+                // } else {
+                grid.set_tile(
+                    pos,
+                    Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID),
+                );
+                // }
             };
         }
     }

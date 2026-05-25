@@ -1,4 +1,15 @@
 
+# SIDEVIEW-WIP
+Goal: Test out all current features on a side-view
+- [x] Map generation/size change
+  - [ ] Fix Ore gen
+  - [ ] Fix trees
+  - [ ] Fix Plants not being able to be planted on air biome
+- [ ] Pathfinding change
+- [ ] Climbing or ramps or something???
+- [x] Graphics
+  - [ ] Make not as shitty
+
 # Gnome-IO
 2d colony-sim inspired by Gnomoria but designed to be simpler. 
 There is an urge (I do it to) when programming a video game to add every fun feature imaginable, 
