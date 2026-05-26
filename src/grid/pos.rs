@@ -3,14 +3,15 @@ use std::ops::{Add, Sub};
 use macroquad::math::{Rect, Vec2};
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
 pub struct Pos {
     pub x: i16,
     pub y: i16,
 }
 
 pub mod dirs {
+    use std::f32::consts::PI;
+
     use super::Pos;
 
     pub const NONE: Pos = Pos::new(0, 0);
@@ -23,6 +24,16 @@ pub mod dirs {
     pub const DOWN_LEFT: Pos = Pos::new(-1, 1);
 
     pub const ALL: [Pos; 4] = [LEFT, RIGHT, UP, DOWN];
+
+    pub fn to_radians(dir: Pos) -> f32 {
+        match dir {
+            LEFT => -PI / 2.0,
+            RIGHT => PI / 2.0,
+            UP => 0.0,
+            DOWN => PI,
+            _ => 0.0,
+        }
+    }
 }
 
 impl Pos {

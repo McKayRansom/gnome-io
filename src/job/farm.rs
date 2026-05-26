@@ -4,7 +4,7 @@ use crate::{
     block::blocks,
     event::{Event, EventId, EventManager},
     game::{GameCtx, Tick},
-    grid::{Grid, Pos},
+    grid::{Grid, Pos, pos::dirs},
     item::items,
     tile::{Content, TileBiome},
 };
@@ -66,8 +66,8 @@ impl FarmManager {
         event: Event,
     ) -> Option<Job> {
         // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-            log::info!("Farm update event");
-            self.tile_changed(events, grid, &event.value.pos)
+        log::info!("Farm update event");
+        self.tile_changed(events, grid, &event.value.pos)
         // } else {
         //     log::warn!("Unkown event dispached to farm event queue");
         //     None
@@ -80,9 +80,18 @@ impl FarmManager {
             log::info!("Farm update for dezoned???");
             return None;
         }
+
+        // must be non-solid and have solid beneath (for now)
+        if grid
+            .get_tile(*pos + dirs::DOWN)
+            .is_none_or(|tile| tile.solid == false)
+        {
+            log::warn!("Farm not supported by something!");
+            return None;
+        }
         let tile = grid.get_tile(*pos)?;
-        if tile.biome != TileBiome::Dirt {
-            log::warn!("Farm not allowed on non-dirt biomes!");
+        if tile.solid {
+            log::warn!("Farm occupied!");
             return None;
         }
 

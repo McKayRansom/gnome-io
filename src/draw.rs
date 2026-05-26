@@ -54,7 +54,16 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 let Some(block) = game_ctx.blocks.get_block(&block) else {
                     panic!("No block found fo id {}", block);
                 };
-                ctx.tileset.draw_tile(&block.sprite, &dest, colors::WHITE);
+                if block.sprite == "stone" {
+                    // jank
+                    for dir in dirs::ALL {
+                        if grid.get_tile(pos + dir).is_none_or(|tile| tile.solid == false) {
+                            ctx.tileset.draw_tile_ex_ex(&block.sprite,  colors::WHITE, &dest, dirs::to_radians(dir));
+                        }
+                    }
+                } else {
+                    ctx.tileset.draw_tile(&block.sprite, &dest, colors::WHITE);
+                }
             }
             // then draw items
             for item in tile.iter_entities() {

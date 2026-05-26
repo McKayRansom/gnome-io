@@ -107,7 +107,7 @@ impl Grid {
 
         if let Some(block_id) = block {
             if let Some(block_info) = game_ctx.blocks.get_block(&block_id) {
-                tile.solid = block_info.walkable;
+                tile.solid = !block_info.walkable;
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
