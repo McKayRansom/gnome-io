@@ -10,6 +10,8 @@ use crate::{
 use super::{BlockId, BlockType, Blocks};
 use crate::item::items::WOOD_ID;
 
+pub const NONE: BlockId = 0;
+
 pub const STONE_BLOCK_ID: BlockId = 100;
 pub const ORE_ID: BlockId = 101;
 pub const TREE_ID: BlockId = 102;
@@ -17,7 +19,7 @@ pub const CRAFT_TABLE_ID: BlockId = 104;
 
 pub const BED_ID: BlockId = 106;
 pub const FURNACE_ID: BlockId = 105;
-pub const CHEST_ID: BlockId = 106;
+pub const CHEST_ID: BlockId = 107;
 
 const BLK_GRP: BlockId = 200;
 pub const WHEAT_0_ID: BlockId = BLK_GRP | 0;
@@ -104,20 +106,20 @@ pub fn init(blocks: &mut Blocks) {
         WHEAT_0_ID,
         BlockType::new("wheat_0".into(), vec![])
             .walkable()
-            .grow((GROWTH_TIME, Some(WHEAT_1_ID))),
+            .grow((GROWTH_TIME, WHEAT_1_ID)),
     );
     blocks.add_block(
         WHEAT_1_ID,
         BlockType::new("wheat_1".into(), vec![])
             .walkable()
-            .grow((GROWTH_TIME, Some(WHEAT_2_ID))),
+            .grow((GROWTH_TIME, WHEAT_2_ID)),
     );
     blocks.add_block(
         WHEAT_2_ID,
         BlockType {
             sprite: "wheat_2".into(),
             walkable: true,
-            growth: Some((GROWTH_TIME, Some(WHEAT_3_ID))),
+            growth: Some((GROWTH_TIME, WHEAT_3_ID)),
             ..Default::default()
         },
     );
@@ -125,7 +127,7 @@ pub fn init(blocks: &mut Blocks) {
         WHEAT_3_ID,
         BlockType::new("wheat_3".into(), vec![])
             .walkable()
-            .grow((GROWTH_TIME, Some(WHEAT_4_ID))),
+            .grow((GROWTH_TIME, WHEAT_4_ID)),
     );
     blocks.add_block(
         WHEAT_4_ID,

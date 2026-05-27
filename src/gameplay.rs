@@ -274,7 +274,7 @@ impl Gameplay {
                 //         }
                 //     }
                 // } else {
-                for item in tile.iter_entities() {
+                for item in tile.iter_content() {
                     ui.label(
                         None,
                         format!(

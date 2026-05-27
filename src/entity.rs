@@ -5,7 +5,7 @@ use macroquad::rand::rand;
 use crate::{
     entity::gnome::GNOME_SPEED,
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs},
+    grid::{Grid, Pos, pos::dirs}, item::ItemId,
 };
 
 pub mod gnome;
@@ -41,6 +41,7 @@ pub struct BaseEntity {
     pub food: u16,
     pub health: u8,
     pub timer: Tick,
+    pub items: Vec<ItemId>,
 }
 
 impl Default for BaseEntity {
@@ -54,6 +55,7 @@ impl Default for BaseEntity {
             food: hours(24),
             health: 10,
             timer: 0,
+            items: Vec::new(),
         }
     }
 }

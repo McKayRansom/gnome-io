@@ -12,6 +12,7 @@ use crate::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
+    item::ItemId,
     text::{draw_text, draw_text_screen_centered},
     tile::{Content, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
@@ -20,6 +21,30 @@ pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.entities);
     draw_stocks(&game.grid, &game.game_ctx, ctx);
     draw_status(game, ctx);
+}
+
+fn draw_items(
+    game_ctx: &GameCtx,
+    ctx: &Context,
+    items: &[ItemId],
+    start: &Rect,
+    stack_spacing: f32,
+) {
+    let mut dest = start.clone();
+    for item in items {
+        // if let Content::Item(item) = item {
+        ctx.tileset.draw_tile(
+            if let Some(item) = game_ctx.items.get_item(item) {
+                &item.sprite
+            } else {
+                "unknown"
+            },
+            &dest,
+            colors::WHITE,
+        );
+        dest.y -= stack_spacing * PIXEL_SIZE * ctx.camera.zoom;
+    }
+    // }
 }
 
 fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entities) {
@@ -57,8 +82,16 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 if block.sprite == "stone" {
                     // jank
                     for dir in dirs::ALL {
-                        if grid.get_tile(pos + dir).is_none_or(|tile| tile.solid == false) {
-                            ctx.tileset.draw_tile_ex_ex(&block.sprite,  colors::WHITE, &dest, dirs::to_radians(dir));
+                        if grid
+                            .get_tile(pos + dir)
+                            .is_none_or(|tile| tile.solid == false)
+                        {
+                            ctx.tileset.draw_tile_ex_ex(
+                                &block.sprite,
+                                colors::WHITE,
+                                &dest,
+                                dirs::to_radians(dir),
+                            );
                         }
                     }
                 } else {
@@ -66,28 +99,27 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 }
             }
             // then draw items
-            for item in tile.iter_entities() {
-                if let Content::Item(item) = item {
-                    ctx.tileset.draw_tile(
-                        if let Some(item) = game_ctx.items.get_item(item) {
-                            &item.sprite
-                        } else {
-                            "unknown"
-                        },
-                        &dest,
-                        colors::WHITE,
-                    );
-                }
-            }
+            let items: Vec<ItemId> = tile
+                .iter_content()
+                .filter_map(|content| {
+                    if let Content::Item(item) = content {
+                        Some(*item)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+            draw_items(game_ctx, ctx, &items, &dest, 0.5);
         }
     }
+
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
             let pos: Pos = (x, y).into();
             // skip invisible tiles
             let tile = grid.get_tile(pos).unwrap();
             // then gnomes
-            for item in tile.iter_entities() {
+            for item in tile.iter_content() {
                 if let Content::Entity(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     let gnome = entities.get(&gnome.1).unwrap().base();
@@ -125,11 +157,15 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     // }
                     ctx.tileset
                         .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
+
+                    let mut item_start = dest.clone();
+                    item_start.y -= PIXEL_SIZE * 15.0 * ctx.camera.zoom;
+                    draw_items(game_ctx, ctx, &gnome.items, &item_start, 0.5);
                 }
             }
 
             // draw jobs last (on top)
-            for item in tile.iter_entities() {
+            for item in tile.iter_content() {
                 if let Content::Job(job) = item {
                     draw_tile_outline(
                         grid,

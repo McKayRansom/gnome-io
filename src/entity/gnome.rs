@@ -5,7 +5,10 @@ use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos},
-    item::{ItemId, items::{self, GNOME_DEAD_ID}},
+    item::{
+        ItemId,
+        items::{self, GNOME_DEAD_ID},
+    },
     job::Job,
     tile::Content,
 };
@@ -44,7 +47,7 @@ pub struct Gnome {
 
     job: Option<Job>,
     path: Vec<Pos>,
-    items: Vec<ItemId>,
+    // items: Vec<ItemId>,
 
     // feel like this could be elsewhere?
     tired: u16,
@@ -82,7 +85,6 @@ impl Gnome {
             },
             job: None,
             path: Vec::new(),
-            items: Vec::new(),
 
             tired: BASE_TIRED,
             food: BASE_FOOD,
@@ -90,13 +92,14 @@ impl Gnome {
         }
     }
 
-
     fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         let job = self.job.as_mut().unwrap();
         // collect items
-        match job.update(self.base.pos, &mut self.items, grid, game_ctx) {
+        match job.update(self.base.pos, &mut self.base.items, grid, game_ctx) {
             crate::job::JobAction::Aquire(item) => {
-                if let Some(path) = grid.find_path(self.base.pos, job.pos, Some(Content::Item(item))) {
+                if let Some(path) =
+                    grid.find_path(self.base.pos, job.pos, Some(Content::Item(item)))
+                {
                     self.path = path;
                 } else {
                     log::warn!("Unable to find item {} for job", item);
@@ -107,15 +110,15 @@ impl Gnome {
             }
             crate::job::JobAction::Goto(pos) => {
                 // we found the path earlier...
-                if !self.path.is_empty() {
-                    // fix for building ourselves into a wall!
-                    // TODO: Move out of the way if we are equal to job pos...
-                    log::info!("Use prev path!");
-                    if job.is_build() {
-                        self.path.pop();
-                    }
-                    return;
-                }
+                // if !self.path.is_empty() {
+                //     // fix for building ourselves into a wall!
+                //     // TODO: Move out of the way if we are equal to job pos...
+                //     log::info!("Use prev path!");
+                //     if job.is_build() {
+                //         self.path.pop();
+                //     }
+                //     return;
+                // }
 
                 if let Some(path) = grid.find_path(self.base.pos, pos, None) {
                     log::info!("path");
@@ -140,11 +143,9 @@ impl Gnome {
             }
         }
     }
-
 }
 
 impl EntityBehaviour for Gnome {
-
     fn die(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         if let Some(job) = &self.job {
             job.fail(grid, game_ctx);
@@ -153,7 +154,11 @@ impl EntityBehaviour for Gnome {
         self.base.die(grid);
     }
 
-    fn update(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
+    fn update(
+        &mut self,
+        grid: &mut crate::grid::Grid,
+        game_ctx: &mut GameCtx,
+    ) -> Option<EntityAction> {
         if let Some(action) = self.base.update(grid) {
             return Some(action);
         }
@@ -167,10 +172,10 @@ impl EntityBehaviour for Gnome {
 
         if !self.path.is_empty() {
             //if self.tired < SLOW_TIRED {
-                    // GNOME_SPEED * 2
-                // } else {
-                    // GNOME_SPEED;
-                // };
+            // GNOME_SPEED * 2
+            // } else {
+            // GNOME_SPEED;
+            // };
             if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid) {
                 // impassable terrain
                 self.path.clear();
@@ -223,9 +228,11 @@ impl EntityBehaviour for Gnome {
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
-            } else if let Some(path) =
-                grid.find_path(self.base.pos, self.base.pos, Some(Content::Item(items::BREAD_ID)))
-            {
+            } else if let Some(path) = grid.find_path(
+                self.base.pos,
+                self.base.pos,
+                Some(Content::Item(items::BREAD_ID)),
+            ) {
                 self.path = path;
                 return None;
             } else if self.food == 0 {
@@ -241,8 +248,10 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let (Some(path), Some(job)) = grid.find_job(self.base.pos, &mut game_ctx.events) {
-                self.path = path;
+            if let (Some(path), Some(job)) =
+                grid.find_job(self.base.pos, &mut game_ctx.events, &mut self.base.items)
+            {
+                // self.path = path;
                 self.job = Some(job);
             }
         }
@@ -259,7 +268,7 @@ impl EntityBehaviour for Gnome {
     fn attacked(&mut self) {
         self.base.attacked()
     }
-    
+
     fn base(&self) -> &BaseEntity {
         &self.base
     }

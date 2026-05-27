@@ -98,7 +98,7 @@ impl Tile {
         self.contents.contains(content)
     }
 
-    pub fn iter_entities(&self) -> std::slice::Iter<'_, Content> {
+    pub fn iter_content(&self) -> std::slice::Iter<'_, Content> {
         self.contents.iter()
     }
 

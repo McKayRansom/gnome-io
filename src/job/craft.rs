@@ -18,7 +18,12 @@ pub fn craft(grid: &mut Grid, pos: Pos, id: ItemId, game_ctx: &mut GameCtx) -> O
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::new(pos, CRAFTING_TIME, Some(Content::Item(id)), recipe.1.clone()),
+        Job::new(
+            pos,
+            CRAFTING_TIME,
+            Some(Content::Item(id)),
+            recipe.1.clone(),
+        ),
     );
     None
 }
@@ -59,7 +64,7 @@ impl CraftManager {
             // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
             log::info!("Craft update event at {:?}", block_update_event.value.pos);
             // self.tile_changed(events, grid, &block_update_event.pos)
-            if block_update_event.value.new == Some(blocks::FURNACE_ID) {
+            if block_update_event.value.new == blocks::FURNACE_ID {
                 self.workshop_pos.push(block_update_event.value.pos);
             } else {
                 self.workshop_pos
@@ -68,7 +73,7 @@ impl CraftManager {
                 for content in grid
                     .get_tile(block_update_event.value.pos)
                     .unwrap()
-                    .iter_entities()
+                    .iter_content()
                 {
                     if let Content::Job(job_id) = content {
                         if let Some(job) = game_ctx.events.jobs.get(job_id) {

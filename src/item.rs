@@ -4,6 +4,9 @@ use crate::{block::BlockId};
 
 pub type ItemId = u32;
 
+pub const ITEM_CARRY_MAX: usize = 4;
+pub const ITEM_STORE_MAX: usize = 16;
+
 pub mod items;
 
 pub struct ItemType {

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
-    block::{BlockId, Blocks},
+    block::{BlockId, Blocks, blocks},
     entity::{Entity, EntityAction, EntityId, gnome::Gnome, goblin::Goblin},
     event::EventManager,
     grid::{Grid, Pos},
@@ -117,6 +117,10 @@ impl Game {
             start_pos.y += 1;
         }
 
+        // place chest
+        game.grid
+            .place_block(start_pos, blocks::CHEST_ID, &mut game.game_ctx);
+
         // spawn some wheat
         for _ in 0..32 {
             // game.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
@@ -134,8 +138,6 @@ impl Game {
         //     game.spawn_goblin(Pos::new(6, 17));
         // }
 
-        // clear area
-        // game.grid.place_block(start_pos, None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 14), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(14, 13), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);

@@ -1,11 +1,14 @@
 use std::collections::HashMap;
 
 use crate::{
-    block::{BlockId, blocks::GROWTH_TIME},
+    block::{
+        BlockId,
+        blocks::{self, GROWTH_TIME},
+    },
     entity::{EntityId, Faction},
     event::{BlockUpdateEvent, Event, EventManager},
     game::{GameCtx, time::Season},
-    item::ItemId,
+    item::{self, ItemId},
     job::Job,
     tile::{Content, Tile},
 };
@@ -74,8 +77,9 @@ impl Grid {
     pub fn place_block(
         &mut self,
         pos: Pos,
-        block: Option<BlockId>,
+        block: BlockId,
         game_ctx: &mut GameCtx,
+        // items: &mut Vec<ItemId>,
     ) -> Option<()> {
         let tile = Self::get_tile_mut(&mut self.cells, pos)?;
         let old_block = tile.get_block();
@@ -89,7 +93,7 @@ impl Grid {
                         id: mine_event,
                         value: BlockUpdateEvent {
                             pos,
-                            _old: Some(old_block_id),
+                            _old: old_block_id,
                             new: block,
                         },
                     });
@@ -97,22 +101,24 @@ impl Grid {
                 for (chance, item_id) in old_block.drops.iter() {
                     if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
                         // TODO: Dedup!
+                        // TODO: Spill if over limit...
                         tile.add(Content::Item(*item_id));
+                        // items.push(*item_id);
                         *self.stocks.entry(*item_id).or_insert(0) += 1;
                     }
                 }
             }
         }
 
-        if let Some(block_id) = block {
-            if let Some(block_info) = game_ctx.blocks.get_block(&block_id) {
+        if block != blocks::NONE {
+            if let Some(block_info) = game_ctx.blocks.get_block(&block) {
                 tile.solid = !block_info.walkable;
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
                         value: BlockUpdateEvent {
                             pos,
-                            _old: Some(0),
+                            _old: blocks::NONE,
                             new: block,
                         },
                     });
@@ -132,7 +138,7 @@ impl Grid {
                     );
                 }
             }
-            tile.add(Content::Block(block_id));
+            tile.add(Content::Block(block));
         }
         log::info!("Setting {:?} to {:?}", tile, block);
 
@@ -221,8 +227,11 @@ impl Grid {
         &self,
         start: Pos,
         events: &mut EventManager,
+        items: &mut Vec<ItemId>,
     ) -> (Option<Vec<Pos>>, Option<Job>) {
         let mut found_job: Option<Job> = None;
+        // we will continue past the first job we find, to see if we find a better one...
+        let mut continue_past: usize = 16;
         (
             pathfinding::prelude::bfs(
                 &start,
@@ -241,27 +250,66 @@ impl Grid {
                 },
                 |pos| {
                     self.get_tile(*pos).is_some_and(|tile| {
-                        tile.iter_entities().any(|content| {
-                            if let Content::Job(job_id) = content {
-                                let job = events.jobs.get_mut(job_id).expect("LEAKED JOB");
-                                if job.in_progress {
-                                    // log::info!("Job in progress at {:?}", pos);
-                                    return false;
+                        let mut found_chest: bool = false;
+                        for content in tile.iter_content() {
+                            match content {
+                                Content::Job(job_id) => {
+                                    let job = events.jobs.get(job_id).expect("LEAKED JOB");
+                                    if !job.in_progress
+                                        && found_job
+                                            .as_ref()
+                                            .is_none_or(|cur_job| job.is_higher_priority(&cur_job))
+                                    {
+                                        found_job = Some(job.clone());
+                                        continue;
+                                    }
                                 }
-                                job.in_progress = true;
-                                found_job = Some(job.clone());
-                                // log::info!("Found job at {:?}", pos);
-                                true
-                            // TEMP: Consider all items?
-                            } else {
-                                // log::info!("No jobs at {:?}", pos);
-                                false
+                                Content::Block(blocks::CHEST_ID) => {
+                                    found_chest = true;
+                                    // drop-off job
+                                    if tile.contents.len() < item::ITEM_STORE_MAX
+                                        && (
+                                            // nothing else to do
+                                            (items.len() > 0 && found_job.is_none())
+                                        // or we are full
+                                        || items.len() == item::ITEM_CARRY_MAX
+                                        )
+                                    {
+                                        log::info!("Creating drop-off job");
+                                        found_job = Some(Job::haul(*pos));
+                                        if items.len() == item::ITEM_CARRY_MAX {
+                                            // exit early, we are totally full
+                                            return true;
+                                        }
+                                    }
+                                    // TODO: do we need to clear a possible current haul job???
+                                }
+                                Content::Item(_) => {
+                                    if found_chest == false
+                                        && found_job.is_none()
+                                        && items.len() < item::ITEM_CARRY_MAX
+                                    {
+                                        // create a haul job
+                                        log::info!("Creating haul job");
+                                        found_job = Some(Job::haul(*pos));
+                                    }
+                                }
+                                _ => {}
                             }
-                        })
+                        }
+                        if found_job.is_some() {
+                            continue_past -= 1;
+                        }
+                        continue_past == 0
                     })
                 },
             ),
-            found_job,
+            {
+                if let Some(job) = &mut found_job {
+                    events.job_in_progress(job);
+                }
+                found_job
+            },
         )
     }
 
@@ -296,6 +344,51 @@ impl Grid {
             // } else {
             //     log::warn!("Unkown event pushed to growth queue");
             // }
+        }
+    }
+
+    pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ItemId>) {
+        if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
+            if tile.contains(&Content::Block(blocks::CHEST_ID)) {
+                // for now just don't bother...
+                return;
+            }
+            tile.contents.retain(|content| {
+                if let Content::Item(item) = content {
+                    if items.len() < item::ITEM_CARRY_MAX {
+                        items.push(*item);
+                        log::info!("taking {:?}", item);
+                        *self.stocks.get_mut(item).expect("Map stock mismatch") -= 1;
+                        false
+                    } else {
+                        true
+                    }
+                } else {
+                    true
+                }
+            });
+        }
+    }
+
+    pub fn store_items(&mut self, pos: Pos, items: &mut Vec<ItemId>) {
+        if items.is_empty() {
+            return;
+        }
+        if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
+            if !tile.contains(&Content::Block(blocks::CHEST_ID)) {
+                // No chest here...
+                return;
+            }
+            items.retain(|item| {
+                if tile.contents.len() < item::ITEM_STORE_MAX {
+                    tile.contents.push(Content::Item(*item));
+                    log::info!("Storing {:?}", item);
+                    *self.stocks.entry(*item).or_insert(0) += 1;
+                    false
+                } else {
+                    true
+                }
+            });
         }
     }
 }

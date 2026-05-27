@@ -11,9 +11,9 @@ use crate::{
 };
 
 pub mod build;
+pub mod craft;
 pub mod farm;
 pub mod mine;
-pub mod craft;
 pub mod store;
 
 /*
@@ -38,16 +38,15 @@ pub mod store;
  * Specifically with mining we need a way to find the closest mining job with a valid path...
  *
  */
- /*
-  * Thoughts on hauling:
-  * - option1: Low priority Job in global job list
-  * - option2: automatically created job when looking for jobs and we see loose items
-  * - option3: (stupid) don't haul just leave everything a mess always
-  * - remove hauling and just have jobs dump into gnome's inventory, and then drop in chest when full/idle?
-  * - how are chests going to work in general, what happens when you mine a chest, goes into gnome inventory? (I hate that they keep their items in gnomoria)
-  */
-#[derive(Clone, Debug)]
-#[derive(Serialize, Deserialize)]
+/*
+ * Thoughts on hauling:
+ * - option1: Low priority Job in global job list
+ * - option2: automatically created job when looking for jobs and we see loose items
+ * - option3: (stupid) don't haul just leave everything a mess always
+ * - remove hauling and just have jobs dump into gnome's inventory, and then drop in chest when full/idle?
+ * - how are chests going to work in general, what happens when you mine a chest, goes into gnome inventory? (I hate that they keep their items in gnomoria)
+ */
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Job {
     pub id: JobId,
     pub in_progress: bool,
@@ -55,7 +54,15 @@ pub struct Job {
     pub time: u16,
     pub content: Option<Content>,
     pub requires: Vec<ItemId>,
+    pub priority: i8,
+    // TODO: Category, which will affect calculated priority...
 }
+
+pub type JobPrority = i8;
+
+const JOB_PRIORITY_LOW: JobPrority = -1;
+const JOB_PRIORITY_NORMAL: JobPrority = 0;
+const JOB_PRIORITY_HIGH: JobPrority = 1;
 
 pub enum JobAction {
     Aquire(ItemId),
@@ -73,6 +80,20 @@ impl Job {
             time,
             content,
             requires,
+            priority: JOB_PRIORITY_NORMAL,
+        }
+    }
+
+    // haul job is low-priority (for now) and does nothing basically
+    pub fn haul(pos: Pos) -> Self {
+        Self {
+            id: 0,
+            in_progress: false,
+            pos,
+            time: 0,
+            content: None,
+            requires: Vec::new(),
+            priority: JOB_PRIORITY_LOW,
         }
     }
 
@@ -84,6 +105,10 @@ impl Job {
     // will this always be true?
     pub fn is_craft(&self) -> bool {
         matches!(self.content, Some(Content::Item(_)))
+    }
+
+    pub fn is_higher_priority(&self, other: &Job) -> bool {
+        self.priority > other.priority
     }
 
     pub fn update(
@@ -119,13 +144,24 @@ impl Job {
             return JobAction::Wait(time);
         }
         // perform the job
-        items.retain(|item| !self.requires.contains(item));
+        for required_item in self.requires.iter() {
+            if let Some(idx) = items.iter().position(|item| item == required_item) {
+                items.remove(idx);
+            }
+        }
+
         let _ = match self.content {
             Some(Content::Item(item_id)) => grid.add(self.pos, Content::Item(item_id)),
-            Some(Content::Block(block_id)) => grid.place_block(self.pos, Some(block_id), game_ctx),
-            None => grid.place_block(self.pos, None, game_ctx),
+            Some(Content::Block(block_id)) => grid.place_block(self.pos, block_id, game_ctx),
+            None => None,
             Some(_) => todo!(),
         };
+
+        // pick up any items dropped
+        grid.take_items(self.pos, items);
+
+        // this feels wrong...
+        grid.store_items(self.pos, items);
 
         log::info!("Finished job: {:?}", self);
         self.success(grid, game_ctx);

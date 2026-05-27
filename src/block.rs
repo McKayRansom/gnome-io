@@ -13,7 +13,7 @@ pub struct BlockType {
     pub sprite: String, // should this be elsewhere?
     pub drops: Vec<(f32, ItemId)>,
     pub walkable: bool, // will need other path information eventually
-    pub growth: Option<(Tick, Option<BlockId>)>, // time until it grows into something else
+    pub growth: Option<(Tick, BlockId)>, // time until it grows into something else
     pub place_event: Option<EventId>,
     pub mine_event: Option<EventId>,
     // what it needs to be built
@@ -55,7 +55,7 @@ impl BlockType {
         }
     }
 
-    pub fn grow(self, growth: (Tick, Option<BlockId>)) -> Self {
+    pub fn grow(self, growth: (Tick, BlockId)) -> Self {
         Self {
             growth: Some(growth),
             ..self
@@ -85,7 +85,9 @@ pub struct Blocks {
 
 impl Default for Blocks {
     fn default() -> Self {
-        let mut blocks = Self { block_list: Default::default() };
+        let mut blocks = Self {
+            block_list: Default::default(),
+        };
         blocks::init(&mut blocks);
         blocks
     }

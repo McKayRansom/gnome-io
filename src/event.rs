@@ -6,12 +6,11 @@ use crate::{block::BlockId, game::Tick, grid::Pos, job::Job};
 
 pub type EventId = u32;
 
-
 #[derive(Serialize, Deserialize)]
 pub struct BlockUpdateEvent {
     pub pos: Pos,
-    pub _old: Option<BlockId>,
-    pub new: Option<BlockId>,
+    pub _old: BlockId,
+    pub new: BlockId,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -102,6 +101,14 @@ impl EventManager {
         });
     }
 
+    pub fn job_in_progress(&mut self, job: &mut Job) {
+        if job.id == 0 {
+            job.id = self.add_job(job.clone());
+        }
+        self.jobs.get_mut(&job.id).unwrap().in_progress = true;
+        job.in_progress = true;
+    }
+
     pub fn add_job(&mut self, mut job: Job) -> JobId {
         job.id = self.job_id;
         self.jobs.insert(self.job_id, job);
@@ -113,7 +120,7 @@ impl EventManager {
     pub fn remove_job(&mut self, job: &JobId) {
         self.jobs.remove(job);
     }
-    
+
     // pub fn update(&mut self, grid: &Grid) {
     //     while let Some(event) = self.events.pop_front() {
     //         let Some(handler) = self.handlers.get_mut(&event.id) else {

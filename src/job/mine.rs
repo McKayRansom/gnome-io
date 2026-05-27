@@ -1,6 +1,8 @@
 use crate::{
+    block::blocks,
     game::GameCtx,
     grid::{Grid, Pos},
+    tile::Content,
 };
 
 use super::{Job, JobManager};
@@ -15,7 +17,7 @@ pub fn mine(grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) -> Option<()> {
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::new(pos, MINE_TIME, None, vec![]),
+        Job::new(pos, MINE_TIME, Some(Content::Block(blocks::NONE)), vec![]),
     );
 
     Some(())
