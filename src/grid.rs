@@ -228,89 +228,87 @@ impl Grid {
         start: Pos,
         events: &mut EventManager,
         items: &mut Vec<ItemId>,
-    ) -> (Option<Vec<Pos>>, Option<Job>) {
+    ) -> Option<Job> {
         let mut found_job: Option<Job> = None;
         // we will continue past the first job we find, to see if we find a better one...
         let mut continue_past: usize = 16;
-        (
-            pathfinding::prelude::bfs(
-                &start,
-                |pos| {
-                    // check adjacent walls
-                    if self.get_tile(*pos).is_some_and(|tile| tile.is_passable()) {
-                        vec![
-                            Pos::new(pos.x + 1, pos.y),
-                            Pos::new(pos.x - 1, pos.y),
-                            Pos::new(pos.x, pos.y + 1),
-                            Pos::new(pos.x, pos.y - 1),
-                        ]
-                    } else {
-                        vec![Pos::new(0, 0); 0]
-                    }
-                },
-                |pos| {
-                    self.get_tile(*pos).is_some_and(|tile| {
-                        let mut found_chest: bool = false;
-                        for content in tile.iter_content() {
-                            match content {
-                                Content::Job(job_id) => {
-                                    let job = events.jobs.get(job_id).expect("LEAKED JOB");
-                                    if !job.in_progress
-                                        && found_job
-                                            .as_ref()
-                                            .is_none_or(|cur_job| job.is_higher_priority(&cur_job))
-                                    {
-                                        found_job = Some(job.clone());
-                                        continue;
-                                    }
-                                }
-                                Content::Block(blocks::CHEST_ID) => {
-                                    found_chest = true;
-                                    // drop-off job
-                                    if tile.contents.len() < item::ITEM_STORE_MAX
-                                        && (
-                                            // nothing else to do
-                                            (items.len() > 0 && found_job.is_none())
-                                        // or we are full
-                                        || items.len() == item::ITEM_CARRY_MAX
-                                        )
-                                    {
-                                        log::info!("Creating drop-off job");
-                                        found_job = Some(Job::haul(*pos));
-                                        if items.len() == item::ITEM_CARRY_MAX {
-                                            // exit early, we are totally full
-                                            return true;
-                                        }
-                                    }
-                                    // TODO: do we need to clear a possible current haul job???
-                                }
-                                Content::Item(_) => {
-                                    if found_chest == false
-                                        && found_job.is_none()
-                                        && items.len() < item::ITEM_CARRY_MAX
-                                    {
-                                        // create a haul job
-                                        log::info!("Creating haul job");
-                                        found_job = Some(Job::haul(*pos));
-                                    }
-                                }
-                                _ => {}
+        // log::info!("Hello");
+        for pos in pathfinding::prelude::bfs_reach(start, |pos| {
+            // check adjacent walls
+            if self.get_tile(*pos).is_some_and(|tile| tile.is_passable()) {
+                Some([
+                    Pos::new(pos.x + 1, pos.y),
+                    Pos::new(pos.x - 1, pos.y),
+                    Pos::new(pos.x, pos.y + 1),
+                    Pos::new(pos.x, pos.y - 1),
+                ])
+                .into_iter()
+                .flatten()
+            } else {
+                None.into_iter().flatten()
+            }
+        }) {
+            if let Some(tile) = self.get_tile(pos) {
+                let mut found_chest: bool = false;
+                for content in tile.iter_content() {
+                    match content {
+                        Content::Job(job_id) => {
+                            let job = events.jobs.get(job_id).expect("LEAKED JOB");
+                            if !job.in_progress
+                                && found_job
+                                    .as_ref()
+                                    .is_none_or(|cur_job| job.is_higher_priority(&cur_job))
+                            {
+                                found_job = Some(job.clone());
+                                continue;
                             }
                         }
-                        if found_job.is_some() {
-                            continue_past -= 1;
+                        Content::Block(blocks::CHEST_ID) => {
+                            found_chest = true;
+                            // drop-off job
+                            if tile.contents.len() < item::ITEM_STORE_MAX
+                                && (
+                                    // nothing else to do
+                                    (items.len() > 0 && found_job.is_none())
+                                        // or we are full
+                                        || items.len() == item::ITEM_CARRY_MAX
+                                )
+                            {
+                                log::info!("Creating drop-off job");
+                                found_job = Some(Job::haul(pos));
+                                if items.len() == item::ITEM_CARRY_MAX {
+                                    // exit early, we are totally full
+                                    break;
+                                }
+                            }
+                            // TODO: do we need to clear a possible current haul job???
                         }
-                        continue_past == 0
-                    })
-                },
-            ),
-            {
-                if let Some(job) = &mut found_job {
-                    events.job_in_progress(job);
+                        Content::Item(_) => {
+                            if found_chest == false
+                                && found_job.is_none()
+                                && items.len() < item::ITEM_CARRY_MAX
+                            {
+                                // create a haul job
+                                // TODO: Check for existing haul job...
+                                log::info!("Creating haul job");
+                                found_job = Some(Job::haul(pos));
+                            }
+                        }
+                        _ => {}
+                    }
                 }
-                found_job
-            },
-        )
+                if found_job.is_some() {
+                    continue_past -= 1;
+                }
+                if continue_past == 0 {
+                    break;
+                }
+            }
+        }
+        if let Some(job) = &mut found_job {
+            events.job_in_progress(job);
+        }
+        found_job
     }
 
     pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {

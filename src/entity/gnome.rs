@@ -109,17 +109,6 @@ impl Gnome {
                 }
             }
             crate::job::JobAction::Goto(pos) => {
-                // we found the path earlier...
-                // if !self.path.is_empty() {
-                //     // fix for building ourselves into a wall!
-                //     // TODO: Move out of the way if we are equal to job pos...
-                //     log::info!("Use prev path!");
-                //     if job.is_build() {
-                //         self.path.pop();
-                //     }
-                //     return;
-                // }
-
                 if let Some(path) = grid.find_path(self.base.pos, pos, None) {
                     log::info!("path");
                     self.path = path;
@@ -131,14 +120,6 @@ impl Gnome {
             }
             crate::job::JobAction::Wait(time) => self.base.timer = time,
             crate::job::JobAction::Finished => {
-                // jank city, population Jank Jankerton III
-                // move ourself out of the way so we're not stuck
-                // for pos in pos::dirs::ALL {
-                //     if let Some(pos) = grid.gnome_move(self.id, self.pos, self.pos + pos) {
-                //         self.pos = pos;
-                //         break;
-                //     }
-                // }
                 self.job = None;
             }
         }
@@ -248,10 +229,9 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let (Some(path), Some(job)) =
+            if let Some(job) =
                 grid.find_job(self.base.pos, &mut game_ctx.events, &mut self.base.items)
             {
-                // self.path = path;
                 self.job = Some(job);
             }
         }
