@@ -5,7 +5,6 @@ use crate::{
     entity::{EntityId, Faction},
     event::{BlockUpdateEvent, Event, EventManager},
     game::{GameCtx, time::Season},
-    grid::pos::dirs,
     item::ItemId,
     job::Job,
     tile::{Content, Tile},

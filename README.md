@@ -3,12 +3,13 @@
 Goal: Test out all current features on a side-view
 - [x] Map generation/size change
   - [ ] Fix Ore gen
-  - [ ] Fix trees
+  - [ ] Fix trees (Do we need to even fix trees????)
   - [x] Fix Plants not being able to be planted on air biome
 - [x] Pathfinding change
 - [x] Climbing or ramps or something???
 - [x] Graphics
   - [x] Make not as shitty
+  - [ ] Switch to cute bushbes?
 
 # Gnome-IO
 2d colony-sim inspired by Gnomoria but designed to be simpler. 

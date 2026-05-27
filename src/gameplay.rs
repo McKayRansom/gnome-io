@@ -77,15 +77,21 @@ impl Gameplay {
             build_toolbar: Toolbar::new(
                 crate::ui::toolbar::ToolbarType::Horizontal,
                 vec![
-                    ToolbarItem::new(blocks::STONE_BLOCK_ID, "Stone wall", '1', "stone".into()),
+                    ToolbarItem::new(
+                        blocks::STONE_BLOCK_ID,
+                        "Stone wall",
+                        '1',
+                        "stone_wall".into(),
+                    ),
+                    ToolbarItem::new(blocks::CHEST_ID, "Chest", '2', "chest".into()),
                     ToolbarItem::new(
                         blocks::CRAFT_TABLE_ID,
                         "Crafting table",
-                        '2',
+                        '3',
                         "craft_table".into(),
                     ),
-                    ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '3', "furnace".into()),
-                    ToolbarItem::new(blocks::BED_ID, "Bed", '4', "bed".into()),
+                    ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '4', "furnace".into()),
+                    ToolbarItem::new(blocks::BED_ID, "Bed", '5', "bed".into()),
                 ],
             ),
             time_select: Toolbar::new(
