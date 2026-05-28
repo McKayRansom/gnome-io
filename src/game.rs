@@ -184,7 +184,7 @@ impl Game {
                     let entity = self.entities.remove(&id).unwrap();
                     entity.die(&mut self.grid, &mut self.game_ctx);
                 }
-                EntityAction::Birth(id) => todo!(),
+                EntityAction::Birth(_id) => todo!(),
                 EntityAction::Attack(id) => {
                     if let Some(entity) = self.entities.get_mut(&id) {
                         entity.attacked();
@@ -206,6 +206,7 @@ impl Game {
         self.entity_id += 1;
     }
 
+    #[allow(unused)]
     pub fn spawn_goblin(&mut self, pos: Pos) {
         self.entities.insert(
             self.entity_id,

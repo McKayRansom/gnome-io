@@ -5,15 +5,10 @@ use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos},
-    item::{
-        ItemId,
-        items::{self, GNOME_DEAD_ID},
-    },
+    item::items::{self, GNOME_DEAD_ID},
     job::Job,
     tile::Content,
 };
-
-pub type GnomeId = u32;
 
 /*
  * Thoughts on gnome combat:

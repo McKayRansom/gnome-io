@@ -6,7 +6,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos, pos::dirs},
     item::items,
-    tile::{Content, TileBiome},
+    tile::Content,
 };
 
 use super::{Job, JobManager};

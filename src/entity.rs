@@ -5,7 +5,8 @@ use macroquad::rand::rand;
 use crate::{
     entity::gnome::GNOME_SPEED,
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs}, item::ItemId,
+    grid::{Grid, Pos, pos::dirs},
+    item::ItemId,
 };
 
 pub mod gnome;
@@ -17,7 +18,9 @@ pub type Faction = u8;
 
 pub enum EntityAction {
     Die(EntityId),
+    #[allow(unused)]
     Birth(EntityId),
+    #[allow(unused)]
     Attack(EntityId),
 }
 

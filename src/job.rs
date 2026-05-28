@@ -62,7 +62,7 @@ pub type JobPrority = i8;
 
 const JOB_PRIORITY_LOW: JobPrority = -1;
 const JOB_PRIORITY_NORMAL: JobPrority = 0;
-const JOB_PRIORITY_HIGH: JobPrority = 1;
+const _JOB_PRIORITY_HIGH: JobPrority = 1;
 
 pub enum JobAction {
     Aquire(ItemId),
@@ -95,11 +95,6 @@ impl Job {
             requires: Vec::new(),
             priority: JOB_PRIORITY_LOW,
         }
-    }
-
-    // special flag so we don't build ourselves into a block
-    pub fn is_build(&self) -> bool {
-        matches!(self.content, Some(Content::Block(_)))
     }
 
     // will this always be true?

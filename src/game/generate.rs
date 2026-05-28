@@ -1811,7 +1811,7 @@ pub fn generate(grid: &mut Grid) {
             let pos: Pos = (x, y).into();
             let noise = noise_map.get_value(pos.x as usize, 0);
             // perlin_noise.get([pos.x as f64 / noise_size.0, pos.y as f64 / noise_size.1]);
-            let detail = detail_noise.get([
+            let _detail = detail_noise.get([
                 pos.x as f64 / detail_noise_size.0,
                 pos.y as f64 / detail_noise_size.1,
             ]);
