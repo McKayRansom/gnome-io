@@ -3,6 +3,7 @@ use farm::FarmManager;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    block::{BlockId, blocks},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
@@ -54,15 +55,18 @@ pub struct Job {
     pub time: u16,
     pub content: Option<Content>,
     pub requires: Vec<ItemId>,
-    pub priority: i8,
-    // TODO: Category, which will affect calculated priority...
+    pub category: JobType,
 }
 
-pub type JobPrority = i8;
-
-const JOB_PRIORITY_LOW: JobPrority = -1;
-const JOB_PRIORITY_NORMAL: JobPrority = 0;
-const _JOB_PRIORITY_HIGH: JobPrority = 1;
+// TEMP: In order of priority for now
+#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
+pub enum JobType {
+    CRAFT,
+    BUILD,
+    MINE,
+    HAUL,
+    DROP,
+}
 
 pub enum JobAction {
     Aquire(ItemId),
@@ -71,30 +75,73 @@ pub enum JobAction {
     Finished,
 }
 
-impl Job {
-    pub fn new(pos: Pos, time: u16, content: Option<Content>, requires: Vec<ItemId>) -> Self {
-        Job {
+impl Default for Job {
+    fn default() -> Self {
+        Self {
             id: 0,
             in_progress: false,
+            pos: Pos::new(0, 0),
+            time: 0,
+            content: None,
+            requires: Vec::new(),
+            category: JobType::HAUL,
+        }
+    }
+}
+
+impl Job {
+    pub fn craft(pos: Pos, time: u16, item: ItemId, requires: Vec<ItemId>) -> Self {
+        Job {
             pos,
             time,
-            content,
+            content: Some(Content::Item(item)),
             requires,
-            priority: JOB_PRIORITY_NORMAL,
+            category: JobType::CRAFT,
+            ..Default::default()
+        }
+    }
+
+    pub fn build(pos: Pos, time: u16, block: BlockId, requires: Vec<ItemId>) -> Self {
+        Job {
+            pos,
+            time,
+            content: Some(Content::Block(block)),
+            requires,
+            category: JobType::BUILD,
+            ..Default::default()
+        }
+    }
+
+    // if we ever added picaxe hardness we would have to add requires back to this one...
+    pub fn mine(pos: Pos, time: u16) -> Self {
+        Job {
+            pos,
+            time,
+            content: Some(Content::Block(blocks::NONE)),
+            category: JobType::MINE,
+            ..Default::default()
         }
     }
 
     // haul job is low-priority (for now) and does nothing basically
     pub fn haul(pos: Pos) -> Self {
         Self {
-            id: 0,
-            in_progress: false,
             pos,
-            time: 0,
-            content: None,
-            requires: Vec::new(),
-            priority: JOB_PRIORITY_LOW,
+            category: JobType::HAUL,
+            ..Default::default()
         }
+    }
+
+    pub fn drop(pos: Pos) -> Self {
+        Self {
+            pos,
+            category: JobType::DROP,
+            ..Default::default()
+        }
+    }
+
+    pub fn is_haul(&self) -> bool {
+        self.category == JobType::HAUL
     }
 
     // will this always be true?
@@ -102,8 +149,9 @@ impl Job {
         matches!(self.content, Some(Content::Item(_)))
     }
 
+    // TEMP: Eventually we will need a method to change priorities
     pub fn is_higher_priority(&self, other: &Job) -> bool {
-        self.priority > other.priority
+        self.category < other.category
     }
 
     pub fn update(

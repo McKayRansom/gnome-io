@@ -13,22 +13,12 @@ pub fn build(grid: &mut Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> 
         return None;
     }
 
-    // let block_id = game_ctx
-    //     .blocks
-    //     .get_block(&id)
-    //     .unwrap()
-    //     .requires
-    //     .expect("Can't build with item");
+    let block_info = game_ctx.blocks.get_block(&id).expect("Can't build block");
 
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::new(
-            pos,
-            BUILD_TIME,
-            Some(crate::tile::Content::Block(id)),
-            game_ctx.blocks.get_block(&id).unwrap().requires.clone(),
-        ),
+        Job::build(pos, BUILD_TIME, id, block_info.requires.clone())
     );
 
     None

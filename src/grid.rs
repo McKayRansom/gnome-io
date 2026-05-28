@@ -224,7 +224,7 @@ impl Grid {
     }
 
     pub fn find_job(
-        &self,
+        &mut self,
         start: Pos,
         events: &mut EventManager,
         items: &mut Vec<ItemId>,
@@ -261,10 +261,23 @@ impl Grid {
                             {
                                 found_job = Some(job.clone());
                                 continue;
+                            } else if job.is_haul()
+                                && found_job
+                                    .as_ref()
+                                    .is_some_and(|my_job| my_job.pos == job.pos && my_job.is_haul())
+                            {
+                                // there is already a haul job, cancel ours
+                                // alternatively, we could make sure the job is first so we know before we find loose items...
+                                found_job = None;
+                                found_chest = true;
                             }
                         }
                         Content::Block(blocks::CHEST_ID) => {
                             found_chest = true;
+                            // do we need this???
+                            // if found_job.as_ref().is_some_and(|job| job.is_haul()) {
+                            //     found_job = None;
+                            // }
                             // drop-off job
                             if tile.contents.len() < item::ITEM_STORE_MAX
                                 && (
@@ -275,13 +288,12 @@ impl Grid {
                                 )
                             {
                                 log::info!("Creating drop-off job");
-                                found_job = Some(Job::haul(pos));
+                                found_job = Some(Job::drop(pos));
                                 if items.len() == item::ITEM_CARRY_MAX {
                                     // exit early, we are totally full
                                     break;
                                 }
                             }
-                            // TODO: do we need to clear a possible current haul job???
                         }
                         Content::Item(_) => {
                             if found_chest == false
@@ -307,6 +319,11 @@ impl Grid {
         }
         if let Some(job) = &mut found_job {
             events.job_in_progress(job);
+
+            // TODO: better place for this??
+            if job.is_haul() {
+                self.add(job.pos, Content::Job(job.id));
+            }
         }
         found_job
     }

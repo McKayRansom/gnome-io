@@ -18,12 +18,7 @@ pub fn craft(grid: &mut Grid, pos: Pos, id: ItemId, game_ctx: &mut GameCtx) -> O
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::new(
-            pos,
-            CRAFTING_TIME,
-            Some(Content::Item(id)),
-            recipe.1.clone(),
-        ),
+        Job::craft(pos, CRAFTING_TIME, id, recipe.1.clone()),
     );
     None
 }

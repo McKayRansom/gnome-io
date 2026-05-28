@@ -6,7 +6,6 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos, pos::dirs},
     item::items,
-    tile::Content,
 };
 
 use super::{Job, JobManager};
@@ -99,15 +98,15 @@ impl FarmManager {
 
         if block < blocks::WHEAT_0_ID || block > blocks::WHEAT_4_ID {
             // till
-            Some(Job::new(
+            Some(Job::build(
                 *pos,
                 TILL_TIME,
-                Some(Content::Block(blocks::WHEAT_0_ID)),
+                blocks::WHEAT_0_ID,
                 vec![items::WHEAT_GRAIN],
             ))
         } else if block == blocks::WHEAT_4_ID {
             // harvest
-            Some(Job::new(*pos, HARVEST_TIME, None, vec![]))
+            Some(Job::mine(*pos, HARVEST_TIME))
         } else {
             log::info!("Block is something weird: {}", block);
             None
