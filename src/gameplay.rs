@@ -274,17 +274,40 @@ impl Gameplay {
                 //         }
                 //     }
                 // } else {
-                for item in tile.iter_content() {
+                for content in tile.iter_content() {
                     ui.label(
                         None,
-                        format!(
-                            "{:?}",
-                            if let Content::Item(item) = item {
-                                self.game.game_ctx.items.get_item(item).unwrap().name
-                            } else {
-                                ""
-                            }
-                        )
+                        match content {
+                            Content::Item(item) => format!(
+                                "Item {:?}",
+                                self.game
+                                    .game_ctx
+                                    .items
+                                    .get_item(item)
+                                    .map(|item| item.name)
+                                    .unwrap_or("???")
+                            ),
+                            Content::Entity((_faction, entity)) => format!("Entity {:?}", entity),
+                            Content::Block(block) => format!(
+                                "Block {:?}",
+                                self.game
+                                    .game_ctx
+                                    .blocks
+                                    .get_block(block)
+                                    .map(|block| block.sprite.as_str())
+                                    .unwrap_or("???")
+                            ),
+                            Content::Job(job) => format!(
+                                "Job {:?}",
+                                self.game
+                                    .game_ctx
+                                    .events
+                                    .jobs
+                                    .get(job)
+                                    .map(|job| job.category)
+                                    .unwrap_or(crate::job::JobType::NONE)
+                            ),
+                        }
                         .as_str(),
                     );
                 }

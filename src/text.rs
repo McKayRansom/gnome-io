@@ -14,12 +14,17 @@ use crate::context::Context;
 
 /// draw the text to the screen, simpler API than Macroquad's with a default font and enum for size
 pub fn draw_text(ctx: &Context, text: &str, x: f32, y: f32, size: Size, color: Color) {
-    draw_text_ex(text, x, y, TextParams {
-        font_size: text_size(size),
-        font: Some(&ctx.font),
-        color,
-        ..Default::default()
-    });
+    draw_text_ex(
+        text,
+        x,
+        y,
+        TextParams {
+            font_size: text_size(size),
+            font: Some(&ctx.font),
+            color,
+            ..Default::default()
+        },
+    );
 }
 
 #[allow(unused)]
@@ -55,7 +60,7 @@ pub fn measure_text(ctx: &Context, text: &str, size: Size) -> TextDimensions {
 
 pub const fn text_size(size: Size) -> u16 {
     match size {
-        Size::Small => 20u16,
+        Size::Small => 24u16,
         Size::Medium => 32u16,
         Size::Large => 48u16,
     }

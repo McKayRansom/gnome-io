@@ -59,13 +59,14 @@ pub struct Job {
 }
 
 // TEMP: In order of priority for now
-#[derive(Clone, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum JobType {
     CRAFT,
     BUILD,
     MINE,
     HAUL,
     DROP,
+    NONE,
 }
 
 pub enum JobAction {

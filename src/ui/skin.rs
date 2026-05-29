@@ -1,9 +1,9 @@
 use macroquad::{
-    color::Color,
+    color::{Color, colors},
     math::RectOffset,
-    text::{load_ttf_font, Font},
+    text::{Font, load_ttf_font},
     texture::Image,
-    ui::{root_ui, Skin},
+    ui::{Skin, root_ui},
 };
 
 use crate::text::text_size;
@@ -19,17 +19,16 @@ pub const BUTTON_MARGIN: (f32, f32) = (
     BUTTON_INNER_MARGIN.1 + BUTTON_OUTER_MARGIN.1,
 );
 
-
 pub async fn init() -> Font {
-    let font = load_ttf_font("assets/ui/MinimalPixel v2.ttf")
+    let font = load_ttf_font("assets/ui/MedodicaRegular.otf")
         .await
         .unwrap();
     let label_style = root_ui()
         .style_builder()
         .with_font(&font)
         .unwrap()
-        .text_color(Color::from_rgba(180, 180, 180, 255))
-        .font_size(20)
+        .text_color(colors::WHITE)
+        .font_size(text_size(crate::text::Size::Small))
         .build();
 
     let window_style = root_ui()
@@ -71,9 +70,9 @@ pub async fn init() -> Font {
         )
         .with_font(&font)
         .unwrap()
-        .text_color(Color::from_rgba(180, 180, 180, 255))
+        .text_color(colors::WHITE)
         // .font_size(40)
-        .font_size(text_size(crate::text::Size::Small))
+        .font_size(text_size(crate::text::Size::Medium))
         .build();
 
     let checkbox_style = root_ui()

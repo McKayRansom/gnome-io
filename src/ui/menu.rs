@@ -1,10 +1,9 @@
 use macroquad::{
-    math::{vec2, Vec2},
-    text::{measure_text, TextDimensions},
+    math::{Vec2, vec2},
+    text::{TextDimensions, measure_text},
     ui::{
-        root_ui,
+        Id, root_ui,
         widgets::{self, Button},
-        Id,
     },
     window::{screen_height, screen_width},
 };
@@ -50,9 +49,10 @@ impl<V> Menu<V> {
             measure.height + BUTTON_MARGIN.1 * 2.,
         );
 
-        let menu_width = MENU_MARGIN * 4. + button_size.x + MENU_OUTER_MARGIN * 2.;
-        let menu_height =
-            (MENU_MARGIN + button_size.y) * self.items.len() as f32 + MENU_MARGIN * 3. + MENU_OUTER_MARGIN * 2.;
+        let menu_width = MENU_MARGIN * 1. + button_size.x + MENU_OUTER_MARGIN * 2.;
+        let menu_height = (MENU_MARGIN + button_size.y) * self.items.len() as f32
+            + MENU_MARGIN * 3.
+            + MENU_OUTER_MARGIN * 2.;
 
         let mut selected = None;
 
