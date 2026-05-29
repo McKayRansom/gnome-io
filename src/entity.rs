@@ -3,7 +3,7 @@
 use macroquad::rand::rand;
 
 use crate::{
-    entity::gnome::GNOME_SPEED,
+    entity::{gnome::GNOME_SPEED, gnome::Gnome, goblin::Goblin},
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, pos::dirs},
     item::ItemId,
@@ -24,13 +24,47 @@ pub enum EntityAction {
     Attack(EntityId),
 }
 
-pub type Entity = Box<dyn EntityBehaviour>;
+pub enum Entity {
+    Gnome(Gnome),
+    Goblin(Goblin),
+}
 
 pub trait EntityBehaviour {
     fn update(&mut self, grid: &mut Grid, ctx: &mut GameCtx) -> Option<EntityAction>;
     fn die(&self, grid: &mut Grid, ctx: &mut GameCtx);
     fn attacked(&mut self);
     fn base(&self) -> &BaseEntity;
+}
+
+// NOTE: We could switch to the enum_dispatch crate to generate this if it gets to be too much
+impl Entity {
+    pub fn update(&mut self, grid: &mut Grid, ctx: &mut GameCtx) -> Option<EntityAction> {
+        match self {
+            Entity::Gnome(e) => e.update(grid, ctx),
+            Entity::Goblin(e) => e.update(grid, ctx),
+        }
+    }
+
+    pub fn die(&self, grid: &mut Grid, ctx: &mut GameCtx) {
+        match self {
+            Entity::Gnome(e) => e.die(grid, ctx),
+            Entity::Goblin(e) => e.die(grid, ctx),
+        }
+    }
+
+    pub fn attacked(&mut self) {
+        match self {
+            Entity::Gnome(e) => e.attacked(),
+            Entity::Goblin(e) => e.attacked(),
+        }
+    }
+
+    pub fn base(&self) -> &BaseEntity {
+        match self {
+            Entity::Gnome(e) => e.base(),
+            Entity::Goblin(e) => e.base(),
+        }
+    }
 }
 
 // #[derive(Serialize, Deserialize)]

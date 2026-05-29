@@ -143,7 +143,6 @@ impl Game {
         // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
-        // game.grid.place_block(Pos::new(13, 13), None, &mut ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIMMnym8AxEksagSXdY8H32AKBtuoU83+aTB7t0mZdfn0 mckay.ransom@opengear.comgame.game_ctx);
 
         game
     }
@@ -201,7 +200,7 @@ impl Game {
     pub fn spawn_gnome(&mut self, pos: Pos) {
         self.entities.insert(
             self.entity_id,
-            Box::new(Gnome::new(self.entity_id, pos, &mut self.grid)),
+            Entity::Gnome(Gnome::new(self.entity_id, pos, &mut self.grid)),
         );
         self.entity_id += 1;
     }
@@ -210,7 +209,7 @@ impl Game {
     pub fn spawn_goblin(&mut self, pos: Pos) {
         self.entities.insert(
             self.entity_id,
-            Box::new(Goblin::new(self.entity_id, pos, &mut self.grid)),
+            Entity::Goblin(Goblin::new(self.entity_id, pos, &mut self.grid)),
         );
         self.entity_id += 1;
     }
