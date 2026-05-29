@@ -1,5 +1,3 @@
-// use serde::{Deserialize, Serialize};
-
 use macroquad::rand::rand;
 
 use crate::{
@@ -24,6 +22,7 @@ pub enum EntityAction {
     Attack(EntityId),
 }
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub enum Entity {
     Gnome(Gnome),
     Goblin(Goblin),
@@ -67,7 +66,7 @@ impl Entity {
     }
 }
 
-// #[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct BaseEntity {
     pub id: EntityId,
     pub faction: Faction,

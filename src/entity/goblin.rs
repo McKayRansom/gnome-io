@@ -8,6 +8,7 @@ use crate::{
     tile::Content,
 };
 
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Goblin {
     base: BaseEntity,
 }

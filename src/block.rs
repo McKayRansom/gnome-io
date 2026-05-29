@@ -1,14 +1,11 @@
 use std::collections::HashMap;
 
-use serde::{Deserialize, Serialize};
-
 use crate::{event::EventId, game::Tick, item::ItemId};
 
 pub mod blocks;
 
 pub type BlockId = u32;
 
-#[derive(Serialize, Deserialize)]
 pub struct BlockType {
     pub sprite: String, // should this be elsewhere?
     pub drops: Vec<(f32, ItemId)>,
@@ -77,7 +74,6 @@ impl BlockType {
     }
 }
 
-#[derive(Serialize, Deserialize)]
 pub struct Blocks {
     // theoretically, this won't be changed after startup and doesn't need to be saved...
     block_list: HashMap<BlockId, BlockType>,

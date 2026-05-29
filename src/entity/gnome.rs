@@ -37,6 +37,7 @@ use crate::{
  */
 
 // #[derive(Serialize, Deserialize, Default, Debug)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Gnome {
     base: BaseEntity,
 

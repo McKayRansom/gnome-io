@@ -16,9 +16,8 @@ use crate::{
 pub mod pos;
 use macroquad::rand;
 pub use pos::Pos;
-use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,

@@ -1,7 +1,6 @@
 use std::collections::HashMap;
 
-use quad_lib::storage::{LoadResult, SaveResult};
-use serde::{Deserialize, Serialize};
+use quad_lib::storage::{LoadResult, SaveResult, Storage};
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
@@ -22,7 +21,7 @@ pub mod time;
 
 pub type Tick = u16;
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(serde::Serialize, serde::Deserialize, Default)]
 pub enum GameSpeed {
     Paused,
     #[default]
@@ -37,19 +36,19 @@ pub enum GameSpeed {
  * Instanced:
  * - gnomes/gnomeId, job manager(or refactor to store faction_id), stocks (move out of grid?)
  */
-// #[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct GameCtx {
     pub time: time::GameTime,
-    // #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip_deserializing, skip_serializing)]
     pub blocks: Blocks,
-    // #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip_deserializing, skip_serializing)]
     pub items: Items,
     pub events: EventManager,
 }
 
 pub type Entities = HashMap<EntityId, Entity>;
 
-// #[derive(Serialize, Deserialize)]
+#[derive(serde::Serialize, serde::Deserialize)]
 pub struct Game {
     pub next_frame_time: f64,
     pub speed: GameSpeed,
@@ -84,18 +83,18 @@ impl Game {
     }
 
     pub fn save(&self) -> SaveResult {
-        // Storage::new("save", ".ron").save(
-        //     ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
-        //         .unwrap()
-        //         .as_str(),
-        // )
-        todo!()
+        Storage::new("save", ".ron").save(
+            ron::ser::to_string_pretty(self, ron::ser::PrettyConfig::default())
+                .unwrap()
+                .as_str(),
+        )
+        // todo!()
     }
 
     pub fn load() -> LoadResult<Self> {
-        // let ron_str = Storage::new("save", ".ron").load()?;
-        // Ok(ron::from_str(ron_str.as_str()).unwrap())
-        todo!()
+        let ron_str = Storage::new("save", ".ron").load()?;
+        Ok(ron::from_str(ron_str.as_str()).unwrap())
+        // todo!()
     }
 
     pub fn generate(frame_time: f64) -> Game {
