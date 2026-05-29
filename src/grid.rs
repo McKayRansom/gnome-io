@@ -279,13 +279,13 @@ impl Grid {
                             //     found_job = None;
                             // }
                             // drop-off job
-                            if tile.contents.len() < item::ITEM_STORE_MAX
-                                && (
-                                    // nothing else to do
-                                    (items.len() > 0 && found_job.is_none())
+                            // BUG: The previous drop-off job was just freed so this thinks there is one space open...
+                            if (
+                                // nothing else to do
+                                (items.len() > 0 && found_job.is_none())
                                         // or we are full
                                         || items.len() == item::ITEM_CARRY_MAX
-                                )
+                            ) && tile.item_count() < item::ITEM_STORE_MAX
                             {
                                 log::info!("Creating drop-off job");
                                 found_job = Some(Job::drop(pos));
@@ -394,8 +394,10 @@ impl Grid {
                 // No chest here...
                 return;
             }
+            let mut chest_space = tile.item_count();
             items.retain(|item| {
-                if tile.contents.len() < item::ITEM_STORE_MAX {
+                if chest_space < item::ITEM_STORE_MAX {
+                    chest_space += 1;
                     tile.contents.push(Content::Item(*item));
                     log::info!("Storing {:?}", item);
                     *self.stocks.entry(*item).or_insert(0) += 1;

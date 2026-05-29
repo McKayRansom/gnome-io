@@ -32,7 +32,6 @@ pub enum Content {
  */
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Tile {
-    // should this be hashmap?
     pub contents: Vec<Content>,
     pub biome: TileBiome,
     // TODO: PathfindingInfo{}
@@ -124,5 +123,15 @@ impl Tile {
             }
         }
         0
+    }
+
+    pub fn item_count(&self) -> usize {
+        self.contents.iter().fold(0, |sum, content| {
+            if matches!(content, Content::Item(_)) {
+                sum + 1
+            } else {
+                sum
+            }
+        })
     }
 }
