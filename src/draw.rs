@@ -63,6 +63,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
             // }
             let dest: Rect = ctx.camera.to_screen_rect(pos.into());
             ctx.tileset.draw_tile(
+                // "sky",
                 match tile.biome {
                     TileBiome::Dirt => "grass",
                     TileBiome::Stone => "stone_floor",
@@ -81,12 +82,13 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 };
                 if block.sprite == "stone" {
                     // jank
+                    ctx.tileset.draw_tile("stone_floor", &dest, colors::WHITE);
                     for dir in dirs::ALL {
                         if grid
                             .get_tile(pos + dir)
-                            .is_none_or(|tile| tile.solid == false)
+                            .is_none_or(|tile| tile.solid() == false)
                         {
-                            ctx.tileset.draw_tile_ex_ex(
+                            ctx.tileset.draw_tile_rot(
                                 &block.sprite,
                                 colors::WHITE,
                                 &dest,

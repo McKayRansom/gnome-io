@@ -80,13 +80,13 @@ impl FarmManager {
         // must be non-solid and have solid beneath (for now)
         if grid
             .get_tile(*pos + dirs::DOWN)
-            .is_none_or(|tile| tile.solid == false)
+            .is_none_or(|tile| tile.solid() == false)
         {
             log::warn!("Farm not supported by something!");
             return None;
         }
         let tile = grid.get_tile(*pos)?;
-        if tile.solid {
+        if tile.solid() {
             log::warn!("Farm occupied!");
             return None;
         }

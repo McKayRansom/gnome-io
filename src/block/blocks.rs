@@ -16,10 +16,11 @@ pub const STONE_BLOCK_ID: BlockId = 100;
 pub const ORE_ID: BlockId = 101;
 pub const TREE_ID: BlockId = 102;
 pub const CRAFT_TABLE_ID: BlockId = 104;
-
-pub const BED_ID: BlockId = 106;
 pub const FURNACE_ID: BlockId = 105;
+pub const BED_ID: BlockId = 106;
 pub const CHEST_ID: BlockId = 107;
+// pub const STAIRS_ID: BlockId = 108;
+// pub const DOOR_ID: BlockId = 109;
 
 const BLK_GRP: BlockId = 200;
 pub const WHEAT_0_ID: BlockId = BLK_GRP | 0;

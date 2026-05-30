@@ -1,3 +1,4 @@
+use bitflags::bitflags;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -30,16 +31,63 @@ pub enum Content {
  * - This allows all pathfinding lookups to have cache hits on not have to I.E. dereference other vectors or look up in hashmaps (poor cache locality)
  * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
  */
+bitflags! {
+    // Packed pathfinding/state flags kept inline on the tile for cache locality.
+    // Add new flags here (has_job, job_type, etc.) as bottlenecks demand.
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+    pub struct TileFlags: u8 {
+        // the block here cannot be passed through
+        const SOLID = 1 << 1;
+
+        // pathfinding can use this tile
+        const WALKABLE = 1 << 0;
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(from = "TileRepr")]
 pub struct Tile {
     pub contents: Vec<Content>,
     pub biome: TileBiome,
-    // TODO: PathfindingInfo{}
-    // pathfinding can use this block
-    pub walkable: bool,
-    // The block here can be passed-through
-    pub solid: bool,
-    // TODO: TileFlags (walkable, biome, has_job, job_type, etc...) for whatever the bottlenecks are so we don't always have to look through entities[]
+    pub flags: TileFlags,
+}
+
+// Deserialize-only shape that accepts both the current `flags` field and the
+// legacy `walkable`/`solid` bools, so old save files still load. Each field
+// defaults, so a current save (no bools) and a legacy save (no `flags`) both
+// deserialize; `From` merges whichever were present. We avoid `Option` here
+// because RON requires explicit `Some(..)` for present optional fields.
+#[derive(Deserialize)]
+struct TileRepr {
+    contents: Vec<Content>,
+    biome: TileBiome,
+    #[serde(default = "TileFlags::empty")]
+    flags: TileFlags,
+    // legacy fields (pre-TileFlags); absent in current saves.
+    #[serde(default)]
+    walkable: bool,
+    #[serde(default)]
+    solid: bool,
+}
+
+impl From<TileRepr> for Tile {
+    fn from(repr: TileRepr) -> Tile {
+        let mut flags = repr.flags;
+        // Fold in any legacy bools. No-ops for current saves where both are false.
+        flags.set(
+            TileFlags::WALKABLE,
+            flags.contains(TileFlags::WALKABLE) || repr.walkable,
+        );
+        flags.set(
+            TileFlags::SOLID,
+            flags.contains(TileFlags::SOLID) || repr.solid,
+        );
+        Tile {
+            contents: repr.contents,
+            biome: repr.biome,
+            flags,
+        }
+    }
 }
 
 impl Tile {
@@ -47,18 +95,26 @@ impl Tile {
         Tile {
             contents: Vec::new(),
             biome,
-            walkable: false,
-            solid: false,
+            flags: TileFlags::empty(),
         }
     }
 
     pub fn new_block(biome: TileBiome, block: BlockId, solid: bool) -> Tile {
+        let mut flags = TileFlags::empty();
+        flags.set(TileFlags::SOLID, solid);
         Tile {
             contents: vec![Content::Block(block)],
             biome,
-            walkable: false,
-            solid,
+            flags,
         }
+    }
+
+    pub fn walkable(&self) -> bool {
+        self.flags.contains(TileFlags::WALKABLE)
+    }
+
+    pub fn solid(&self) -> bool {
+        self.flags.contains(TileFlags::SOLID)
     }
 
     pub fn get_block(&self) -> Option<BlockId> {
@@ -102,7 +158,7 @@ impl Tile {
     }
 
     pub(crate) fn is_passable(&self) -> bool {
-        self.walkable
+        self.walkable()
     }
 
     pub(crate) fn get_job(&self) -> Option<JobId> {
@@ -133,5 +189,48 @@ impl Tile {
                 sum
             }
         })
+    }
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+
+    #[test]
+    fn loads_legacy_walkable_solid_save() {
+        // pre-TileFlags save format
+        let legacy = r#"(
+            contents: [],
+            biome: Dirt,
+            walkable: true,
+            solid: false,
+        )"#;
+        let tile: Tile = ron::from_str(legacy).unwrap();
+        assert!(tile.walkable());
+        assert!(!tile.solid());
+    }
+
+    #[test]
+    fn loads_current_flags_save() {
+        let current = r#"(
+            contents: [],
+            biome: Stone,
+            flags: ("SOLID"),
+        )"#;
+        let tile: Tile = ron::from_str(current).unwrap();
+        assert!(!tile.walkable());
+        assert!(tile.solid());
+    }
+
+    #[test]
+    fn round_trips_through_flags() {
+        let tile = Tile {
+            contents: vec![],
+            biome: TileBiome::Water,
+            flags: TileFlags::WALKABLE | TileFlags::SOLID,
+        };
+        let s = ron::ser::to_string(&tile).unwrap();
+        let back: Tile = ron::from_str(&s).unwrap();
+        assert_eq!(back.flags, tile.flags);
     }
 }

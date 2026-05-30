@@ -9,7 +9,7 @@ Goal: Test out all current features on a side-view
 - [x] Climbing or ramps or something???
 - [x] Graphics
   - [x] Make not as shitty
-  - [ ] Switch to cute bushbes?
+  - [x] Switch to cute bushbes?
 
 # Gnome-IO
 2d colony-sim inspired by Gnomoria but designed to be simpler. 

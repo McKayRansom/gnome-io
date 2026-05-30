@@ -111,7 +111,7 @@ impl Game {
         while game
             .grid
             .get_tile(start_pos)
-            .is_some_and(|tile| !tile.walkable)
+            .is_some_and(|tile| !tile.walkable())
         {
             start_pos.y += 1;
         }

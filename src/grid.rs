@@ -10,7 +10,7 @@ use crate::{
     game::{GameCtx, time::Season},
     item::{self, ItemId},
     job::Job,
-    tile::{Content, Tile},
+    tile::{Content, Tile, TileFlags},
 };
 
 pub mod pos;
@@ -63,12 +63,15 @@ impl Grid {
     pub fn update_walkable(&mut self, pos: Pos) {
         // we need to not have an impassible block
         if let Some(tile) = self.get_tile(pos) {
-            let walkable = !tile.solid
+            let walkable = !tile.solid()
                 && WALKABLE_DIRS
                     .iter()
-                    .any(|dir| self.get_tile(pos + *dir).is_some_and(|t| t.solid));
-            if walkable != tile.walkable {
-                Self::get_tile_mut(&mut self.cells, pos).unwrap().walkable = walkable;
+                    .any(|dir| self.get_tile(pos + *dir).is_some_and(|t| t.solid()));
+            if walkable != tile.walkable() {
+                Self::get_tile_mut(&mut self.cells, pos)
+                    .unwrap()
+                    .flags
+                    .set(TileFlags::WALKABLE, walkable);
             }
         }
     }
@@ -83,7 +86,7 @@ impl Grid {
         let tile = Self::get_tile_mut(&mut self.cells, pos)?;
         let old_block = tile.get_block();
         if let Some(old_block_id) = old_block {
-            tile.solid = false;
+            tile.flags.remove(TileFlags::SOLID);
             tile.remove(&Content::Block(old_block_id));
 
             if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
@@ -111,7 +114,7 @@ impl Grid {
 
         if block != blocks::NONE {
             if let Some(block_info) = game_ctx.blocks.get_block(&block) {
-                tile.solid = !block_info.walkable;
+                tile.flags.set(TileFlags::SOLID, !block_info.walkable);
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
