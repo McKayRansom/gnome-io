@@ -123,6 +123,7 @@ impl Grid {
                     });
                 }
                 // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
+                // BUG: There could be more than one growth event in progress for the same block...
                 if let Some((delay, new_block)) = block_info.growth {
                     game_ctx.events.push_timer(
                         delay,

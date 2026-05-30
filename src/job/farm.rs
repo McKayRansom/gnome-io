@@ -26,9 +26,6 @@ pub struct FarmManager {
 
 impl FarmManager {
     pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
-        // game_ctx
-        //     .items
-        //     .add_item(WHEAT_SEED, ItemType::new("seeds", sprites::WHEAT_SEED));
 
         game_ctx.events.add_event_class(FARM_EVENT_ID);
         Self {

@@ -181,6 +181,7 @@ impl Job {
             log::info!("GOTO");
             return JobAction::Goto(self.pos);
         }
+        // TODO: Check for cancel!!
         // we are here!
         if self.time > 0 {
             let time = self.time;
