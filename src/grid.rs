@@ -18,8 +18,6 @@ use rustc_hash::FxHashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
-    #[serde(skip_deserializing, skip_serializing)]
-    pub chest_id: BlockId,
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
     pub stocks: FxHashMap<ItemId, usize>,
@@ -42,7 +40,6 @@ impl Grid {
         let cells =
             vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid {
-            chest_id: BLOCK_NONE,
             size,
             cells,
             stocks: FxHashMap::default(),
@@ -51,7 +48,6 @@ impl Grid {
 
     pub fn init(&mut self, game_ctx: &mut GameCtx) {
         game_ctx.events.add_event_class("growth");
-        self.chest_id = game_ctx.blocks.get_id("chest").unwrap();
     }
 
     pub fn fixup(&mut self, game_ctx: &mut GameCtx) {
@@ -276,7 +272,8 @@ impl Grid {
             }
         }) {
             if let Some(tile) = self.get_tile(pos) {
-                let mut found_chest: bool = false;
+                let has_chest: bool = tile.storage();
+                let mut has_haul: bool = false;
                 for content in tile.iter_content() {
                     match content {
                         Content::Job(job_id) => {
@@ -296,34 +293,13 @@ impl Grid {
                                 // there is already a haul job, cancel ours
                                 // alternatively, we could make sure the job is first so we know before we find loose items...
                                 found_job = None;
-                                found_chest = true;
+                                has_haul = true;
                             }
                         }
-                        Content::Block(val) if val == &self.chest_id => {
-                            found_chest = true;
-                            // do we need this???
-                            // if found_job.as_ref().is_some_and(|job| job.is_haul()) {
-                            //     found_job = None;
-                            // }
-                            // drop-off job
-                            // BUG: The previous drop-off job was just freed so this thinks there is one space open...
-                            if (
-                                // nothing else to do
-                                (items.len() > 0 && found_job.is_none())
-                                        // or we are full
-                                        || items.len() == item::ITEM_CARRY_MAX
-                            ) && tile.item_count() < item::ITEM_STORE_MAX
-                            {
-                                log::info!("Creating drop-off job");
-                                found_job = Some(Job::drop(pos));
-                                if items.len() == item::ITEM_CARRY_MAX {
-                                    // exit early, we are totally full
-                                    break;
-                                }
-                            }
-                        }
+
                         Content::Item(_) => {
-                            if found_chest == false
+                            if has_chest == false
+                                && has_haul == false
                                 && found_job.is_none()
                                 && items.len() < item::ITEM_CARRY_MAX
                             {
@@ -334,6 +310,22 @@ impl Grid {
                             }
                         }
                         _ => {}
+                    }
+                }
+                if has_chest {
+                    if (
+                        // nothing else to do
+                        (items.len() > 0 && found_job.is_none())
+                                            // or we are full
+                                            || items.len() == item::ITEM_CARRY_MAX
+                    ) && tile.item_count() < item::ITEM_STORE_MAX
+                    {
+                        log::info!("Creating drop-off job");
+                        found_job = Some(Job::drop(pos));
+                        if items.len() == item::ITEM_CARRY_MAX {
+                            // exit early, we are totally full
+                            break;
+                        }
                     }
                 }
                 if found_job.is_some() {
@@ -391,7 +383,7 @@ impl Grid {
 
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ItemId>) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
-            if tile.contains(&Content::Block(self.chest_id)) {
+            if tile.storage() {
                 // for now just don't bother...
                 return;
             }
@@ -417,7 +409,7 @@ impl Grid {
             return;
         }
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
-            if !tile.contains(&Content::Block(self.chest_id)) {
+            if !tile.storage() {
                 // No chest here...
                 return;
             }

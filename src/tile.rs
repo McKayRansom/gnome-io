@@ -146,6 +146,10 @@ impl Tile {
         self.flags.contains(TileFlags::CLIMBABLE)
     }
 
+    pub(crate) fn storage(&self) -> bool {
+        self.flags.contains(TileFlags::STORAGE)
+    }
+
     pub fn get_block(&self) -> Option<BlockId> {
         for content in self.contents.iter() {
             if let Content::Block(block_id) = *content {

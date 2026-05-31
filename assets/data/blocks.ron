@@ -63,6 +63,7 @@
     ),
     "chest": (
         id: 303,
+        flags: ("STORAGE"),
         requires: ["stone"],
     ),
     
