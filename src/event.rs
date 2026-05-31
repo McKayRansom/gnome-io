@@ -1,10 +1,18 @@
 use std::collections::{HashMap, VecDeque};
 
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
-use crate::{block::BlockId, game::Tick, grid::Pos, job::Job};
+use crate::{
+    block::BlockId,
+    game::Tick,
+    grid::{GROWTH_EVENT, Pos},
+    job::{Job, craft::CRAFT_EVENT_ID, farm::FARM_EVENT_ID},
+};
 
 pub type EventId = u32;
+
+pub const EVENT_NONE: EventId = 0;
 
 #[derive(Serialize, Deserialize)]
 pub struct BlockUpdateEvent {
@@ -35,9 +43,15 @@ pub struct Timer {
 
 pub type JobId = u32;
 
+pub type EventNames = FxHashMap<String, EventId>;
+
 #[derive(Serialize, Deserialize)]
 pub struct EventManager {
+    // #[serde(skip_deserializing, skip_serializing)]
+    pub event_names: EventNames,
+
     // one queue per event for now
+    // TODO: Serialize/deserialize with string
     // #[serde(skip_deserializing, skip_serializing)]
     events: HashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
@@ -51,6 +65,7 @@ pub struct EventManager {
 impl EventManager {
     pub fn new() -> Self {
         Self {
+            event_names: EventNames::default(),
             events: HashMap::new(),
             timers: Vec::new(),
             jobs: HashMap::new(),
@@ -58,9 +73,18 @@ impl EventManager {
         }
     }
 
-    pub fn add_event_class(&mut self, id: EventId) {
-        if let Some(_old) = self.events.insert(id, VecDeque::new()) {
-            log::warn!("Event handler for {} already registered!", id);
+    pub fn load(&mut self) {
+        // TEMP: BECAUSE I AM TOO LAZY TO DO events.ron right now for 2 events
+        self.event_names.insert("farm".to_string(), FARM_EVENT_ID);
+        self.event_names.insert("craft".to_string(), CRAFT_EVENT_ID);
+        self.event_names.insert("growth".to_string(), GROWTH_EVENT);
+    }
+
+    pub fn add_event_class(&mut self, name: &str) {
+        let id = self.event_names.get(name).expect("Unknown event name");
+
+        if !self.events.contains_key(id) {
+            self.events.insert(*id, VecDeque::new());
         }
     }
 

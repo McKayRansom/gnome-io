@@ -3,7 +3,7 @@ use farm::FarmManager;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::{BlockId, blocks},
+    block::{BLOCK_NONE, BlockId},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
@@ -118,7 +118,7 @@ impl Job {
         Job {
             pos,
             time,
-            content: Some(Content::Block(blocks::NONE)),
+            content: Some(Content::Block(BLOCK_NONE)),
             category: JobType::MINE,
             ..Default::default()
         }
@@ -234,17 +234,21 @@ pub struct JobManager {
 }
 
 impl JobManager {
-    pub fn new(game_ctx: &mut GameCtx) -> Self {
-        // game_ctx.events.add_event_class(JOB_QUEUE);
-        // game_ctx.events.add_event_class(JOB_FAIL_QUEUE);
+    pub fn new() -> Self {
         Self {
-            farm_manager: FarmManager::new(game_ctx),
-            craft_manager: CraftManager::new(game_ctx),
+            farm_manager: FarmManager::new(),
+            craft_manager: CraftManager::new(),
         }
     }
 
+    // NOTE: Must be re-enterant!
+    pub fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
+        self.farm_manager.load_ctx(game_ctx);
+        self.craft_manager.load_ctx(game_ctx);
+    }
+
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
-        self.farm_manager.update(&mut game_ctx.events, grid);
+        self.farm_manager.update(game_ctx, grid);
         self.craft_manager.update(game_ctx, grid);
     }
 

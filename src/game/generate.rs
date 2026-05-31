@@ -4,8 +4,8 @@ extern crate noise;
 use noise::{core::worley::ReturnType, utils::*, *};
 
 use crate::{
-    block::blocks,
-    grid::{Grid, Pos},
+    game::Game,
+    grid::Pos,
     tile::{Tile, TileBiome},
 };
 
@@ -68,7 +68,7 @@ use crate::{
 /// A description for each group and subgroup can be found above the source
 /// code for that group and subgroup.
 #[allow(non_snake_case)]
-pub fn generate(grid: &mut Grid) {
+pub fn generate(game: &mut Game) {
     /// Planet seed. Change this to generate a different planet.
     // const CURRENT_SEED: u32 = 0;
     // MTR
@@ -1800,6 +1800,9 @@ pub fn generate(grid: &mut Grid) {
 
     let detail_noise = noise::Perlin::new(2222);
 
+    let grid = &mut game.grid;
+    let stone_id = game.game_ctx.blocks.get_id("stone").unwrap();
+
     let size = grid.size;
     const DETAIL_NOISE_ZOOM: f64 = 0.05;
     let detail_noise_size: (f64, f64) = (
@@ -1831,7 +1834,7 @@ pub fn generate(grid: &mut Grid) {
                 // } else {
                 grid.set_tile(
                     pos,
-                    Tile::new_block(TileBiome::Stone, blocks::STONE_BLOCK_ID, true),
+                    Tile::new_block(TileBiome::Stone, stone_id, true),
                 );
                 // }
             };

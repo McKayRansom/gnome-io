@@ -1,5 +1,5 @@
 use macroquad::{
-    input::{get_char_pressed, is_key_pressed, mouse_position},
+    input::{get_char_pressed, mouse_position},
     math::Vec2,
     text::Font,
     ui::root_ui,
@@ -16,27 +16,25 @@ pub struct Context {
     pub screen_size: Vec2,
 }
 
+const TILESET_PATH: &str = "assets/data/tileset.ron";
+
 impl Context {
     pub async fn new() -> Self {
         Self {
             font: crate::ui::skin::init().await,
             camera: Camera::new(),
-            tileset: Self::load_tieset().await,
+            tileset: Tileset::new(TILESET_PATH).await,
             key_pressed: None,
             mouse_pos: None,
             screen_size: Vec2::new(0., 0.),
         }
     }
 
-    async fn load_tieset() -> Tileset {
-        
-        Tileset::new("assets/data/tileset.ron").await
+    pub async fn reload(&mut self) {
+        self.tileset = Tileset::new(TILESET_PATH).await
     }
 
-    pub async fn update(&mut self) {
-        if is_key_pressed(macroquad::input::KeyCode::F5) {
-            self.tileset = Self::load_tieset().await;
-        }
+    pub fn update(&mut self) {
         let mouse_pos = mouse_position();
         if !root_ui().is_mouse_over(mouse_pos.into()) {
             self.mouse_pos = Some(mouse_position().into());

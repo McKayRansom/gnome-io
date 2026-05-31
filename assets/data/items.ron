@@ -1,0 +1,22 @@
+(
+    items:
+{
+    "dead_gnome": (
+        sprite: "gnome_dead",
+    ),
+    "stone_item": (
+        sprite: "stone_item",
+    ),
+    "wood": (),
+    "wheat_grain": (),
+    "bread": (
+        // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
+        recipe: Some(("furnace", ["wheat_grain"])),
+    ),
+},
+    aliases: 
+{
+    "dead gnome": "dead_gnome",
+    "stone": "stone_item",
+}
+)

@@ -1,11 +1,10 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::blocks,
-    event::{Event, EventId, EventManager},
+    block::BlockId,
+    event::{Event, EventId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos, pos::dirs},
-    item::items,
 };
 
 use super::{Job, JobManager};
@@ -21,61 +20,62 @@ const HARVEST_TIME: Tick = 20;
 
 #[derive(Serialize, Deserialize)]
 pub struct FarmManager {
-    farm_pos: Vec<Pos>,
+    farm_pos: Vec<(Pos, BlockId)>,
 }
 
 impl FarmManager {
-    pub fn new(game_ctx: &mut GameCtx) -> FarmManager {
-
-        game_ctx.events.add_event_class(FARM_EVENT_ID);
+    pub fn new() -> FarmManager {
         Self {
             farm_pos: Vec::new(),
         }
     }
 
+    pub(crate) fn load_ctx(&self, game_ctx: &mut GameCtx) {
+        game_ctx.events.add_event_class("farm");
+    }
+
     // impl EventHandler for FarmManager {
-    pub fn update(&mut self, events: &mut EventManager, grid: &mut Grid) {
-        while let Some(event) = events.pop_event(FARM_EVENT_ID) {
-            if let Some(job) = self.handle_event(events, grid, event) {
-                JobManager::create_job(grid, events, job);
+    pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
+        while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
+            if let Some(job) = self.handle_event(game_ctx, grid, event) {
+                JobManager::create_job(grid, &mut game_ctx.events, job);
             }
         }
     }
 
     pub fn new_farm(&mut self, grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) {
-        if !self.farm_pos.contains(&pos) {
-            self.farm_pos.push(pos);
+        // TEMP: For now, always assume wheat
+        let wheat_0_id = game_ctx.blocks.get_id("wheat_0").unwrap();
+        if !self.farm_pos.contains(&(pos, wheat_0_id)) {
+            self.farm_pos.push((pos, wheat_0_id));
         }
-        if let Some(job) = self.tile_changed(&mut game_ctx.events, grid, &pos) {
+        if let Some(job) = self.tile_changed(game_ctx, grid, &pos) {
             JobManager::create_job(grid, &mut game_ctx.events, job);
         }
     }
 
     pub fn cancel_farm(&mut self, pos: Pos) {
-        self.farm_pos.retain(|&p| p != pos);
+        self.farm_pos.retain(|&(p, _)| p != pos);
     }
 
-    fn handle_event(
-        &mut self,
-        events: &mut EventManager,
-        grid: &Grid,
-        event: Event,
-    ) -> Option<Job> {
+    fn handle_event(&mut self, game_ctx: &mut GameCtx, grid: &Grid, event: Event) -> Option<Job> {
         // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
         log::info!("Farm update event");
-        self.tile_changed(events, grid, &event.value.pos)
+        self.tile_changed(game_ctx, grid, &event.value.pos)
         // } else {
         //     log::warn!("Unkown event dispached to farm event queue");
         //     None
         // }
     }
 
-    fn tile_changed(&mut self, _events: &mut EventManager, grid: &Grid, pos: &Pos) -> Option<Job> {
-        if !self.farm_pos.contains(pos) {
+    fn tile_changed(&mut self, game_ctx: &mut GameCtx, grid: &Grid, pos: &Pos) -> Option<Job> {
+        let Some((_pos, farm_block_id)) =
+            self.farm_pos.iter().find(|(farm_pos, _id)| pos == farm_pos)
+        else {
             // must have been dezoned
-            log::info!("Farm update for dezoned???");
+            log::warn!("Farm update for dezoned???");
             return None;
-        }
+        };
 
         // must be non-solid and have solid beneath (for now)
         if grid
@@ -92,18 +92,23 @@ impl FarmManager {
         }
 
         let block = tile.get_block().unwrap_or(0);
-
-        if block < blocks::WHEAT_0_ID || block > blocks::WHEAT_4_ID {
+        let block_info = game_ctx.blocks.get_block(&block);
+        if block_info.is_some_and(|info| !info.drops.is_empty()) {
+            // harvest
+            Some(Job::mine(*pos, HARVEST_TIME))
+        } else if block_info.is_none_or(|info| info.growth.is_none()) {
             // till
             Some(Job::build(
                 *pos,
                 TILL_TIME,
-                blocks::WHEAT_0_ID,
-                vec![items::WHEAT_GRAIN],
+                *farm_block_id,
+                game_ctx
+                    .blocks
+                    .get_block(&*farm_block_id)
+                    .unwrap()
+                    .requires
+                    .clone(),
             ))
-        } else if block == blocks::WHEAT_4_ID {
-            // harvest
-            Some(Job::mine(*pos, HARVEST_TIME))
         } else {
             log::info!("Block is something weird: {}", block);
             None

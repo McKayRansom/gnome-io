@@ -1,11 +1,11 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::blocks,
+    block::BlockId,
     event::EventId,
     game::{CRAFTING_TIME, GameCtx},
     grid::{Grid, Pos},
-    item::{ItemId, items},
+    item::ItemId,
     tile::Content,
 };
 
@@ -28,38 +28,67 @@ pub const CRAFT_EVENT_ID: EventId = 300;
 #[derive(Serialize, Deserialize)]
 pub struct CraftManager {
     workshop_pos: Vec<Pos>,
+    standing_orders: Vec<(ItemId, usize)>,
+    workshop_block_ids: Vec<BlockId>,
 }
 
 impl CraftManager {
-    pub fn new(game_ctx: &mut GameCtx) -> Self {
-        game_ctx.events.add_event_class(CRAFT_EVENT_ID);
+    pub fn new() -> Self {
         Self {
             workshop_pos: Vec::new(),
+            standing_orders: Vec::new(),
+            workshop_block_ids: Vec::new(),
         }
+    }
+
+    pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
+        game_ctx.events.add_event_class("craft");
+        self.standing_orders.push((game_ctx.items.get_item_id("bread").unwrap(), 16));
     }
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         // spawn at the first one for now...
-        if grid
-            .stocks
-            .get(&items::BREAD_ID)
-            .is_none_or(|stock| *stock < 16)
-            && grid
+        for (item_id, quantity) in &self.standing_orders {
+            if grid
                 .stocks
-                .get(&items::WHEAT_GRAIN)
-                .is_some_and(|stock| *stock > 8)
-        {
-            if let Some(pos) = self.workshop_pos.first() {
-                if grid.get_tile(*pos).unwrap().get_job().is_none() {
-                    craft(grid, *pos, items::BREAD_ID, game_ctx);
+                .get(item_id)
+                .is_none_or(|stock| *stock < *quantity)
+            {
+                // lookup recipe
+                let (_workshop, requires) = game_ctx
+                    .items
+                    .get_item(item_id)
+                    .expect("Standing order for unknown item")
+                    .recipe
+                    .as_ref()
+                    .expect("Standing order for uncraftable item");
+
+                // for now, until we implement minimums don't take all there is
+                if requires.iter().any(|item| {
+                    grid.stocks
+                        .get(item)
+                        .is_none_or(|stock| *stock < *quantity / 2)
+                }) {
+                    // wish we could log here...
+                    continue;
+                }
+
+                if let Some(pos) = self.workshop_pos.first() {
+                    if grid.get_tile(*pos).unwrap().get_job().is_none() {
+                        craft(grid, *pos, *item_id, game_ctx);
+                    }
                 }
             }
         }
+
         while let Some(block_update_event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
             log::info!("Craft update event at {:?}", block_update_event.value.pos);
             // self.tile_changed(events, grid, &block_update_event.pos)
-            if block_update_event.value.new == blocks::FURNACE_ID {
+            if self
+                .workshop_block_ids
+                .contains(&block_update_event.value.new)
+            {
                 self.workshop_pos.push(block_update_event.value.pos);
             } else {
                 self.workshop_pos
@@ -71,6 +100,7 @@ impl CraftManager {
                     .iter_content()
                 {
                     if let Content::Job(job_id) = content {
+                        // game_ctx.events.c
                         if let Some(job) = game_ctx.events.jobs.get(job_id) {
                             if job.is_craft() {
                                 game_ctx.events.remove_job(job_id);

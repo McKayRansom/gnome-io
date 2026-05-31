@@ -1,13 +1,13 @@
 use std::collections::HashMap;
 
 use crate::{
-    block::{
-        BlockId,
-        blocks::{self, GROWTH_TIME},
-    },
+    block::{BLOCK_NONE, BlockId},
     entity::{EntityId, Faction},
     event::{BlockUpdateEvent, Event, EventManager},
-    game::{GameCtx, time::Season},
+    game::{
+        GameCtx, Tick,
+        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
+    },
     item::{self, ItemId},
     job::Job,
     tile::{Content, Tile, TileFlags},
@@ -19,12 +19,15 @@ pub use pos::Pos;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
+    #[serde(skip_deserializing, skip_serializing)]
+    pub chest_id: BlockId,
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
     pub stocks: HashMap<ItemId, usize>,
 }
 
-const GROWTH_EVENT: u32 = 20;
+pub const GROWTH_EVENT: u32 = 20;
+const GROWTH_SEASON_DELAY_TIME: Tick = 1 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
 // a tile is walkable if there is a solid tile in one of these positions
 pub const WALKABLE_DIRS: [Pos; 5] = [
@@ -36,15 +39,20 @@ pub const WALKABLE_DIRS: [Pos; 5] = [
 ];
 
 impl Grid {
-    pub fn new(size: Pos, game_ctx: &mut GameCtx) -> Grid {
-        game_ctx.events.add_event_class(GROWTH_EVENT);
+    pub fn new(size: Pos) -> Grid {
         let cells =
             vec![vec![Tile::new(crate::tile::TileBiome::Dirt); size.x as usize]; size.y as usize];
         Grid {
+            chest_id: BLOCK_NONE,
             size,
             cells,
             stocks: HashMap::new(),
         }
+    }
+
+    pub fn init(&mut self, game_ctx: &mut GameCtx) {
+        game_ctx.events.add_event_class("growth");
+        self.chest_id = game_ctx.blocks.get_id("chest").unwrap();
     }
 
     pub fn is_valid_pos(&self, pos: Pos) -> bool {
@@ -112,7 +120,7 @@ impl Grid {
             }
         }
 
-        if block != blocks::NONE {
+        if block != BLOCK_NONE {
             if let Some(block_info) = game_ctx.blocks.get_block(&block) {
                 tile.flags.set(TileFlags::SOLID, !block_info.walkable);
                 if let Some(event) = block_info.place_event {
@@ -120,7 +128,7 @@ impl Grid {
                         id: event,
                         value: BlockUpdateEvent {
                             pos,
-                            _old: blocks::NONE,
+                            _old: BLOCK_NONE,
                             new: block,
                         },
                     });
@@ -275,7 +283,7 @@ impl Grid {
                                 found_chest = true;
                             }
                         }
-                        Content::Block(blocks::CHEST_ID) => {
+                        Content::Block(val) if val == &self.chest_id => {
                             found_chest = true;
                             // do we need this???
                             // if found_job.as_ref().is_some_and(|job| job.is_haul()) {
@@ -350,7 +358,7 @@ impl Grid {
             // delay this growth event (for now?)
             if game_ctx.time.season == Season::Winter {
                 game_ctx.events.push_timer(
-                    GROWTH_TIME,
+                    GROWTH_SEASON_DELAY_TIME,
                     Event {
                         id: GROWTH_EVENT,
                         value: event.value,
@@ -367,7 +375,7 @@ impl Grid {
 
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ItemId>) {
         if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
-            if tile.contains(&Content::Block(blocks::CHEST_ID)) {
+            if tile.contains(&Content::Block(self.chest_id)) {
                 // for now just don't bother...
                 return;
             }
@@ -393,7 +401,7 @@ impl Grid {
             return;
         }
         if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
-            if !tile.contains(&Content::Block(blocks::CHEST_ID)) {
+            if !tile.contains(&Content::Block(self.chest_id)) {
                 // No chest here...
                 return;
             }

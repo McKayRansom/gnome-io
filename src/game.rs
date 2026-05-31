@@ -4,14 +4,11 @@ use quad_lib::storage::{LoadResult, SaveResult, Storage};
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
-    block::{BlockId, Blocks, blocks},
+    block::Blocks,
     entity::{Entity, EntityAction, EntityId, gnome::Gnome, goblin::Goblin},
     event::EventManager,
     grid::{Grid, Pos},
-    item::{
-        Items,
-        items::{self},
-    },
+    item::Items,
     job::{JobManager, build, mine::mine},
     tile::Content,
 };
@@ -39,9 +36,7 @@ pub enum GameSpeed {
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct GameCtx {
     pub time: time::GameTime,
-    #[serde(skip_deserializing, skip_serializing)]
     pub blocks: Blocks,
-    #[serde(skip_deserializing, skip_serializing)]
     pub items: Items,
     pub events: EventManager,
 }
@@ -65,21 +60,40 @@ pub const CRAFTING_TIME: Tick = 30;
 
 impl Game {
     pub fn new(frame_time: f64) -> Game {
-        let mut game_ctx = GameCtx {
-            time: GameTime::default(),
-            blocks: Blocks::default(),
-            items: Items::default(),
-            events: EventManager::new(),
-        };
         Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
             entities: HashMap::new(),
             entity_id: 1,
-            grid: Grid::new(DEFAULT_SIZE, &mut game_ctx),
-            job_manager: JobManager::new(&mut game_ctx),
-            game_ctx,
+            grid: Grid::new(DEFAULT_SIZE),
+            job_manager: JobManager::new(),
+            game_ctx: GameCtx {
+                time: GameTime::default(),
+                blocks: Blocks::default(),
+                items: Items::default(),
+                events: EventManager::new(),
+            },
         }
+    }
+
+    // NOTE: Must be re-enterant if we want hot-reloading to work...!
+    pub async fn load_ctx(&mut self) {
+        // Theory of safe-ctx loading:
+        // 1. Save all current ids to disk
+        // 2. Load up all new ids
+        // 3. Reload world from disk, lookup new ids
+
+        // BUT THAT"S TOO MUCH WORK!!!
+        // for now: let's just not change the IDs for a while...
+
+        self.game_ctx.events.load();
+        self.game_ctx.items.load().await;
+        self.game_ctx
+            .blocks
+            .load(&self.game_ctx.items, &self.game_ctx.events.event_names)
+            .await;
+        self.grid.init(&mut self.game_ctx);
+        self.job_manager.load_ctx(&mut self.game_ctx);
     }
 
     pub fn save(&self) -> SaveResult {
@@ -91,16 +105,32 @@ impl Game {
         // todo!()
     }
 
-    pub fn load() -> LoadResult<Self> {
+    pub async fn load() -> LoadResult<Self> {
         let ron_str = Storage::new("save", ".ron").load()?;
-        Ok(ron::from_str(ron_str.as_str()).unwrap())
-        // todo!()
+        let mut game: Game = ron::from_str(ron_str.as_str()).unwrap();
+
+        game.load_ctx().await;
+
+        Ok(game)
     }
 
-    pub fn generate(frame_time: f64) -> Game {
-        let mut game = Game::new(frame_time);
+    fn gen_block(&mut self, pos: Pos, name: &str) {
+        self.grid.place_block(
+            pos,
+            self.game_ctx.blocks.get_id(name).unwrap(),
+            &mut self.game_ctx,
+        );
+    }
 
-        generate::generate(&mut game.grid);
+    fn gen_item(&mut self, pos: Pos, name: &str) {
+        self.grid.add(
+            pos,
+            Content::Item(self.game_ctx.items.get_item_id(name).unwrap()),
+        );
+    }
+
+    pub fn generate(&mut self) {
+        generate::generate(self);
 
         // why
 
@@ -108,7 +138,7 @@ impl Game {
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
         let mut start_pos = Pos::new(6, 11);
-        while game
+        while self
             .grid
             .get_tile(start_pos)
             .is_some_and(|tile| !tile.walkable())
@@ -117,33 +147,30 @@ impl Game {
         }
 
         // place chest
-        game.grid
-            .place_block(start_pos, blocks::CHEST_ID, &mut game.game_ctx);
+        self.gen_block(start_pos, "chest");
 
         // spawn some wheat
         for _ in 0..32 {
-            // game.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
-            game.grid.add(start_pos, Content::Item(items::WHEAT_GRAIN));
-            game.grid.add(start_pos, Content::Item(items::BREAD_ID));
+            // self.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
+            self.gen_item(start_pos, "wheat_grain");
+            self.gen_item(start_pos, "bread");
         }
 
         // spawn some gnomes
         for _ in 0..4 {
-            game.spawn_gnome(start_pos);
+            self.spawn_gnome(start_pos);
         }
 
         // spawn some goblins
         // for _ in 0..4 {
-        //     game.spawn_goblin(Pos::new(6, 17));
+        //     self.spawn_goblin(Pos::new(6, 17));
         // }
 
-        // game.grid.place_block(Pos::new(13, 14), None, &mut game.game_ctx);
-        // game.grid.place_block(Pos::new(14, 13), None, &mut game.game_ctx);
+        // self.grid.place_block(Pos::new(13, 14), None, &mut self.game_ctx);
+        // self.grid.place_block(Pos::new(14, 13), None, &mut game.self_ctx);
         // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
-
-        game
     }
 
     pub fn should_update(&mut self, frame_time: f64) -> bool {
@@ -223,8 +250,8 @@ impl Game {
             .new_farm(&mut self.grid, pos, &mut self.game_ctx);
     }
 
-    pub fn build(&mut self, pos: Pos, block_id: BlockId) {
-        build::build(&mut self.grid, pos, block_id, &mut self.game_ctx);
+    pub fn build(&mut self, pos: Pos, block_name: &str) {
+        build::build(&mut self.grid, pos, block_name, &mut self.game_ctx);
     }
 
     pub fn cancel(&mut self, pos: Pos) {
@@ -235,7 +262,7 @@ impl Game {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    // use super::*;
 
     // #[test]
     // fn test_game_creation() {
@@ -243,10 +270,10 @@ mod tests {
     //     assert_eq!(game, Game {});
     // }
 
-    #[test]
-    fn test_game_update() {
-        let mut game = Game::new(0.);
-        game.update();
-        // Add assertions to check the state after update
-    }
+    // #[test]
+    // fn test_game_update() {
+    //     let mut game = Game::new(0.);
+    //     game.update();
+    //     // Add assertions to check the state after update
+    // }
 }

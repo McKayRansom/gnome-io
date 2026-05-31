@@ -1,0 +1,52 @@
+// blocks.ron
+(blocks: {
+    "craft_table": (
+        requires: ["wood"],
+    ),
+    "bed": (
+        requires: ["stone"]
+    ),
+    "stone_block": (
+        sprite: "stone",
+        solid: true,
+        requires: ["stone_item"],
+    ),
+    "ore": (
+        drops: [(1.0, "stone_item")],
+    ),
+    "tree": (
+        drops: [(1.0, "wood")],
+    ),
+    "furnace": (
+        requires: ["stone"],
+        place_event: Some("craft"),
+        mine_event: Some("craft"),
+    ),
+    "chest": (
+        requires: ["stone"],
+    ),
+    "wheat_0": (
+        // TODO: Change farm to require what's listed here...
+        requires: ["wheat_grain"],
+        growth: Some((days: 1, into: "wheat_1")),
+    ),
+    "wheat_1": (
+        growth: Some((days: 1, into: "wheat_2")),
+    ),
+    "wheat_2": (
+        growth: Some((days: 1, into: "wheat_3")),
+    ),
+    "wheat_3": (
+        growth: Some((days: 1, into: "wheat_4")),
+    ),
+    "wheat_4": (
+        drops: [(1.0, "wheat_grain"), (1.0, "wheat_grain"), (0.2, "wheat_grain")],
+        // TODO: These should be removed, farm should somehow insert there...
+        place_event: Some("farm"),
+        mine_event: Some("farm"),
+    ),
+},
+aliases: {
+    // for backwards-compatablity, names must not change otherwise...
+    "stone": "stone_block",
+})

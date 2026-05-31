@@ -1,5 +1,4 @@
 use crate::{
-    block::BlockId,
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
 };
@@ -8,7 +7,10 @@ use super::{Job, JobManager};
 
 const BUILD_TIME: Tick = 30;
 
-pub fn build(grid: &mut Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> Option<()> {
+pub fn build(grid: &mut Grid, pos: Pos, block_name: &str, game_ctx: &mut GameCtx) -> Option<()> {
+
+    let id = game_ctx.blocks.get_id(block_name).expect("Bad block_name passed to build()");
+
     if grid.get_tile(pos)?.get_block().is_some() {
         return None;
     }
@@ -18,7 +20,7 @@ pub fn build(grid: &mut Grid, pos: Pos, id: BlockId, game_ctx: &mut GameCtx) -> 
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::build(pos, BUILD_TIME, id, block_info.requires.clone())
+        Job::build(pos, BUILD_TIME, id, block_info.requires.clone()),
     );
 
     None

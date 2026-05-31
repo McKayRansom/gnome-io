@@ -5,7 +5,6 @@ use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos},
-    item::items::{self, GNOME_DEAD_ID},
     job::Job,
     tile::Content,
 };
@@ -127,7 +126,10 @@ impl EntityBehaviour for Gnome {
         if let Some(job) = &self.job {
             job.fail(grid, game_ctx);
         }
-        grid.add(self.base.pos, Content::Item(GNOME_DEAD_ID));
+        grid.add(
+            self.base.pos,
+            Content::Item(game_ctx.items.get_item_id("dead_gnome").unwrap()),
+        );
         self.base.die(grid);
     }
 
@@ -199,17 +201,17 @@ impl EntityBehaviour for Gnome {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
-            if let Some(item) = grid.remove(self.base.pos, Content::Item(items::BREAD_ID)) {
+            // TODO: Create new system to identify items as food
+            let bread_id = game_ctx.items.get_item_id("bread").unwrap();
+            if let Some(item) = grid.remove(self.base.pos, Content::Item(bread_id)) {
                 let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);
                 self.food = BASE_FOOD;
                 // use up the bread...
                 let _ = item;
-            } else if let Some(path) = grid.find_path(
-                self.base.pos,
-                self.base.pos,
-                Some(Content::Item(items::BREAD_ID)),
-            ) {
+            } else if let Some(path) =
+                grid.find_path(self.base.pos, self.base.pos, Some(Content::Item(bread_id)))
+            {
                 self.path = path;
                 return None;
             } else if self.food == 0 {

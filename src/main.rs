@@ -1,11 +1,11 @@
 use gameplay::Gameplay;
 use macroquad::{conf::Conf, miniquad, window::next_frame};
 
+mod entity;
 mod game;
 mod grid;
 mod job;
 mod tile;
-mod entity;
 // mod tileset;
 pub mod block;
 mod context;
@@ -62,14 +62,18 @@ async fn main() {
     }
 
     let mut ctx = context::Context::new().await;
-    let mut g = Gameplay::new(&mut ctx);
+    let mut g = Gameplay::new(&mut ctx).await;
 
     log::info!("Finished init");
 
     loop {
-        ctx.update().await;
-        g.update(&mut ctx);
-        g.draw(&mut ctx);
+        ctx.update();
+        if let Some(event) = g.update(&mut ctx) {
+            g.events(event, &mut ctx).await;
+        }
+        if let Some(event) = g.draw(&mut ctx) {
+            g.events(event, &mut ctx).await;
+        }
         next_frame().await;
     }
 }

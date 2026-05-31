@@ -1,13 +1,15 @@
 use macroquad::{
     color::Color,
-    input::{KeyCode, is_key_down, is_mouse_button_pressed, is_mouse_button_released, mouse_wheel},
+    input::{
+        KeyCode, is_key_down, is_key_pressed, is_mouse_button_pressed, is_mouse_button_released,
+        mouse_wheel,
+    },
     math::{Vec2, vec2},
     time::get_time,
     ui::{hash, root_ui, widgets::Window},
 };
 
 use crate::{
-    block::{BlockId, blocks},
     context::Context,
     draw::{draw_game, draw_tile_outline},
     game::{Game, GameSpeed, time::GameTimeEvent},
@@ -47,10 +49,15 @@ pub struct Gameplay {
     mouse_down_pos: Option<Pos>,
     draw_details_pos: Option<Pos>,
     action_toolbar: Toolbar<GameAction>,
-    build_toolbar: Toolbar<BlockId>,
+    build_toolbar: Toolbar<&'static str>,
     time_select: Toolbar<TimeSelect>,
     popup: Option<Popup>,
     pause_menu: Menu<PauseMenuSelect>,
+}
+
+pub enum GameEvent {
+    Load,
+    Reload,
 }
 
 const WASD_MOVE_SENSITIVITY: f32 = 20.;
@@ -58,11 +65,14 @@ const SCROLL_SENSITIVITY: f32 = 0.05;
 // const PLUS_MINUS_SENSITVITY: f32 = 0.8; // 20% zoom seems pretty standard (I.E. that is also what VSCode does)
 
 impl Gameplay {
-    pub fn new(ctx: &mut Context) -> Self {
+    pub async fn new(ctx: &mut Context) -> Self {
         ctx.camera.change_zoom(0.2);
         ctx.camera.camera = vec2(-100., 300.);
+        let mut game = Game::new(get_time());
+        game.load_ctx().await;
+        game.generate();
         Self {
-            game: Game::generate(get_time()),
+            game,
             mouse_down_pos: None,
             draw_details_pos: None,
             action_toolbar: Toolbar::new(
@@ -77,21 +87,11 @@ impl Gameplay {
             build_toolbar: Toolbar::new(
                 crate::ui::toolbar::ToolbarType::Horizontal,
                 vec![
-                    ToolbarItem::new(
-                        blocks::STONE_BLOCK_ID,
-                        "Stone wall",
-                        '1',
-                        "stone_wall".into(),
-                    ),
-                    ToolbarItem::new(blocks::CHEST_ID, "Chest", '2', "chest".into()),
-                    ToolbarItem::new(
-                        blocks::CRAFT_TABLE_ID,
-                        "Crafting table",
-                        '3',
-                        "craft_table".into(),
-                    ),
-                    ToolbarItem::new(blocks::FURNACE_ID, "Furnace", '4', "furnace".into()),
-                    ToolbarItem::new(blocks::BED_ID, "Bed", '5', "bed".into()),
+                    ToolbarItem::new("stone", "Stone wall", '1', "stone_wall".into()),
+                    ToolbarItem::new("chest", "Chest", '2', "chest".into()),
+                    ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
+                    ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
+                    ToolbarItem::new("bed", "Bed", '5', "bed".into()),
                 ],
             ),
             time_select: Toolbar::new(
@@ -119,7 +119,28 @@ impl Gameplay {
         }
     }
 
-    pub fn update(&mut self, ctx: &mut Context) {
+    // try and keep async contained for my own sanity...
+    pub async fn events(&mut self, event: GameEvent, ctx: &mut Context) {
+        match event {
+            // GameEvent::Generate => {
+            //     self.game = Game::new(get_time());
+            //     self.game.load_ctx().await;
+            //     self.game.generate();
+            // }
+            GameEvent::Load => {
+                log::info!("Event: loading game...");
+                self.game = Game::load().await.expect("Failed to load");
+            }
+            GameEvent::Reload => {
+                log::info!("Event: reloading game...");
+                ctx.reload().await;
+                self.game.load_ctx().await;
+            }
+        }
+    }
+
+    pub fn update(&mut self, ctx: &mut Context) -> Option<GameEvent> {
+        let mut event: Option<GameEvent> = None;
         while self.game.should_update(get_time()) {
             match self.game.update() {
                 GameTimeEvent::None => {}
@@ -153,8 +174,12 @@ impl Gameplay {
             ctx.camera.camera.x += WASD_MOVE_SENSITIVITY / ctx.camera.zoom;
         }
 
+        if is_key_pressed(KeyCode::F5) {
+            event = Some(GameEvent::Reload);
+        }
+
         if ctx.mouse_pos.is_none() {
-            return;
+            return event;
         }
 
         let new_mouse_wheel = mouse_wheel();
@@ -162,9 +187,12 @@ impl Gameplay {
             ctx.camera
                 .change_zoom(SCROLL_SENSITIVITY * new_mouse_wheel.1);
         }
+
+        event
     }
 
-    pub fn draw(&mut self, ctx: &mut Context) {
+    pub fn draw(&mut self, ctx: &mut Context) -> Option<GameEvent> {
+        let mut event: Option<GameEvent> = None;
         draw_game(&self.game, ctx);
 
         self.action_toolbar.draw(
@@ -205,8 +233,7 @@ impl Gameplay {
                             // println!("SAVED GAME");
                         }
                         PauseMenuSelect::Load => {
-                            self.game = Game::load().expect("Failed to load");
-                            // self.game.save().expect("Failed to save!");
+                            event = Some(GameEvent::Load);
                             // println!("SAVED GAME");
                         }
                         PauseMenuSelect::Quit => {
@@ -284,7 +311,7 @@ impl Gameplay {
                                     .game_ctx
                                     .items
                                     .get_item(item)
-                                    .map(|item| item.name)
+                                    .map(|item| item.name.as_str())
                                     .unwrap_or("???")
                             ),
                             Content::Entity((_faction, entity)) => format!("Entity {:?}", entity),
@@ -332,8 +359,8 @@ impl Gameplay {
                             match action {
                                 GameAction::Mine => self.game.mine(pos),
                                 GameAction::Build => {
-                                    if let Some(block_id) = self.build_toolbar.get_selected() {
-                                        self.game.build(pos, *block_id)
+                                    if let Some(block_name) = self.build_toolbar.get_selected() {
+                                        self.game.build(pos, block_name)
                                     }
                                 }
                                 GameAction::Farm => self.game.farm(pos),
@@ -378,5 +405,6 @@ impl Gameplay {
                 None => {}
             }
         }
+        event
     }
 }

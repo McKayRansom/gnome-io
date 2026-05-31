@@ -1,39 +1,147 @@
-use crate::block::blocks;
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 
-use super::{ItemId, ItemType, Items};
+use super::*;
 
-pub const STONE_ITEM_ID: ItemId = 100;
-pub const GNOME_DEAD_ID: ItemId = 666;
-pub const WOOD_ID: ItemId = 103;
+type ItemList = FxHashMap<ItemId, ItemType>;
+type ItemIds = FxHashMap<String, ItemId>;
 
-const ITM_GRP: ItemId = 200;
+#[derive(Default, Deserialize, Serialize)]
+pub struct Items {
+    #[serde(skip_deserializing, skip_serializing)]
+    item_list: ItemList,
+    // we do need to save this...
+    item_ids: ItemIds,
+}
 
-// pub const WHEAT_SEED: ItemId = ITM_GRP | 0;
-pub const WHEAT_GRAIN: ItemId = ITM_GRP | 1;
-pub const BREAD_ID: ItemId = ITM_GRP | 2;
+// Deserialize-only struct
+#[derive(Debug, Clone, Deserialize)]
+struct ItemsSave {
+    items: FxHashMap<String, ItemTypeSave>,
+    aliases: FxHashMap<String, String>,
+}
 
-pub fn init(items: &mut Items) {
-    items.add_item(GNOME_DEAD_ID, ItemType {
-        name: "dead gnome",
-        sprite: "gnome_dead".into(),
-        recipe: None,
-    });
+#[derive(Debug, Clone, Deserialize)]
+struct ItemTypeSave {
+    #[serde(default)]
+    sprite: String,
+    #[serde(default)]
+    recipe: Option<(String, Vec<String>)>,
+}
 
-    items.add_item(STONE_ITEM_ID, ItemType {
-        name: "stone",
-        sprite: "stone_item".into(),
-        recipe: None,
-    });
-    items.add_item(WOOD_ID, ItemType {
-        name: "wood",
-        sprite: "wood".into(),
-        recipe: None,
-    });
-    items.add_item(WHEAT_GRAIN, ItemType::new("wheat", "wheat_grain".into()));
+impl ItemTypeSave {
+    fn convert(&self, name: &String, items_id: &ItemIds) -> ItemType {
+        ItemType {
+            name: name.clone(),
+            sprite: if self.sprite.is_empty() {
+                name.clone()
+            } else {
+                self.sprite.clone()
+            },
+            recipe: self.recipe.as_ref().map(|(block_at, ingredients)| {
+                (
+                    block_at.clone(),
+                    ingredients
+                        .iter()
+                        .map(|item_name| {
+                            *items_id.get(item_name).unwrap_or_else(|| {
+                                log::error!(
+                                    "Could not find ingredient '{}' for item '{}'",
+                                    item_name,
+                                    name
+                                );
+                                &ITEM_NONE
+                            })
+                        })
+                        .collect::<Vec<ItemId>>(),
+                )
+            }),
+        }
+    }
+}
 
-    items.add_item(BREAD_ID, ItemType {
-        name: "bread",
-        sprite: "bread".into(),
-        recipe: Some((blocks::FURNACE_ID, vec![WHEAT_GRAIN])),
-    });
+impl Items {
+    pub fn add_item(&mut self, id: ItemId, item: ItemType) {
+        if let Some(_old) = self.item_list.insert(id, item) {
+            log::warn!("Item {} already exists!", id);
+        }
+    }
+
+    pub fn get_item(&self, id: &ItemId) -> Option<&ItemType> {
+        self.item_list.get(&id)
+    }
+
+    pub fn _iter_items(&self) -> std::collections::hash_map::Iter<'_, u32, ItemType> {
+        self.item_list.iter()
+    }
+
+    pub fn get_item_id(&self, name: &str) -> Option<ItemId> {
+        self.item_ids.get(name).copied()
+    }
+
+    pub async fn load(&mut self) {
+        // clear any old data...
+        // assert!(
+        //     self.item_list.is_empty(),
+        //     "Items already loaded! Not safe to proceed!"
+        // );
+
+        // load new stuff
+        let ron_str = macroquad::file::load_file("assets/data/items.ron")
+            .await
+            .expect("Failed to load items.ron");
+        self.load_from_bytes(&ron_str);
+    }
+
+    fn load_from_bytes(&mut self, bytes: &[u8]) {
+        let items_save: ItemsSave =
+            ron::de::from_bytes(&bytes).expect("Failed to deserialize items!");
+
+        //  do item_ids first
+        let mut item_id: ItemId = 1;
+        for item_name in items_save.items.keys() {
+            self.item_ids.insert(item_name.clone(), item_id);
+            item_id += 1;
+        }
+
+        for (item_name, item_type_save) in items_save.items.iter() {
+            self.item_list.insert(
+                self.item_ids[item_name],
+                item_type_save.convert(item_name, &self.item_ids),
+            );
+        }
+
+        for (alias, name) in items_save.aliases.iter() {
+            self.item_ids.insert(
+                alias.clone(),
+                *self.item_ids.get(name).unwrap_or_else(|| {
+                    log::error!("No item name '{}' for alias '{}'", name, alias);
+                    &ITEM_NONE
+                }),
+            );
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_load_items() {
+        let mut items = Items::default();
+        let bytes = std::fs::read("assets/data/items.ron").expect("Failed to load items.ron");
+
+        items.load_from_bytes(&bytes);
+
+        assert!(items.item_ids.get("stone").is_some_and(|id| *id > 0));
+        let stone_id = items.item_ids["stone"];
+
+        assert!(
+            items
+                .item_list
+                .get(&stone_id)
+                .is_some_and(|info| info.recipe.is_none() && info.sprite == "stone_item")
+        );
+    }
 }
