@@ -12,24 +12,24 @@ use crate::{
     item::{ITEM_NONE, Items},
 };
 
-use super::{BlockId, BlockType};
+use super::{BlockId, BlockInfo};
 
-type BlockList = FxHashMap<BlockId, BlockType>;
+type BlockInfos = FxHashMap<BlockId, BlockInfo>;
 type BlockIds = FxHashMap<String, BlockId>;
 
 #[derive(Default, Serialize, Deserialize)]
 pub struct Blocks {
-    // theoretically, this won't be changed after startup and doesn't need to be saved...
     #[serde(skip_deserializing, skip_serializing)]
-    block_list: BlockList,
+    infos: BlockInfos,
     // may have duplicate BlockId entries for aliases
-    block_ids: BlockIds,
+    // saved only so we can check for changes and/or future migrations if required...
+    ids: BlockIds,
 }
 
 // Deserialize-only struct
 #[derive(Debug, Clone, Deserialize)]
 struct BlocksSave {
-    blocks: FxHashMap<String, BlockTypeSave>,
+    blocks: FxHashMap<String, BlockInfoSave>,
     aliases: FxHashMap<String, String>,
 }
 
@@ -42,7 +42,7 @@ struct GrowthSave {
 }
 
 #[derive(Debug, Clone, Deserialize)]
-struct BlockTypeSave {
+struct BlockInfoSave {
     id: BlockId,
     /// Sprite name in spritesheet.ron, could be moved to IDs later if needed
     #[serde(default)]
@@ -65,15 +65,15 @@ struct BlockTypeSave {
     requires: Vec<String>,
 }
 
-impl BlockTypeSave {
+impl BlockInfoSave {
     fn convert(
         &self,
         name: &String,
         block_ids: &BlockIds,
         items: &Items,
         events: &EventNames,
-    ) -> BlockType {
-        BlockType {
+    ) -> BlockInfo {
+        BlockInfo {
             name: name.clone(),
             sprite: if self.sprite.is_empty() {
                 name.clone()
@@ -86,7 +86,7 @@ impl BlockTypeSave {
                     .map(|item_name| {
                         (
                             1.0,
-                            items.get_item_id(item_name).unwrap_or_else(|| {
+                            items.get_id(item_name).unwrap_or_else(|| {
                                 log::error!(
                                     "No item '{}' found in requires for block '{}'",
                                     item_name,
@@ -103,7 +103,7 @@ impl BlockTypeSave {
                     .map(|(frequency, item_name)| {
                         (
                             *frequency,
-                            items.get_item_id(item_name).unwrap_or_else(|| {
+                            items.get_id(item_name).unwrap_or_else(|| {
                                 log::error!(
                                     "No item '{}' found dropped by block '{}'",
                                     item_name,
@@ -159,7 +159,7 @@ impl BlockTypeSave {
                 .requires
                 .iter()
                 .map(|item_name| {
-                    items.get_item_id(item_name).unwrap_or_else(|| {
+                    items.get_id(item_name).unwrap_or_else(|| {
                         log::error!("No item '{}' found required by block '{}'", item_name, name);
                         ITEM_NONE
                     })
@@ -170,18 +170,18 @@ impl BlockTypeSave {
 }
 
 impl Blocks {
-    pub fn add_block(&mut self, block_id: BlockId, block: BlockType) {
-        if let Some(_old) = self.block_list.insert(block_id, block) {
+    pub fn add_block(&mut self, block_id: BlockId, block: BlockInfo) {
+        if let Some(_old) = self.infos.insert(block_id, block) {
             log::warn!("Block {} already exists!", block_id);
         }
     }
 
-    pub fn get_block(&self, block_id: &BlockId) -> Option<&BlockType> {
-        self.block_list.get(block_id)
+    pub fn get_info(&self, block_id: &BlockId) -> Option<&BlockInfo> {
+        self.infos.get(block_id)
     }
 
     pub fn get_id(&self, name: &str) -> Option<BlockId> {
-        self.block_ids.get(name).copied()
+        self.ids.get(name).copied()
     }
 
     pub async fn load(&mut self, items: &Items, events: &EventNames) {
@@ -196,9 +196,9 @@ impl Blocks {
         let blocks_save: BlocksSave =
             ron::de::from_bytes(bytes).expect("Failed to deserialize blocks!");
 
-        for (block_name, block_type_save) in blocks_save.blocks.iter() {
-            let id = block_type_save.id;
-            if let Some(old_id) = self.block_ids.insert(block_name.clone(), id) {
+        for (block_name, block_info_save) in blocks_save.blocks.iter() {
+            let id = block_info_save.id;
+            if let Some(old_id) = self.ids.insert(block_name.clone(), id) {
                 if old_id != id {
                     log::error!(
                         "Block Id changed for block '{}'! Was: {} Now: {}",
@@ -210,31 +210,31 @@ impl Blocks {
             }
         }
 
-        for (block_name, block_type_save) in blocks_save.blocks.iter() {
-            let id = block_type_save.id;
-            let block_type = block_type_save.convert(block_name, &self.block_ids, items, events);
+        for (block_name, block_info_save) in blocks_save.blocks.iter() {
+            let id = block_info_save.id;
+            let block_info = block_info_save.convert(block_name, &self.ids, items, events);
 
-            if !self.block_list.contains_key(&id) {
-                self.block_list.insert(id, block_type);
+            if !self.infos.contains_key(&id) {
+                self.infos.insert(id, block_info);
             } else {
-                if self.block_list[&id] != block_type {
+                if self.infos[&id] != block_info {
                     log::warn!("Overwritting block info for block {}", block_name);
                 }
             }
         }
 
         // verify no missing
-        for (name, id) in self.block_ids.iter() {
-            if !self.block_list.contains_key(id) {
+        for (name, id) in self.ids.iter() {
+            if !self.infos.contains_key(id) {
                 log::error!("No block info for block '{}' (id: {})", name, id);
             }
         }
 
         for (alias, name) in blocks_save.aliases.iter() {
-            if !self.block_ids.contains_key(alias) {
-                self.block_ids.insert(
+            if !self.ids.contains_key(alias) {
+                self.ids.insert(
                     alias.clone(),
-                    *self.block_ids.get(name).unwrap_or_else(|| {
+                    *self.ids.get(name).unwrap_or_else(|| {
                         log::error!("No block name '{}' for alias '{}'", name, alias);
                         &BLOCK_NONE
                     }),
@@ -258,15 +258,10 @@ mod tests {
         // NOTE: This will spit out all sorts of errors but still run
         blocks.load_from_bytes(&bytes, &items, &events);
 
-        assert!(
-            blocks
-                .block_ids
-                .get("stone_block")
-                .is_some_and(|id| *id > 0)
-        );
-        let stone_id = blocks.block_ids["stone_block"];
+        assert!(blocks.ids.get("stone_block").is_some_and(|id| *id > 0));
+        let stone_id = blocks.ids["stone_block"];
 
-        let stone_info = &blocks.block_list[&stone_id];
+        let stone_info = &blocks.infos[&stone_id];
         assert_eq!(stone_info.sprite, "stone");
         assert_eq!(stone_info.requires, vec![0]);
         assert!(!stone_info.walkable);

@@ -92,7 +92,7 @@ impl FarmManager {
         }
 
         let block = tile.get_block().unwrap_or(0);
-        let block_info = game_ctx.blocks.get_block(&block);
+        let block_info = game_ctx.blocks.get_info(&block);
         if block_info.is_some_and(|info| !info.drops.is_empty()) {
             // harvest
             Some(Job::mine(*pos, HARVEST_TIME))
@@ -104,7 +104,7 @@ impl FarmManager {
                 *farm_block_id,
                 game_ctx
                     .blocks
-                    .get_block(&*farm_block_id)
+                    .get_info(&*farm_block_id)
                     .unwrap()
                     .requires
                     .clone(),

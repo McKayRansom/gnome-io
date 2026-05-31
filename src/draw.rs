@@ -34,7 +34,7 @@ fn draw_items(
     for item in items {
         // if let Content::Item(item) = item {
         ctx.tileset.draw_tile(
-            if let Some(item) = game_ctx.items.get_item(item) {
+            if let Some(item) = game_ctx.items.get_info(item) {
                 &item.sprite
             } else {
                 "unknown"
@@ -77,7 +77,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
 
             // draw block first?
             if let Some(block) = tile.get_block() {
-                let Some(block) = game_ctx.blocks.get_block(&block) else {
+                let Some(block) = game_ctx.blocks.get_info(&block) else {
                     panic!("No block found fo id {}", block);
                 };
                 if block.sprite == "stone" {
@@ -234,7 +234,7 @@ fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
     for (item, stock) in grid.stocks.iter() {
         draw_text(
             ctx,
-            format!("{}: {}", game_ctx.items.get_item(item).unwrap().name, stock).as_str(),
+            format!("{}: {}", game_ctx.items.get_info(item).unwrap().name, stock).as_str(),
             pos.x,
             pos.y,
             crate::text::Size::Small,

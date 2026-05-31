@@ -96,8 +96,8 @@ impl Grid {
             tile.flags.remove(TileFlags::SOLID);
             tile.remove(&Content::Block(old_block_id));
 
-            if let Some(old_block) = game_ctx.blocks.get_block(&old_block_id) {
-                if let Some(mine_event) = old_block.mine_event {
+            if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
+                if let Some(mine_event) = old_block_info.mine_event {
                     game_ctx.events.push_event(Event {
                         id: mine_event,
                         value: BlockUpdateEvent {
@@ -107,7 +107,7 @@ impl Grid {
                         },
                     });
                 }
-                for (chance, item_id) in old_block.drops.iter() {
+                for (chance, item_id) in old_block_info.drops.iter() {
                     if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
                         // TODO: Dedup!
                         // TODO: Spill if over limit...
@@ -120,7 +120,7 @@ impl Grid {
         }
 
         if block != BLOCK_NONE {
-            if let Some(block_info) = game_ctx.blocks.get_block(&block) {
+            if let Some(block_info) = game_ctx.blocks.get_info(&block) {
                 tile.flags.set(TileFlags::SOLID, !block_info.walkable);
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {

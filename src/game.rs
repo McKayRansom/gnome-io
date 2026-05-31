@@ -124,7 +124,7 @@ impl Game {
     fn gen_item(&mut self, pos: Pos, name: &str) {
         self.grid.add(
             pos,
-            Content::Item(self.game_ctx.items.get_item_id(name).unwrap()),
+            Content::Item(self.game_ctx.items.get_id(name).unwrap()),
         );
     }
 

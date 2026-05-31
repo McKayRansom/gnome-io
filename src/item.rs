@@ -12,7 +12,7 @@ pub mod items;
 pub use items::Items;
 
 #[derive(Debug, PartialEq, Eq)]
-pub struct ItemType {
+pub struct ItemInfo {
     pub name: String,
     pub sprite: String,
     pub recipe: Option<(String, Vec<ItemId>)>,

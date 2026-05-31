@@ -128,7 +128,7 @@ impl EntityBehaviour for Gnome {
         }
         grid.add(
             self.base.pos,
-            Content::Item(game_ctx.items.get_item_id("dead_gnome").unwrap()),
+            Content::Item(game_ctx.items.get_id("dead_gnome").unwrap()),
         );
         self.base.die(grid);
     }
@@ -202,7 +202,7 @@ impl EntityBehaviour for Gnome {
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
             // TODO: Create new system to identify items as food
-            let bread_id = game_ctx.items.get_item_id("bread").unwrap();
+            let bread_id = game_ctx.items.get_id("bread").unwrap();
             if let Some(item) = grid.remove(self.base.pos, Content::Item(bread_id)) {
                 let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);

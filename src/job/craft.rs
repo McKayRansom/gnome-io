@@ -11,14 +11,14 @@ use crate::{
 
 use super::{Job, JobManager};
 
-pub fn craft(grid: &mut Grid, pos: Pos, id: ItemId, game_ctx: &mut GameCtx) -> Option<()> {
-    let item = game_ctx.items.get_item(&id)?;
-    let recipe = item.recipe.as_ref()?;
+pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx) -> Option<()> {
+    let item_info = game_ctx.items.get_info(&item_id)?;
+    let recipe = item_info.recipe.as_ref()?;
 
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::craft(pos, CRAFTING_TIME, id, recipe.1.clone()),
+        Job::craft(pos, CRAFTING_TIME, item_id, recipe.1.clone()),
     );
     None
 }
@@ -43,7 +43,8 @@ impl CraftManager {
 
     pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
         game_ctx.events.add_event_class("craft");
-        self.standing_orders.push((game_ctx.items.get_item_id("bread").unwrap(), 16));
+        self.standing_orders
+            .push((game_ctx.items.get_id("bread").unwrap(), 16));
     }
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
@@ -57,7 +58,7 @@ impl CraftManager {
                 // lookup recipe
                 let (_workshop, requires) = game_ctx
                     .items
-                    .get_item(item_id)
+                    .get_info(item_id)
                     .expect("Standing order for unknown item")
                     .recipe
                     .as_ref()

@@ -15,7 +15,7 @@ pub fn build(grid: &mut Grid, pos: Pos, block_name: &str, game_ctx: &mut GameCtx
         return None;
     }
 
-    let block_info = game_ctx.blocks.get_block(&id).expect("Can't build block");
+    let block_info = game_ctx.blocks.get_info(&id).expect("Can't build block");
 
     JobManager::create_job(
         grid,
