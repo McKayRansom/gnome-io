@@ -3,7 +3,7 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::BLOCK_NONE,
+    block::{BLOCK_NONE, BlockInfoFlags},
     event::{EVENT_NONE, EventNames},
     game::{
         Tick,
@@ -48,9 +48,9 @@ struct BlockInfoSave {
     /// Drops or defaults to requires
     #[serde(default)]
     drops: Vec<(f32, String)>,
-    /// Is pathable, needs refactor...
+    /// Could be separate type if needed
     #[serde(default)]
-    solid: bool,
+    flags: BlockInfoFlags,
     /// For plants, etc... what we grow into
     #[serde(default)]
     growth: Option<GrowthSave>,
@@ -113,7 +113,7 @@ impl BlockInfoSave {
                     })
                     .collect()
             },
-            walkable: !self.solid,
+            flags: self.flags,
             growth: self.growth.as_ref().map(|growth_save| {
                 (
                     growth_save.days * TICKS_PER_HOUR * HOURS_PER_DAY as Tick,
@@ -250,7 +250,7 @@ mod tests {
         let stone_info = &blocks.infos[&stone_id];
         assert_eq!(stone_info.sprite, "stone");
         assert_eq!(stone_info.requires, vec![0]);
-        assert!(!stone_info.walkable);
+        assert!(stone_info.solid());
     }
 
     #[test]
@@ -258,8 +258,7 @@ mod tests {
         let items = Items::default();
         let events = EventNames::default();
 
-        let original =
-            br#"(blocks: { "dirt": (id: 1), "rock": (solid: true, id: 2) })"#;
+        let original = br#"(blocks: { "dirt": (id: 1), "rock": (solid: true, id: 2) })"#;
         let mut blocks = Blocks::default();
         blocks.load_from_bytes(original, &items, &events);
 

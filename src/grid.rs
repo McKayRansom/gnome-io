@@ -8,7 +8,7 @@ use crate::{
     },
     item::{self, ItemId},
     job::Job,
-    tile::{Content, Tile, TileFlags},
+    tile::{Content, Tile},
 };
 
 pub mod pos;
@@ -54,6 +54,17 @@ impl Grid {
         self.chest_id = game_ctx.blocks.get_id("chest").unwrap();
     }
 
+    pub fn fixup(&mut self, game_ctx: &mut GameCtx) {
+        // fixup is_walkable
+        for y in 0..self.size.y {
+            for x in 0..self.size.x {
+                let pos = (x, y).into();
+                self.get_tile_mut(pos).unwrap().fixup(game_ctx);
+                self.update_walkable(pos);
+            }
+        }
+    }
+
     pub fn is_valid_pos(&self, pos: Pos) -> bool {
         pos.x >= 0 && pos.x < self.size.x && pos.y >= 0 && pos.y < self.size.y
     }
@@ -63,22 +74,28 @@ impl Grid {
     }
 
     // not pub to ensure correctness!
-    fn get_tile_mut(cells: &mut Vec<Vec<Tile>>, pos: Pos) -> Option<&mut Tile> {
+    fn get_tile_mut(&mut self, pos: Pos) -> Option<&mut Tile> {
+        self.cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
+    }
+
+    // not pub to ensure correctness!
+    fn cell_get_tile_mut(cells: &mut Vec<Vec<Tile>>, pos: Pos) -> Option<&mut Tile> {
         cells.get_mut(pos.y as usize)?.get_mut(pos.x as usize)
     }
 
-    pub fn update_walkable(&mut self, pos: Pos) {
+    fn update_walkable(&mut self, pos: Pos) {
         // we need to not have an impassible block
         if let Some(tile) = self.get_tile(pos) {
-            let walkable = !tile.solid()
-                && WALKABLE_DIRS
-                    .iter()
-                    .any(|dir| self.get_tile(pos + *dir).is_some_and(|t| t.solid()));
+            let walkable = tile.climbable()
+                || (!tile.solid()
+                    && WALKABLE_DIRS
+                        .iter()
+                        .any(|dir| self.get_tile(pos + *dir).is_some_and(|t| t.solid())));
+
             if walkable != tile.walkable() {
-                Self::get_tile_mut(&mut self.cells, pos)
+                Self::cell_get_tile_mut(&mut self.cells, pos)
                     .unwrap()
-                    .flags
-                    .set(TileFlags::WALKABLE, walkable);
+                    .set_walkable(walkable);
             }
         }
     }
@@ -86,14 +103,13 @@ impl Grid {
     pub fn place_block(
         &mut self,
         pos: Pos,
-        block: BlockId,
+        block_id: BlockId,
         game_ctx: &mut GameCtx,
         // items: &mut Vec<ItemId>,
     ) -> Option<()> {
-        let tile = Self::get_tile_mut(&mut self.cells, pos)?;
+        let tile = Self::cell_get_tile_mut(&mut self.cells, pos)?;
         let old_block = tile.get_block();
         if let Some(old_block_id) = old_block {
-            tile.flags.remove(TileFlags::SOLID);
             tile.remove(&Content::Block(old_block_id));
 
             if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
@@ -103,7 +119,7 @@ impl Grid {
                         value: BlockUpdateEvent {
                             pos,
                             _old: old_block_id,
-                            new: block,
+                            new: block_id,
                         },
                     });
                 }
@@ -119,16 +135,16 @@ impl Grid {
             }
         }
 
-        if block != BLOCK_NONE {
-            if let Some(block_info) = game_ctx.blocks.get_info(&block) {
-                tile.flags.set(TileFlags::SOLID, !block_info.walkable);
+        if block_id != BLOCK_NONE {
+            if let Some(block_info) = game_ctx.blocks.get_info(&block_id) {
+                tile.add_block(block_id, block_info);
                 if let Some(event) = block_info.place_event {
                     game_ctx.events.push_event(Event {
                         id: event,
                         value: BlockUpdateEvent {
                             pos,
                             _old: BLOCK_NONE,
-                            new: block,
+                            new: block_id,
                         },
                     });
                 }
@@ -141,16 +157,17 @@ impl Grid {
                             id: GROWTH_EVENT,
                             value: BlockUpdateEvent {
                                 pos,
-                                _old: block,
+                                _old: block_id,
                                 new: new_block,
                             },
                         },
                     );
                 }
+            } else {
+                log::error!("Tried to place invalid block_id: {}", block_id);
             }
-            tile.add(Content::Block(block));
         }
-        log::info!("Setting {:?} to {:?}", tile, block);
+        log::info!("Setting {:?} to {:?}", tile, block_id);
 
         //update is_walkable for pos and adjacents
         self.update_walkable(pos);
@@ -162,13 +179,13 @@ impl Grid {
     }
 
     pub fn gnome_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
-        Self::get_tile_mut(&mut self.cells, pos)
+        Self::cell_get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .add(Content::Entity(id));
     }
 
     pub fn gnome_exit(&mut self, pos: Pos, id: (Faction, EntityId)) {
-        Self::get_tile_mut(&mut self.cells, pos)
+        Self::cell_get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .remove(&Content::Entity(id));
     }
@@ -183,7 +200,7 @@ impl Grid {
     }
 
     pub fn add(&mut self, pos: Pos, content: Content) -> Option<()> {
-        Self::get_tile_mut(&mut self.cells, pos)?.add(content);
+        Self::cell_get_tile_mut(&mut self.cells, pos)?.add(content);
         if let Content::Item(id) = content {
             *self.stocks.entry(id).or_insert(0) += 1;
         }
@@ -191,7 +208,7 @@ impl Grid {
     }
 
     pub fn remove(&mut self, pos: Pos, content: Content) -> Option<Content> {
-        let old_contents = Self::get_tile_mut(&mut self.cells, pos)?.remove(&content)?;
+        let old_contents = Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content)?;
         if let Content::Item(id) = old_contents {
             *self.stocks.get_mut(&id).expect("Map stock mismatch") -= 1;
         }
@@ -339,7 +356,7 @@ impl Grid {
     }
 
     pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
-        let tile = Self::get_tile_mut(&mut self.cells, pos).unwrap();
+        let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
         tile.contents.retain(|content| {
             if let Content::Job(job_id) = content {
                 events.jobs.remove(job_id);
@@ -373,7 +390,7 @@ impl Grid {
     }
 
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ItemId>) {
-        if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
+        if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             if tile.contains(&Content::Block(self.chest_id)) {
                 // for now just don't bother...
                 return;
@@ -399,7 +416,7 @@ impl Grid {
         if items.is_empty() {
             return;
         }
-        if let Some(tile) = Self::get_tile_mut(&mut self.cells, pos) {
+        if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             if !tile.contains(&Content::Block(self.chest_id)) {
                 // No chest here...
                 return;

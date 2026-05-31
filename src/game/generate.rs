@@ -1841,10 +1841,4 @@ pub fn generate(game: &mut Game) {
         }
     }
 
-    // fixup is_walkable
-    for y in 0..size.y {
-        for x in 0..size.x {
-            grid.update_walkable((x, y).into());
-        }
-    }
 }

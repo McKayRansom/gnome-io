@@ -5,19 +5,19 @@
     "stone": (
         id: 100,
         sprite: "stone",
-        solid: true,
+        flags: ("SOLID"),
         requires: ["stone"],
     ),
     "ore": (
         id: 101,
-        solid: true,
+        flags: ("SOLID"),
         drops: [(1.0, "stone")],
     ),
 
     // plants
     "tree": (
         id: 200,
-        solid: true,
+        flags: ("SOLID"),
         drops: [(1.0, "wood")],
     ),
     "wheat_0": (

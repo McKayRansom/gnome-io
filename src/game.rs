@@ -75,16 +75,7 @@ impl Game {
         }
     }
 
-    // NOTE: Must be re-enterant if we want hot-reloading to work...!
     pub async fn load_ctx(&mut self) {
-        // Theory of safe-ctx loading:
-        // 1. Save all current ids to disk
-        // 2. Load up all new ids
-        // 3. Reload world from disk, lookup new ids
-
-        // BUT THAT"S TOO MUCH WORK!!!
-        // for now: let's just not change the IDs for a while...
-
         self.game_ctx.events.load();
         self.game_ctx.items.load().await;
         self.game_ctx
@@ -110,6 +101,8 @@ impl Game {
 
         game.load_ctx().await;
 
+        game.grid.fixup(&mut game.game_ctx);
+
         Ok(game)
     }
 
@@ -132,6 +125,7 @@ impl Game {
         generate::generate(self);
 
         // why
+        self.grid.fixup(&mut self.game_ctx);
 
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
