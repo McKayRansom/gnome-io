@@ -151,7 +151,7 @@ impl Game {
         // spawn some wheat
         for _ in 0..32 {
             // self.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
-            self.gen_item(start_pos, "wheat_grain");
+            self.gen_item(start_pos, "grain");
             self.gen_item(start_pos, "bread");
         }
 

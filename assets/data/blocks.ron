@@ -2,16 +2,16 @@
 (blocks: {
 
     // natural
-    "stone_block": (
+    "stone": (
         id: 100,
         sprite: "stone",
         solid: true,
-        requires: ["stone_item"],
+        requires: ["stone"],
     ),
     "ore": (
         id: 101,
         solid: true,
-        drops: [(1.0, "stone_item")],
+        drops: [(1.0, "stone")],
     ),
 
     // plants
@@ -23,7 +23,7 @@
     "wheat_0": (
         id: 201,
         // TODO: Change farm to require what's listed here...
-        requires: ["wheat_grain"],
+        requires: ["grain"],
         growth: Some((days: 1, into: "wheat_1")),
     ),
     "wheat_1": (
@@ -40,7 +40,7 @@
     ),
     "wheat_4": (
         id: 205,
-        drops: [(1.0, "wheat_grain"), (1.0, "wheat_grain"), (0.2, "wheat_grain")],
+        drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
         // TODO: These should be removed, farm should somehow insert there...
         place_event: Some("farm"),
         mine_event: Some("farm"),
@@ -66,8 +66,5 @@
         requires: ["stone"],
     ),
     
-},
-aliases: {
-    // for backwards-compatablity, names must not change otherwise...
-    "stone": "stone_block",
-})
+}
+)

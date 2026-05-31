@@ -18,7 +18,6 @@ pub struct Items {
 #[derive(Debug, Clone, Deserialize)]
 struct ItemsSave {
     items: FxHashMap<String, ItemInfoSave>,
-    aliases: FxHashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -115,16 +114,6 @@ impl Items {
                 log::error!("Item definition not found for '{}' (id: {})", name, id);
             }
         }
-
-        for (alias, name) in items_save.aliases.iter() {
-            self.ids.insert(
-                alias.clone(),
-                *self.ids.get(name).unwrap_or_else(|| {
-                    log::error!("No item name '{}' for alias '{}'", name, alias);
-                    &ITEM_NONE
-                }),
-            );
-        }
     }
 }
 
@@ -152,14 +141,14 @@ mod tests {
 
     #[test]
     fn load_ids() {
-        let original = br#"(items: { "wood": (id: 1), "stone_item": (id: 2) }, aliases: {})"#;
+        let original = br#"(items: { "wood": (id: 1), "stone": (id: 2) })"#;
         let mut items = Items::default();
         items.load_from_bytes(original);
 
         // Capture ids as if they'd been baked into a save file.
         let wood = items.get_id("wood").expect("wood id");
         assert_eq!(wood, 1);
-        let stone = items.get_id("stone_item").expect("stone id");
+        let stone = items.get_id("stone").expect("stone id");
         assert_eq!(stone, 2);
         assert!(wood > 0 && stone > 0 && wood != stone);
     }

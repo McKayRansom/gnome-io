@@ -2,7 +2,7 @@
     items:
 {
     // world
-    "stone_item": (
+    "stone": (
         id: 100,
         sprite: "stone_item",
     ),
@@ -11,7 +11,7 @@
     "wood": (
         id: 200,
     ),
-    "wheat_grain": (
+    "grain": (
         id: 201,
     ),
 
@@ -19,7 +19,7 @@
     "bread": (
         id: 300,
         // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
-        recipe: Some(("furnace", ["wheat_grain"])),
+        recipe: Some(("furnace", ["grain"])),
     ),
 
     // other
@@ -29,9 +29,4 @@
     ),
     
 },
-    aliases: 
-{
-    "dead gnome": "dead_gnome",
-    "stone": "stone_item",
-}
 )

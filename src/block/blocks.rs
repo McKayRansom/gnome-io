@@ -21,7 +21,6 @@ type BlockIds = FxHashMap<String, BlockId>;
 pub struct Blocks {
     #[serde(skip_deserializing, skip_serializing)]
     infos: BlockInfos,
-    // may have duplicate BlockId entries for aliases
     // saved only so we can check for changes and/or future migrations if required...
     ids: BlockIds,
 }
@@ -30,7 +29,6 @@ pub struct Blocks {
 #[derive(Debug, Clone, Deserialize)]
 struct BlocksSave {
     blocks: FxHashMap<String, BlockInfoSave>,
-    aliases: FxHashMap<String, String>,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -229,18 +227,6 @@ impl Blocks {
                 log::error!("No block info for block '{}' (id: {})", name, id);
             }
         }
-
-        for (alias, name) in blocks_save.aliases.iter() {
-            if !self.ids.contains_key(alias) {
-                self.ids.insert(
-                    alias.clone(),
-                    *self.ids.get(name).unwrap_or_else(|| {
-                        log::error!("No block name '{}' for alias '{}'", name, alias);
-                        &BLOCK_NONE
-                    }),
-                );
-            }
-        }
     }
 }
 
@@ -258,8 +244,8 @@ mod tests {
         // NOTE: This will spit out all sorts of errors but still run
         blocks.load_from_bytes(&bytes, &items, &events);
 
-        assert!(blocks.ids.get("stone_block").is_some_and(|id| *id > 0));
-        let stone_id = blocks.ids["stone_block"];
+        assert!(blocks.ids.get("stone").is_some_and(|id| *id > 0));
+        let stone_id = blocks.ids["stone"];
 
         let stone_info = &blocks.infos[&stone_id];
         assert_eq!(stone_info.sprite, "stone");
@@ -273,7 +259,7 @@ mod tests {
         let events = EventNames::default();
 
         let original =
-            br#"(blocks: { "dirt": (id: 1), "rock": (solid: true, id: 2) }, aliases: {})"#;
+            br#"(blocks: { "dirt": (id: 1), "rock": (solid: true, id: 2) })"#;
         let mut blocks = Blocks::default();
         blocks.load_from_bytes(original, &items, &events);
 
