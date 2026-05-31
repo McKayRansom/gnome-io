@@ -1,6 +1,5 @@
-use std::collections::HashMap;
-
 use quad_lib::storage::{LoadResult, SaveResult, Storage};
+use rustc_hash::FxHashMap;
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
@@ -41,7 +40,7 @@ pub struct GameCtx {
     pub events: EventManager,
 }
 
-pub type Entities = HashMap<EntityId, Entity>;
+pub type Entities = FxHashMap<EntityId, Entity>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Game {
@@ -63,7 +62,7 @@ impl Game {
         Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
-            entities: HashMap::new(),
+            entities: Entities::default(),
             entity_id: 1,
             grid: Grid::new(DEFAULT_SIZE),
             job_manager: JobManager::new(),

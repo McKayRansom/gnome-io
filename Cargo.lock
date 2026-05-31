@@ -566,6 +566,7 @@ dependencies = [
  "macroquad",
  "nanoserde 0.2.1",
  "quad-storage",
+ "rustc-hash",
  "sapp-console-log",
 ]
 

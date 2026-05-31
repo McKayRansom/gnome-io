@@ -12,9 +12,11 @@
         requires: ["stone_item"],
     ),
     "ore": (
+        solid: true,
         drops: [(1.0, "stone_item")],
     ),
     "tree": (
+        solid: true,
         drops: [(1.0, "wood")],
     ),
     "furnace": (

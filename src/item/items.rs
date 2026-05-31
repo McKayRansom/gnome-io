@@ -97,18 +97,35 @@ impl Items {
         let items_save: ItemsSave =
             ron::de::from_bytes(&bytes).expect("Failed to deserialize items!");
 
-        //  do item_ids first
-        let mut item_id: ItemId = 1;
-        for item_name in items_save.items.keys() {
-            self.item_ids.insert(item_name.clone(), item_id);
-            item_id += 1;
+        // Do item_ids first.
+        //
+        // ID stability: item_ids is persisted in the save, so any name we've
+        // already assigned keeps its id (the contains_key guard). New items are
+        // appended past the current max id so they never collide with ids baked
+        // into existing saves. Sorting the new names keeps first-time assignment
+        // deterministic instead of depending on hash iteration order.
+        let mut next_id: ItemId = self.item_ids.values().copied().max().unwrap_or(0) + 1;
+        let mut new_names: Vec<&String> = items_save
+            .items
+            .keys()
+            .filter(|name| !self.item_ids.contains_key(*name))
+            .collect();
+        new_names.sort();
+        for item_name in new_names {
+            self.item_ids.insert(item_name.clone(), next_id);
+            next_id += 1;
         }
 
         for (item_name, item_type_save) in items_save.items.iter() {
-            self.item_list.insert(
-                self.item_ids[item_name],
-                item_type_save.convert(item_name, &self.item_ids),
-            );
+            let id = self.item_ids[item_name];
+            let info = item_type_save.convert(item_name, &self.item_ids);
+            if !self.item_list.contains_key(&id) {
+                self.item_list.insert(id, info);
+            } else {
+                if self.item_list[&id] != info {
+                    log::warn!("Item info changed for item {}", item_name);
+                }
+            }
         }
 
         for (alias, name) in items_save.aliases.iter() {
@@ -143,5 +160,32 @@ mod tests {
                 .get(&stone_id)
                 .is_some_and(|info| info.recipe.is_none() && info.sprite == "stone_item")
         );
+    }
+
+    // Saves persist item_ids and store raw ItemId values inside the world, so an
+    // id assigned to a name must never change when items.ron is later edited.
+    #[test]
+    fn ids_are_stable_when_data_changes() {
+        let original = br#"(items: { "wood": (), "stone_item": () }, aliases: {})"#;
+        let mut items = Items::default();
+        items.load_from_bytes(original);
+
+        // Capture ids as if they'd been baked into a save file.
+        let wood = items.get_item_id("wood").expect("wood id");
+        let stone = items.get_item_id("stone_item").expect("stone id");
+        assert!(wood > 0 && stone > 0 && wood != stone);
+
+        // Reload a newer data file that adds an item, with the previously
+        // assigned ids already present (as they would be coming from a save).
+        let extended = br#"(items: { "wood": (), "stone_item": (), "gold": () }, aliases: {})"#;
+        items.load_from_bytes(extended);
+
+        // Existing ids must not move...
+        assert_eq!(items.get_item_id("wood"), Some(wood));
+        assert_eq!(items.get_item_id("stone_item"), Some(stone));
+        // ...and the new item gets a fresh, non-colliding id.
+        let gold = items.get_item_id("gold").expect("gold id");
+        assert_ne!(gold, wood);
+        assert_ne!(gold, stone);
     }
 }

@@ -1,5 +1,3 @@
-use std::collections::HashMap;
-
 use crate::{
     block::{BLOCK_NONE, BlockId},
     entity::{EntityId, Faction},
@@ -16,6 +14,7 @@ use crate::{
 pub mod pos;
 use macroquad::rand;
 pub use pos::Pos;
+use rustc_hash::FxHashMap;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
@@ -23,7 +22,7 @@ pub struct Grid {
     pub chest_id: BlockId,
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
-    pub stocks: HashMap<ItemId, usize>,
+    pub stocks: FxHashMap<ItemId, usize>,
 }
 
 pub const GROWTH_EVENT: u32 = 20;
@@ -46,7 +45,7 @@ impl Grid {
             chest_id: BLOCK_NONE,
             size,
             cells,
-            stocks: HashMap::new(),
+            stocks: FxHashMap::default(),
         }
     }
 

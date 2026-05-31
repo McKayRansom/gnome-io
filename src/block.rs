@@ -19,20 +19,3 @@ pub struct BlockType {
     // what it needs to be built
     pub requires: Vec<ItemId>,
 }
-
-// impl Default for BlockType {
-//     fn default() -> Self {
-//         Self {
-//             name: "unknown".into(),
-//             sprite: "unknown".into(),
-//             drops: Vec::new(),
-//             walkable: true,
-//             growth: None,
-//             place_event: None,
-//             mine_event: None,
-//             requires: Vec::new(),
-//         }
-//     }
-// }
-
-impl BlockType {}

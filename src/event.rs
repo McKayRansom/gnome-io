@@ -1,4 +1,4 @@
-use std::collections::{HashMap, VecDeque};
+use std::collections::VecDeque;
 
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -53,12 +53,12 @@ pub struct EventManager {
     // one queue per event for now
     // TODO: Serialize/deserialize with string
     // #[serde(skip_deserializing, skip_serializing)]
-    events: HashMap<EventId, VecDeque<Event>>,
+    events: FxHashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
     // OOF HOW DO THIS?
     // #[serde(skip_deserializing, skip_serializing)]
     pub timers: Vec<Timer>,
-    pub jobs: HashMap<JobId, Job>,
+    pub jobs: FxHashMap<JobId, Job>,
     pub job_id: JobId,
 }
 
@@ -66,9 +66,9 @@ impl EventManager {
     pub fn new() -> Self {
         Self {
             event_names: EventNames::default(),
-            events: HashMap::new(),
+            events: FxHashMap::default(),
             timers: Vec::new(),
-            jobs: HashMap::new(),
+            jobs: FxHashMap::default(),
             job_id: 1,
         }
     }
