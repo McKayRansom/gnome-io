@@ -1,4 +1,3 @@
-
 use macroquad::file::load_file;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
@@ -44,6 +43,7 @@ struct GrowthSave {
 
 #[derive(Debug, Clone, Deserialize)]
 struct BlockTypeSave {
+    id: BlockId,
     /// Sprite name in spritesheet.ron, could be moved to IDs later if needed
     #[serde(default)]
     sprite: String,
@@ -196,33 +196,26 @@ impl Blocks {
         let blocks_save: BlocksSave =
             ron::de::from_bytes(bytes).expect("Failed to deserialize blocks!");
 
-        // Do block_id's first so we can reference them in terms of growth.
-        //
-        // ID stability: block_ids is persisted in the save, so any name we've
-        // already assigned keeps its id (the contains_key guard). New blocks are
-        // appended past the current max id so they never collide with ids baked
-        // into existing saves. Sorting the new names keeps first-time assignment
-        // deterministic instead of depending on hash iteration order.
-        let mut next_id: BlockId = self.block_ids.values().copied().max().unwrap_or(0) + 1;
-        let mut new_names: Vec<&String> = blocks_save
-            .blocks
-            .keys()
-            .filter(|name| !self.block_ids.contains_key(*name))
-            .collect();
-        new_names.sort();
-        for block_name in new_names {
-            self.block_ids.insert(block_name.clone(), next_id);
-            next_id += 1;
-        }
         for (block_name, block_type_save) in blocks_save.blocks.iter() {
-            let id = self.block_ids[block_name];
+            let id = block_type_save.id;
+            if let Some(old_id) = self.block_ids.insert(block_name.clone(), id) {
+                if old_id != id {
+                    log::error!(
+                        "Block Id changed for block '{}'! Was: {} Now: {}",
+                        block_name,
+                        old_id,
+                        id
+                    );
+                }
+            }
+        }
+
+        for (block_name, block_type_save) in blocks_save.blocks.iter() {
+            let id = block_type_save.id;
             let block_type = block_type_save.convert(block_name, &self.block_ids, items, events);
 
             if !self.block_list.contains_key(&id) {
-                self.block_list.insert(
-                    id,
-                    block_type,
-                );
+                self.block_list.insert(id, block_type);
             } else {
                 if self.block_list[&id] != block_type {
                     log::warn!("Overwritting block info for block {}", block_name);
@@ -230,16 +223,23 @@ impl Blocks {
             }
         }
 
+        // verify no missing
+        for (name, id) in self.block_ids.iter() {
+            if !self.block_list.contains_key(id) {
+                log::error!("No block info for block '{}' (id: {})", name, id);
+            }
+        }
+
         for (alias, name) in blocks_save.aliases.iter() {
             if !self.block_ids.contains_key(alias) {
-            self.block_ids.insert(
-                alias.clone(),
-                *self.block_ids.get(name).unwrap_or_else(|| {
-                    log::error!("No block name '{}' for alias '{}'", name, alias);
-                    &BLOCK_NONE
-                }),
-            );
-        }
+                self.block_ids.insert(
+                    alias.clone(),
+                    *self.block_ids.get(name).unwrap_or_else(|| {
+                        log::error!("No block name '{}' for alias '{}'", name, alias);
+                        &BLOCK_NONE
+                    }),
+                );
+            }
         }
     }
 }
@@ -249,7 +249,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_load_items() {
+    fn load_blocks() {
         let mut blocks = Blocks::default();
         let items = Items::default();
         let events = EventNames::default();
@@ -272,33 +272,20 @@ mod tests {
         assert!(!stone_info.walkable);
     }
 
-    // Saves persist block_ids and store raw BlockId values inside the world, so
-    // an id assigned to a name must never change when blocks.ron is later edited.
     #[test]
-    fn ids_are_stable_when_data_changes() {
+    fn load_ids() {
         let items = Items::default();
         let events = EventNames::default();
 
-        let original = br#"(blocks: { "dirt": (), "rock": (solid: true) }, aliases: {})"#;
+        let original =
+            br#"(blocks: { "dirt": (id: 1), "rock": (solid: true, id: 2) }, aliases: {})"#;
         let mut blocks = Blocks::default();
         blocks.load_from_bytes(original, &items, &events);
 
         // Capture ids as if they'd been baked into a save file.
         let dirt = blocks.get_id("dirt").expect("dirt id");
+        assert_eq!(dirt, 1);
         let rock = blocks.get_id("rock").expect("rock id");
-        assert!(dirt > 0 && rock > 0 && dirt != rock);
-
-        // Reload a newer data file that adds a block, with the previously
-        // assigned ids already present (as they would be coming from a save).
-        let extended = br#"(blocks: { "dirt": (), "rock": (solid: true), "sand": () }, aliases: {})"#;
-        blocks.load_from_bytes(extended, &items, &events);
-
-        // Existing ids must not move...
-        assert_eq!(blocks.get_id("dirt"), Some(dirt));
-        assert_eq!(blocks.get_id("rock"), Some(rock));
-        // ...and the new block gets a fresh, non-colliding id.
-        let sand = blocks.get_id("sand").expect("sand id");
-        assert_ne!(sand, dirt);
-        assert_ne!(sand, rock);
+        assert_eq!(rock, 2);
     }
 }

@@ -1,18 +1,33 @@
 (
     items:
 {
-    "dead_gnome": (
-        sprite: "gnome_dead",
-    ),
+    // world
     "stone_item": (
+        id: 100,
         sprite: "stone_item",
     ),
-    "wood": (),
-    "wheat_grain": (),
+
+    // plants
+    "wood": (
+        id: 200,
+    ),
+    "wheat_grain": (
+        id: 201,
+    ),
+
+    // man-made
     "bread": (
+        id: 300,
         // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
         recipe: Some(("furnace", ["wheat_grain"])),
     ),
+
+    // other
+    "dead_gnome": (
+        id: 400,
+        sprite: "gnome_dead",
+    ),
+    
 },
     aliases: 
 {

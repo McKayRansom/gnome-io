@@ -23,6 +23,7 @@ struct ItemsSave {
 
 #[derive(Debug, Clone, Deserialize)]
 struct ItemTypeSave {
+    id: ItemId,
     #[serde(default)]
     sprite: String,
     #[serde(default)]
@@ -80,12 +81,6 @@ impl Items {
     }
 
     pub async fn load(&mut self) {
-        // clear any old data...
-        // assert!(
-        //     self.item_list.is_empty(),
-        //     "Items already loaded! Not safe to proceed!"
-        // );
-
         // load new stuff
         let ron_str = macroquad::file::load_file("assets/data/items.ron")
             .await
@@ -97,27 +92,23 @@ impl Items {
         let items_save: ItemsSave =
             ron::de::from_bytes(&bytes).expect("Failed to deserialize items!");
 
-        // Do item_ids first.
-        //
-        // ID stability: item_ids is persisted in the save, so any name we've
-        // already assigned keeps its id (the contains_key guard). New items are
-        // appended past the current max id so they never collide with ids baked
-        // into existing saves. Sorting the new names keeps first-time assignment
-        // deterministic instead of depending on hash iteration order.
-        let mut next_id: ItemId = self.item_ids.values().copied().max().unwrap_or(0) + 1;
-        let mut new_names: Vec<&String> = items_save
-            .items
-            .keys()
-            .filter(|name| !self.item_ids.contains_key(*name))
-            .collect();
-        new_names.sort();
-        for item_name in new_names {
-            self.item_ids.insert(item_name.clone(), next_id);
-            next_id += 1;
+        for (item_name, item_type_save) in items_save.items.iter() {
+            let id = item_type_save.id;
+
+            if let Some(old_id) = self.item_ids.insert(item_name.clone(), id) {
+                if old_id != id {
+                    log::error!(
+                        "Item id changed for '{}'! Was: {} Now: {}",
+                        item_name,
+                        old_id,
+                        id
+                    );
+                }
+            }
         }
 
         for (item_name, item_type_save) in items_save.items.iter() {
-            let id = self.item_ids[item_name];
+            let id = item_type_save.id;
             let info = item_type_save.convert(item_name, &self.item_ids);
             if !self.item_list.contains_key(&id) {
                 self.item_list.insert(id, info);
@@ -125,6 +116,13 @@ impl Items {
                 if self.item_list[&id] != info {
                     log::warn!("Item info changed for item {}", item_name);
                 }
+            }
+        }
+
+        // verify we aren't missing anything...
+        for (name, id) in self.item_ids.iter() {
+            if !self.item_list.contains_key(id) {
+                log::error!("Item definition not found for '{}' (id: {})", name, id);
             }
         }
 
@@ -145,7 +143,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_load_items() {
+    fn load_items() {
         let mut items = Items::default();
         let bytes = std::fs::read("assets/data/items.ron").expect("Failed to load items.ron");
 
@@ -162,30 +160,17 @@ mod tests {
         );
     }
 
-    // Saves persist item_ids and store raw ItemId values inside the world, so an
-    // id assigned to a name must never change when items.ron is later edited.
     #[test]
-    fn ids_are_stable_when_data_changes() {
-        let original = br#"(items: { "wood": (), "stone_item": () }, aliases: {})"#;
+    fn load_ids() {
+        let original = br#"(items: { "wood": (id: 1), "stone_item": (id: 2) }, aliases: {})"#;
         let mut items = Items::default();
         items.load_from_bytes(original);
 
         // Capture ids as if they'd been baked into a save file.
         let wood = items.get_item_id("wood").expect("wood id");
+        assert_eq!(wood, 1);
         let stone = items.get_item_id("stone_item").expect("stone id");
+        assert_eq!(stone, 2);
         assert!(wood > 0 && stone > 0 && wood != stone);
-
-        // Reload a newer data file that adds an item, with the previously
-        // assigned ids already present (as they would be coming from a save).
-        let extended = br#"(items: { "wood": (), "stone_item": (), "gold": () }, aliases: {})"#;
-        items.load_from_bytes(extended);
-
-        // Existing ids must not move...
-        assert_eq!(items.get_item_id("wood"), Some(wood));
-        assert_eq!(items.get_item_id("stone_item"), Some(stone));
-        // ...and the new item gets a fresh, non-colliding id.
-        let gold = items.get_item_id("gold").expect("gold id");
-        assert_ne!(gold, wood);
-        assert_ne!(gold, stone);
     }
 }
