@@ -80,16 +80,16 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 let Some(block) = game_ctx.blocks.get_info(&block) else {
                     panic!("No block found fo id {}", block);
                 };
-                if block.sprite == "stone" {
+                if block.solid() {
                     // jank
-                    ctx.tileset.draw_tile("stone_floor", &dest, colors::WHITE);
+                    ctx.tileset.draw_tile(&block.sprite, &dest, colors::WHITE);
                     for dir in dirs::ALL {
                         if grid
                             .get_tile(pos + dir)
                             .is_none_or(|tile| tile.solid() == false)
                         {
                             ctx.tileset.draw_tile_rot(
-                                &block.sprite,
+                                "stone",
                                 colors::WHITE,
                                 &dest,
                                 dirs::to_radians(dir),

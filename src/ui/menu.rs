@@ -8,7 +8,7 @@ use macroquad::{
     window::{screen_height, screen_width},
 };
 
-use crate::ui::skin::{MENU_FONT_SIZE, MENU_MARGIN};
+use crate::ui::skin::{BUTTON_INNER_MARGIN, MENU_FONT_SIZE, MENU_MARGIN};
 
 use super::skin::{BUTTON_MARGIN, MENU_OUTER_MARGIN};
 
@@ -50,8 +50,8 @@ impl<V> Menu<V> {
         );
 
         let menu_width = MENU_MARGIN * 1. + button_size.x + MENU_OUTER_MARGIN * 2.;
-        let menu_height = (MENU_MARGIN + button_size.y) * self.items.len() as f32
-            + MENU_MARGIN * 3.
+        let menu_height = (BUTTON_INNER_MARGIN.1 * 2.0 + button_size.y) * self.items.len() as f32
+            + MENU_MARGIN * 0.
             + MENU_OUTER_MARGIN * 2.;
 
         let mut selected = None;

@@ -40,6 +40,7 @@ enum PauseMenuSelect {
     Continue,
     Save,
     Load,
+    Menu,
     Quit,
     // Restart,
 }
@@ -58,6 +59,7 @@ pub struct Gameplay {
 pub enum GameEvent {
     Load,
     Reload,
+    Quit,
 }
 
 const WASD_MOVE_SENSITIVITY: f32 = 20.;
@@ -89,8 +91,10 @@ impl Gameplay {
                 vec![
                     ToolbarItem::new("stone", "Stone wall", '1', "stone_wall".into()),
                     ToolbarItem::new("chest", "Chest", '2', "chest".into()),
-                    ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
-                    ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
+                    ToolbarItem::new("stairs", "Stairs", '3', "stairs".into()),
+                    ToolbarItem::new("door", "Door", '4', "door".into()),
+                    // ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
+                    // ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '5', "bed".into()),
                 ],
             ),
@@ -113,14 +117,15 @@ impl Gameplay {
                 MenuItem::new(PauseMenuSelect::Continue, "Close".to_string()),
                 MenuItem::new(PauseMenuSelect::Save, "Save".to_string()),
                 MenuItem::new(PauseMenuSelect::Load, "Load".to_string()),
-                MenuItem::new(PauseMenuSelect::Quit, "Menu".to_string()),
+                MenuItem::new(PauseMenuSelect::Menu, "Menu".to_string()),
+                MenuItem::new(PauseMenuSelect::Quit, "Quit".to_string()),
                 // MenuItem::new(PauseMenuSelect::Restart, "Restart".to_string()),
             ]),
         }
     }
 
     // try and keep async contained for my own sanity...
-    pub async fn events(&mut self, event: GameEvent, ctx: &mut Context) {
+    pub async fn events(&mut self, event: GameEvent, ctx: &mut Context) -> bool {
         match event {
             // GameEvent::Generate => {
             //     self.game = Game::new(get_time());
@@ -136,7 +141,12 @@ impl Gameplay {
                 ctx.reload().await;
                 self.game.load_ctx().await;
             }
+            GameEvent::Quit => {
+                // TODO: Are you sure??? prompt
+                return true;
+            }
         }
+        false
     }
 
     pub fn update(&mut self, ctx: &mut Context) -> Option<GameEvent> {
@@ -236,7 +246,9 @@ impl Gameplay {
                             event = Some(GameEvent::Load);
                             // println!("SAVED GAME");
                         }
+                        PauseMenuSelect::Menu => {}
                         PauseMenuSelect::Quit => {
+                            event = Some(GameEvent::Quit);
                             // ctx.switch_scene_to = Some(crate::scene::EScene::MainMenu)
                         } // PauseMenuSelect::Restart => {
                           // ctx.switch_scene_to = Some(crate::scene::EScene::Gameplay(Box::new(

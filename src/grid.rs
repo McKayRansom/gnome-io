@@ -51,11 +51,18 @@ impl Grid {
     }
 
     pub fn fixup(&mut self, game_ctx: &mut GameCtx) {
-        // fixup is_walkable
+        // we have to do 2 passes
+        // first we update tile flags
         for y in 0..self.size.y {
             for x in 0..self.size.x {
                 let pos = (x, y).into();
                 self.get_tile_mut(pos).unwrap().fixup(game_ctx);
+            }
+        }
+        // then we can update walkable based on those flags...
+        for y in 0..self.size.y {
+            for x in 0..self.size.x {
+                let pos = (x, y).into();
                 self.update_walkable(pos);
             }
         }

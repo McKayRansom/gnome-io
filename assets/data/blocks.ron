@@ -4,7 +4,7 @@
     // natural
     "stone": (
         id: 100,
-        sprite: "stone",
+        sprite: "stone_floor",
         flags: ("SOLID"),
         requires: ["stone"],
     ),
@@ -66,6 +66,15 @@
         flags: ("STORAGE"),
         requires: ["stone"],
     ),
-    
+    "stairs": (
+        id: 304,
+        flags: ("CLIMBABLE"),
+        requires: ["stone"],
+    ),
+    "door": (
+        id: 305,
+        flags: ("CLIMBABLE"),
+        requires: ["stone"],
+    )    
 }
 )

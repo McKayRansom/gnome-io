@@ -69,10 +69,14 @@ async fn main() {
     loop {
         ctx.update();
         if let Some(event) = g.update(&mut ctx) {
-            g.events(event, &mut ctx).await;
+            if g.events(event, &mut ctx).await  {
+                break;
+            }
         }
         if let Some(event) = g.draw(&mut ctx) {
-            g.events(event, &mut ctx).await;
+            if g.events(event, &mut ctx).await  {
+                break;
+            }
         }
         next_frame().await;
     }

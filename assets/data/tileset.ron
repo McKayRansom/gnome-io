@@ -6,10 +6,10 @@
         "sky",
         "stone",
         "stone_wall",
-        "",
-        "",
+        "stairs",
+        "mushroom",
         "bed",
-        "",
+        "door",
     ],
     [
         "",
@@ -54,7 +54,7 @@
         "tree_old",
         "wood",
         "tree?",
-        "wheat_grain",
+        "grain",
     ],
     [
         "think",
