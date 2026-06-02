@@ -248,7 +248,7 @@ mod tests {
         let stone_id = blocks.ids["stone"];
 
         let stone_info = &blocks.infos[&stone_id];
-        assert_eq!(stone_info.sprite, "stone");
+        assert_eq!(stone_info.sprite, "stone_floor");
         assert_eq!(stone_info.requires, vec![0]);
         assert!(stone_info.solid());
     }

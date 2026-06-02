@@ -3,7 +3,7 @@
 
 use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
-    game::{GameCtx, Tick, time::hours},
+    game::{GameCtx, Tick},
     grid::{Grid, Pos},
     job::Job,
     tile::Content,
@@ -38,32 +38,21 @@ use crate::{
 // #[derive(Serialize, Deserialize, Default, Debug)]
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Gnome {
-    base: BaseEntity,
+    pub base: BaseEntity,
 
     job: Option<Job>,
     path: Vec<Pos>,
     // items: Vec<ItemId>,
 
-    // feel like this could be elsewhere?
-    tired: u16,
-    food: u16,
-    sleeping: bool,
+    // food: u16,
+    #[serde(default)]
+    pub sleeping: bool,
+    #[serde(default)]
+    pub eating: bool,
 }
 
 pub const GNOME_SPEED: Tick = 20;
 pub const GNOME_FACTION: Faction = 1;
-
-const BASE_TIRED: u16 = hours(20);
-// const SLOW_TIRED: u16 = hours(2);
-const BASE_FOOD: u16 = hours(20);
-
-// pub const SLEEP_TIRED: u16 = hours(4);
-pub const FOOD_EAT: u16 = hours(4);
-
-// const PASS_OUT_TIME: u16 = hours(6);
-// const SLEEP_TIME: u16 = hours(4);
-
-const BASE_HEALTH: u8 = 10;
 
 impl Gnome {
     pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
@@ -74,16 +63,17 @@ impl Gnome {
                 id,
                 faction: GNOME_FACTION,
                 pos,
-                food: BASE_FOOD,
-                health: BASE_HEALTH,
+                food: super::BASE_FOOD,
+                health: super::BASE_HEALTH,
                 ..Default::default()
             },
             job: None,
             path: Vec::new(),
 
-            tired: BASE_TIRED,
-            food: BASE_FOOD,
+            // tired: super::BASE_TIRED,
+            // food: BASE_FOOD,
             sleeping: false,
+            eating: false,
         }
     }
 
@@ -145,9 +135,10 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        self.tired = self.tired.saturating_sub(1);
+        self.base.tired = self.base.tired.saturating_sub(1);
         self.base.lag = 0;
         self.sleeping = false;
+        self.eating = false;
 
         if !self.path.is_empty() {
             //if self.tired < SLOW_TIRED {
@@ -163,41 +154,42 @@ impl EntityBehaviour for Gnome {
         }
 
         // this feels a bit not-optimial but IDK
-        // if self.tired < SLEEP_TIRED {
-        //     if grid
-        //         .get_tile(self.pos)
-        //         .unwrap()
-        //         .get_block()
-        //         .is_some_and(|block| block == blocks::BED_ID)
-        //     {
-        //         // great, sleep here
-        //         self.sleeping = true;
-        //         self.tired = BASE_TIRED;
-        //         self.timer = SLEEP_TIME;
-        //         if self.health < BASE_HEALTH {
-        //             self.health += 1;
-        //         }
-        //         return;
-        //     } else if let Some(path) =
-        //         grid.find_path(self.pos, self.pos, Some(Content::Block(blocks::BED_ID)))
-        //     {
-        //         // move to bed
-        //         // TODO: Only unoccupied bed...
-        //         self.path = path;
-        //         return;
-        //     } else {
-        //         // log::warn("Unable to find bed...")
-        //         if self.tired == 0 {
-        //             // pass out on the spot
-        //             self.tired = BASE_TIRED;
-        //             self.timer = PASS_OUT_TIME;
-        //             self.sleeping = true;
-        //             return;
-        //         }
-        //     }
-        // }
+        if self.base.is_tired() {
+            let bed_id = game_ctx.blocks.get_id("bed").unwrap();
+            if grid
+                .get_tile(self.base.pos)
+                .unwrap()
+                .get_block()
+                .is_some_and(|block| block == bed_id)
+            {
+                // great, sleep here
+                self.sleeping = true;
+                self.base.tired = super::BASE_TIRED;
+                self.base.timer = super::SLEEP_TIME;
+                if self.base.health < super::BASE_HEALTH {
+                    self.base.health += 1;
+                }
+                return None;
+            } else if let Some(path) =
+                grid.find_path(self.base.pos, self.base.pos, Some(Content::Block(bed_id)))
+            {
+                // move to bed
+                // TODO: Only unoccupied bed...
+                self.path = path;
+                return None;
+            } else {
+                // log::warn("Unable to find bed...")
+                if self.base.tired == 0 {
+                    // pass out on the spot
+                    self.base.tired = super::BASE_TIRED;
+                    self.base.timer = super::PASS_OUT_TIME;
+                    self.sleeping = true;
+                    return None;
+                }
+            }
+        }
 
-        if self.food < FOOD_EAT {
+        if self.base.is_hungry() {
             // TODO: This is the same as below...
             // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
@@ -206,15 +198,17 @@ impl EntityBehaviour for Gnome {
             if let Some(item) = grid.remove(self.base.pos, Content::Item(bread_id)) {
                 let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);
-                self.food = BASE_FOOD;
+                self.base.food = super::BASE_FOOD;
+                self.base.timer = super::FOOD_EAT_TIME;
                 // use up the bread...
                 let _ = item;
+                return None;
             } else if let Some(path) =
                 grid.find_path(self.base.pos, self.base.pos, Some(Content::Item(bread_id)))
             {
                 self.path = path;
                 return None;
-            } else if self.food == 0 {
+            } else if self.base.food == 0 {
                 self.base.health = self.base.health.saturating_sub(1);
                 if self.base.health == 0 {
                     return None;
@@ -227,8 +221,7 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let Some(job) =
-                grid.find_job(self.base.pos, &mut game_ctx.events, &mut self.base.items)
+            if let Some(job) = grid.find_job(&self.base, &mut game_ctx.events)
             {
                 self.job = Some(job);
             }

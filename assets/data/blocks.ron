@@ -25,6 +25,7 @@
         // TODO: Change farm to require what's listed here...
         requires: ["grain"],
         growth: Some((days: 1, into: "wheat_1")),
+        drops: [(0.0, "grain")],
     ),
     "wheat_1": (
         id: 202,

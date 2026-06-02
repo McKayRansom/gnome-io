@@ -7,6 +7,10 @@ use macroquad::{
 
 use crate::{
     context::Context,
+    entity::{
+        self, Entity,
+        gnome::Gnome,
+    },
     game::{Entities, Game, GameCtx},
     grid::{
         Grid, Pos,
@@ -124,45 +128,10 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
             for item in tile.iter_content() {
                 if let Content::Entity(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
-                    let gnome = entities.get(&gnome.1).unwrap().base();
-                    let _think_box: Rect = ctx.camera.to_screen_rect((pos + dirs::UP).into());
-
-                    // oh g oh f
-                    let mut dest_rect: Rect = gnome.pos.into();
-                    let flip = gnome.dir == dirs::LEFT || gnome.dir == dirs::DOWN;
-
-                    if gnome.lag > 0 {
-                        let dir: Vec2 = gnome.dir.into();
-
-                        let offset = dir * (gnome.timer as f32 / gnome.lag as f32);
-                        dest_rect = dest_rect.offset(offset);
-                        // dbg!(gnome, offset);
+                    match entities.get(&gnome.1).unwrap() {
+                        Entity::Gnome(gnome) => draw_gnome(game_ctx, ctx, gnome),
+                        _ => {}
                     }
-                    let dest = ctx.camera.to_screen_rect(dest_rect);
-                    // let diff =
-
-                    // if gnome.tired < SLEEP_TIRED {
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::BED, &think_box, colors::WHITE);
-                    // } else if gnome.sleeping {
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::SLEEP, &think_box, colors::WHITE);
-                    // } else if gnome.food < gnome::FOOD_EAT {
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::THINK, &think_box, colors::WHITE);
-                    //     ctx.tileset
-                    //         .draw_tile(sprites::BREAD, &think_box, colors::WHITE);
-                    // }
-                    ctx.tileset
-                        .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
-
-                    let mut item_start = dest.clone();
-                    item_start.y -= PIXEL_SIZE * 15.0 * ctx.camera.zoom;
-                    draw_items(game_ctx, ctx, &gnome.items, &item_start, 0.5);
                 }
             }
 
@@ -186,6 +155,60 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 }
             }
         }
+    }
+}
+
+fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
+    let mut dest_rect: Rect = gnome.base.pos.into();
+    let flip = gnome.base.dir == dirs::LEFT || gnome.base.dir == dirs::DOWN;
+
+    if gnome.base.lag > 0 {
+        let dir: Vec2 = gnome.base.dir.into();
+
+        let offset = dir * (gnome.base.timer as f32 / gnome.base.lag as f32);
+        dest_rect = dest_rect.offset(offset);
+        // dbg!(gnome, offset);
+    }
+    let dest = ctx.camera.to_screen_rect(dest_rect);
+
+    let mut item_start = dest.clone();
+    item_start.y -= PIXEL_SIZE * 15.0 * ctx.camera.zoom;
+
+    if gnome.base.tired < entity::SLEEP_TIRED {
+        ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+        ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
+
+        ctx.tileset
+            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
+
+        return;
+    } else if gnome.sleeping {
+        ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
+
+        // sleeping
+        ctx.tileset
+            .draw_tile_ex("gnome_sleep", colors::WHITE, &dest, flip);
+
+        return;
+    } else if gnome.eating {
+        // eating
+        ctx.tileset
+            .draw_tile_ex("gnome_eat", colors::WHITE, &dest, flip);
+
+        return;
+    } else if gnome.base.food < entity::FOOD_EAT {
+        ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+        ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
+
+        ctx.tileset
+            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
+
+        return;
+    } else {
+        draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
+
+        ctx.tileset
+            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
     }
 }
 

@@ -32,6 +32,7 @@ pub trait EntityBehaviour {
     fn update(&mut self, grid: &mut Grid, ctx: &mut GameCtx) -> Option<EntityAction>;
     fn die(&self, grid: &mut Grid, ctx: &mut GameCtx);
     fn attacked(&mut self);
+    #[allow(unused)]
     fn base(&self) -> &BaseEntity;
 }
 
@@ -58,7 +59,7 @@ impl Entity {
         }
     }
 
-    pub fn base(&self) -> &BaseEntity {
+    pub fn _base(&self) -> &BaseEntity {
         match self {
             Entity::Gnome(e) => e.base(),
             Entity::Goblin(e) => e.base(),
@@ -76,9 +77,31 @@ pub struct BaseEntity {
 
     pub food: u16,
     pub health: u8,
+    #[serde(default)]
+    pub tired: u16,
+
     pub timer: Tick,
     pub items: Vec<ItemId>,
 }
+
+// food values
+const BASE_FOOD: u16 = hours(20);
+pub const FOOD_EAT: u16 = hours(4);
+
+// eat time
+const FOOD_EAT_TIME: u16 = hours(1);
+
+// sleep values
+pub const BASE_TIRED: u16 = hours(20);
+// const SLOW_TIRED: u16 = hours(2);
+pub const SLEEP_TIRED: u16 = hours(4);
+
+// sleep times
+const PASS_OUT_TIME: u16 = hours(6);
+const SLEEP_TIME: u16 = hours(4);
+
+// health
+const BASE_HEALTH: u8 = 10;
 
 impl Default for BaseEntity {
     fn default() -> Self {
@@ -89,6 +112,7 @@ impl Default for BaseEntity {
             dir: dirs::NONE,
             lag: 0,
             food: hours(24),
+            tired: BASE_TIRED,
             health: 10,
             timer: 0,
             items: Vec::new(),
@@ -136,5 +160,13 @@ impl BaseEntity {
             GNOME_SPEED * 2,
             grid,
         );
+    }
+
+    pub(crate) fn is_tired(&self) -> bool {
+        self.tired < SLEEP_TIRED
+    }
+
+    pub(crate) fn is_hungry(&self) -> bool {
+        self.food < FOOD_EAT
     }
 }

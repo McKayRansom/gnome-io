@@ -1,6 +1,6 @@
 use crate::{
     block::{BLOCK_NONE, BlockId},
-    entity::{EntityId, Faction},
+    entity::{BaseEntity, EntityId, Faction},
     event::{BlockUpdateEvent, Event, EventManager},
     game::{
         GameCtx, Tick,
@@ -253,17 +253,12 @@ impl Grid {
         )
     }
 
-    pub fn find_job(
-        &mut self,
-        start: Pos,
-        events: &mut EventManager,
-        items: &mut Vec<ItemId>,
-    ) -> Option<Job> {
+    pub fn find_job(&mut self, entity: &BaseEntity, events: &mut EventManager) -> Option<Job> {
         let mut found_job: Option<Job> = None;
         // we will continue past the first job we find, to see if we find a better one...
         let mut continue_past: usize = 16;
         // log::info!("Hello");
-        for pos in pathfinding::prelude::bfs_reach(start, |pos| {
+        for pos in pathfinding::prelude::bfs_reach(entity.pos, |pos| {
             // check adjacent walls
             if self.get_tile(*pos).is_some_and(|tile| tile.is_passable()) {
                 Some([
@@ -303,12 +298,14 @@ impl Grid {
                                 has_haul = true;
                             }
                         }
-
+                        // bread
+                        // TODO: Create eat job...
+                        // Content::Item(item_id) if item_id == &300 => if entity.is_hungry() {},
                         Content::Item(_) => {
                             if has_chest == false
                                 && has_haul == false
                                 && found_job.is_none()
-                                && items.len() < item::ITEM_CARRY_MAX
+                                && entity.items.len() < item::ITEM_CARRY_MAX
                             {
                                 // create a haul job
                                 // TODO: Check for existing haul job...
@@ -322,14 +319,14 @@ impl Grid {
                 if has_chest {
                     if (
                         // nothing else to do
-                        (items.len() > 0 && found_job.is_none())
+                        (entity.items.len() > 0 && found_job.is_none())
                                             // or we are full
-                                            || items.len() == item::ITEM_CARRY_MAX
+                                            || entity.items.len() == item::ITEM_CARRY_MAX
                     ) && tile.item_count() < item::ITEM_STORE_MAX
                     {
                         log::info!("Creating drop-off job");
                         found_job = Some(Job::drop(pos));
-                        if items.len() == item::ITEM_CARRY_MAX {
+                        if entity.items.len() == item::ITEM_CARRY_MAX {
                             // exit early, we are totally full
                             break;
                         }
