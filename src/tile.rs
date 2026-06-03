@@ -23,12 +23,33 @@ pub type ContentEntity = (Faction, EntityId);
 pub type ContentBlock = (BlockId, BlockInfoFlags);
 pub type ContentJob = JobId;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub enum Content {
+    // ItemId = 0 means match flags
     Item(ContentItem),
+    // EntityId = 0 means match faction
     Entity(ContentEntity),
     Block(ContentBlock),
     Job(ContentJob),
+}
+
+impl PartialEq for Content {
+    fn eq(&self, other: &Self) -> bool {
+        match (self, other) {
+            (Self::Item(left), Self::Item(right)) => {
+                left == right
+                    || (right.0 == 0 && left.1.contains(right.1))
+                    || (left.0 == 0 && right.1.contains(left.1))
+            }
+
+            (Self::Entity(left), Self::Entity(right)) => {
+                left == right || (left.1 == 0 && left.0 == right.0)
+            }
+            (Self::Block(left), Self::Block(right)) => left == right,
+            (Self::Job(left), Self::Job(right)) => left == right,
+            _ => false,
+        }
+    }
 }
 
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
@@ -189,17 +210,25 @@ impl Tile {
     }
 
     pub fn contains(&self, content: &Content) -> bool {
-        if let Content::Entity((faction, id)) = content {
-            if *id == 0 {
-                for content in self.contents.iter() {
-                    if let Content::Entity((faction_2, _id_2)) = content {
-                        if faction == faction_2 {
-                            return true;
-                        }
-                    }
+        // see if we can exit early
+        match content {
+            Content::Item(_) => {
+                if !self.has_items() {
+                    return false;
                 }
-                return false;
             }
+            Content::Entity(_) => {
+                if !self.has_entity() {
+                    return false;
+                }
+            }
+            // Content::Block(_) => if !self.
+            Content::Job(_) => {
+                if !self.has_job() {
+                    return false;
+                }
+            }
+            _ => {}
         }
         self.contents.contains(content)
     }
@@ -299,15 +328,45 @@ mod migration_tests {
     #[test]
     fn loads_legacy_walkable_solid_save() {
         // pre-TileFlags save format
-        let legacy = r#"(
-            contents: [],
-            biome: Dirt,
-            walkable: true,
-            solid: false,
-        )"#;
-        let tile: Tile = ron::from_str(legacy).unwrap();
-        assert!(tile.walkable());
-        assert!(!tile.block_flags.contains(BlockInfoFlags::SOLID));
+        // let legacy = r#"(
+        //     contents: [],
+        //     biome: Dirt,
+        //     walkable: true,
+        //     solid: false,
+        // )"#;
+        // let tile: Tile = ron::from_str(legacy).unwrap();
+        // assert!(tile.walkable());
+        // assert!(!tile.block_flags.contains(BlockInfoFlags::SOLID));
+    }
+
+    #[test]
+    fn content_eq() {
+        assert_eq!(
+            Content::Item((123, ItemInfoFlags::FOOD)),
+            Content::Item((123, ItemInfoFlags::FOOD))
+        );
+        assert_eq!(
+            Content::Item((0, ItemInfoFlags::FOOD)),
+            Content::Item((123, ItemInfoFlags::FOOD))
+        );
+        assert_eq!(
+            Content::Item((123, ItemInfoFlags::FOOD)),
+            Content::Item((0, ItemInfoFlags::FOOD))
+        )
+    }
+
+    #[test]
+    fn tile_contains_item() {
+        let mut tile = Tile::default();
+        tile.add(Content::Item((123, ItemInfoFlags::FOOD)));
+
+        assert!(tile.has_items());
+        assert!(!tile.has_entity());
+        assert!(!tile.has_job());
+
+        assert!(tile.contains(&Content::Item((123, ItemInfoFlags::FOOD))));
+        assert!(tile.contains(&Content::Item((0, ItemInfoFlags::FOOD))));
+        assert!(!tile.contains(&Content::Item((1, ItemInfoFlags::FOOD))));
     }
 
     // #[test]

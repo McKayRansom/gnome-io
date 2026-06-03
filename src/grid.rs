@@ -265,12 +265,14 @@ impl Grid {
     pub fn find_job(&mut self, entity: &BaseEntity, events: &mut EventManager) -> Option<Job> {
         let mut found_job: Option<Job> = None;
         // we will continue past the first job we find, to see if we find a better one...
+        // TOOD: this probably needs to be much large and dynamic?
+        // Or we may starve important jobs that are far away
         let mut continue_past: usize = 16;
 
         let job_searches = &[
             job_haul_search,
             job_drop_serach,
-            // job_eat_search,
+            job_eat_search,
             job_sleep_search,
         ];
         // log::info!("Hello");
