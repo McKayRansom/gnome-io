@@ -114,6 +114,9 @@ bitflags! {
     pub struct TileFlags: u8 {
         // calculated flags
         const WALKABLE = 1 << 0;
+        const HAS_ITEMS = 1 << 1;
+        const HAS_JOB = 1 << 2;
+        const HAS_ENTITY = 1 << 3;
     }
 }
 
@@ -137,6 +140,18 @@ impl Tile {
 
     pub fn walkable(&self) -> bool {
         self.tile_flags.contains(TileFlags::WALKABLE)
+    }
+
+    pub fn has_items(&self) -> bool {
+        self.tile_flags.contains(TileFlags::HAS_ITEMS)
+    }
+
+    pub fn has_job(&self) -> bool {
+        self.tile_flags.contains(TileFlags::HAS_JOB)
+    }
+
+    pub fn has_entity(&self) -> bool {
+        self.tile_flags.contains(TileFlags::HAS_ENTITY)
     }
 
     pub fn block_flags(&self) -> BlockInfoFlags {
@@ -198,6 +213,9 @@ impl Tile {
     }
 
     pub(crate) fn get_job(&self) -> Option<JobId> {
+        if !self.has_job() {
+            return None;
+        }
         for content in &self.contents {
             if let Content::Job(id) = content {
                 return Some(*id);
@@ -230,15 +248,20 @@ impl Tile {
     // fixup our block flags, our walkable flag needs to be set by grid based on adjacent tiles
     pub(crate) fn modified(&mut self) {
         // update our flags
+        // do not clear walakable
+        self.tile_flags = self.tile_flags.intersection(TileFlags::WALKABLE);
         self.block_flags.clear();
         self.item_flags.clear();
 
         for content in self.contents.iter() {
             match content {
-                Content::Item((_id, flags)) => self.item_flags.insert(*flags),
-                Content::Entity(_) => {}
+                Content::Item((_id, flags)) => {
+                    self.tile_flags.insert(TileFlags::HAS_ITEMS);
+                    self.item_flags.insert(*flags)
+                }
+                Content::Entity(_) => self.tile_flags.insert(TileFlags::HAS_ENTITY),
                 Content::Block((_id, flags)) => self.block_flags.insert(*flags),
-                Content::Job(_) => {}
+                Content::Job(_) => self.tile_flags.insert(TileFlags::HAS_JOB),
             }
         }
     }

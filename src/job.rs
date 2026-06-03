@@ -4,10 +4,12 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
+    entity::{BaseEntity, Entity},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
-    tile::{Content, ContentBlock, ContentItem},
+    item::{self, ItemInfoFlags},
+    tile::{Content, ContentBlock, ContentItem, Tile},
 };
 
 pub mod build;
@@ -60,6 +62,8 @@ pub struct Job {
 // TEMP: In order of priority for now
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum JobType {
+    SLEEP,
+    EAT,
     CRAFT,
     BUILD,
     MINE,
@@ -72,6 +76,8 @@ pub enum JobAction {
     Aquire(ContentItem),
     Goto(Pos),
     Wait(Tick),
+    Sleep(Tick),
+    Eat(Tick),
     Finished,
 }
 
@@ -84,12 +90,94 @@ impl Default for Job {
             time: 0,
             content: None,
             requires: Vec::new(),
-            category: JobType::HAUL,
+            category: JobType::NONE,
         }
     }
 }
 
+// look for jobs that are just there...
+// TODO: Move job.in_progress and job prio to tile?
+pub fn job_default_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    if let Some(job_id) = tile.get_job() {
+        let job = events.jobs.get(&job_id).expect("LEAKED JOB");
+        if !job.in_progress {
+            return Some(job.clone());
+        }
+    }
+    None
+}
+
+pub fn job_haul_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+    if !tile.block_flags().contains(BlockInfoFlags::STORAGE)
+        && tile.has_job() == false
+        && tile.has_items() == true
+        && entity.items.len() < item::ITEM_CARRY_MAX
+    {
+        Some(Job::haul(pos))
+    } else {
+        None
+    }
+}
+
+pub fn job_drop_serach(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+    if tile.block_flags().contains(BlockInfoFlags::STORAGE)
+        && entity.items.len() > 0
+        && tile.item_count() < item::ITEM_STORE_MAX
+    {
+        log::info!("Creating drop-off job");
+        return Some(Job::drop(pos));
+        // TODO: Should we implement this?
+        // if entity.items.len() == item::ITEM_CARRY_MAX {
+        //     // exit early, we are totally full
+        //     break;
+        // }
+    }
+    None
+}
+
+pub fn job_eat_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+    if entity.is_hungry()
+        && tile.has_items() == true
+        && tile.item_flags().contains(ItemInfoFlags::FOOD)
+    {
+        Some(Job::eat(pos))
+    } else {
+        None
+    }
+}
+
+pub fn job_sleep_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+    if entity.is_tired()
+        && tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
+        && !tile.has_job()
+        && !tile.has_entity()
+    {
+        Some(Job::sleep(pos))
+    } else {
+        None
+    }
+}
+
 impl Job {
+    pub fn sleep(pos: Pos) -> Self {
+        Job {
+            pos,
+            time: 1, // TEMP
+            category: JobType::SLEEP,
+            ..Default::default()
+        }
+    }
+
+    pub fn eat(pos: Pos) -> Self {
+        Job {
+            pos,
+            time: 1, // TEMP
+            category: JobType::EAT,
+            requires: vec![(0, ItemInfoFlags::FOOD)],
+            ..Default::default()
+        }
+    }
+
     pub fn craft(pos: Pos, time: u16, item: ContentItem, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
@@ -140,10 +228,6 @@ impl Job {
         }
     }
 
-    pub fn is_haul(&self) -> bool {
-        self.category == JobType::HAUL
-    }
-
     // will this always be true?
     pub fn is_craft(&self) -> bool {
         matches!(self.content, Some(Content::Item(_)))
@@ -185,7 +269,17 @@ impl Job {
         if self.time > 0 {
             let time = self.time;
             self.time = 0;
-            return JobAction::Wait(time);
+            return match self.category {
+                JobType::EAT => JobAction::Eat(time),
+                JobType::SLEEP => JobAction::Sleep(time),
+                // JobType::CRAFT => todo!(),
+                // JobType::BUILD => todo!(),
+                // JobType::MINE => todo!(),
+                // JobType::HAUL => todo!(),
+                // JobType::DROP => todo!(),
+                // JobType::NONE => todo!(),
+                _ => JobAction::Wait(time),
+            };
         }
         // perform the job
         for required_item in self.requires.iter() {

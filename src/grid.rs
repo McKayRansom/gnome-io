@@ -7,7 +7,9 @@ use crate::{
         time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
     },
     item::{self, ItemId},
-    job::Job,
+    job::{
+        Job, job_default_search, job_drop_serach, job_eat_search, job_haul_search, job_sleep_search,
+    },
     tile::{Content, ContentItem, Tile},
 };
 
@@ -264,6 +266,13 @@ impl Grid {
         let mut found_job: Option<Job> = None;
         // we will continue past the first job we find, to see if we find a better one...
         let mut continue_past: usize = 16;
+
+        let job_searches = &[
+            job_haul_search,
+            job_drop_serach,
+            // job_eat_search,
+            job_sleep_search,
+        ];
         // log::info!("Hello");
         for pos in pathfinding::prelude::bfs_reach(entity.pos, |pos| {
             // check adjacent walls
@@ -282,63 +291,26 @@ impl Grid {
         }) {
             if let Some(tile) = self.get_tile(pos) {
                 let has_chest: bool = tile.block_flags().contains(BlockInfoFlags::STORAGE);
-                let mut has_haul: bool = false;
-                for content in tile.iter_content() {
-                    match content {
-                        Content::Job(job_id) => {
-                            let job = events.jobs.get(job_id).expect("LEAKED JOB");
-                            if !job.in_progress
-                                && found_job
-                                    .as_ref()
-                                    .is_none_or(|cur_job| job.is_higher_priority(&cur_job))
-                            {
-                                found_job = Some(job.clone());
-                                continue;
-                            } else if job.is_haul()
-                                && found_job
-                                    .as_ref()
-                                    .is_some_and(|my_job| my_job.pos == job.pos && my_job.is_haul())
-                            {
-                                // there is already a haul job, cancel ours
-                                // alternatively, we could make sure the job is first so we know before we find loose items...
-                                found_job = None;
-                                has_haul = true;
-                            }
-                        }
-                        // bread
-                        // TODO: Create eat job...
-                        // Content::Item(item_id) if item_id == &300 => if entity.is_hungry() {},
-                        Content::Item(_) => {
-                            if has_chest == false
-                                && has_haul == false
-                                && found_job.is_none()
-                                && entity.items.len() < item::ITEM_CARRY_MAX
-                            {
-                                // create a haul job
-                                // TODO: Check for existing haul job...
-                                log::info!("Creating haul job");
-                                found_job = Some(Job::haul(pos));
-                            }
-                        }
-                        _ => {}
-                    }
-                }
-                if has_chest {
-                    if (
-                        // nothing else to do
-                        (entity.items.len() > 0 && found_job.is_none())
-                                            // or we are full
-                                            || entity.items.len() == item::ITEM_CARRY_MAX
-                    ) && tile.item_count() < item::ITEM_STORE_MAX
+                if let Some(new_job) = job_default_search(pos, tile, events) {
+                    if found_job
+                        .as_ref()
+                        .is_none_or(|job| new_job.is_higher_priority(&job))
                     {
-                        log::info!("Creating drop-off job");
-                        found_job = Some(Job::drop(pos));
-                        if entity.items.len() == item::ITEM_CARRY_MAX {
-                            // exit early, we are totally full
-                            break;
+                        found_job = Some(new_job);
+                    }
+                }
+                for search in job_searches {
+                    if let Some(new_job) = search(pos, tile, entity) {
+                        if found_job
+                            .as_ref()
+                            .is_none_or(|job| new_job.is_higher_priority(&job))
+                        {
+                            found_job = Some(new_job);
                         }
                     }
                 }
+
+                if has_chest {}
                 if found_job.is_some() {
                     continue_past -= 1;
                 }
@@ -348,12 +320,12 @@ impl Grid {
             }
         }
         if let Some(job) = &mut found_job {
-            events.job_in_progress(job);
-
-            // TODO: better place for this??
-            if job.is_haul() {
+            job.in_progress = true;
+            if job.id == 0 {
+                job.id = events.add_job(job.clone());
                 self.add(job.pos, Content::Job(job.id));
             }
+            events.job_in_progress(job);
         }
         found_job
     }
@@ -368,6 +340,7 @@ impl Grid {
                 true
             }
         });
+        tile.modified();
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {

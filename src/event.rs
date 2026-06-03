@@ -126,9 +126,6 @@ impl EventManager {
     }
 
     pub fn job_in_progress(&mut self, job: &mut Job) {
-        if job.id == 0 {
-            job.id = self.add_job(job.clone());
-        }
         self.jobs.get_mut(&job.id).unwrap().in_progress = true;
         job.in_progress = true;
     }

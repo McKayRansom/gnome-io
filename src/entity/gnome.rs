@@ -3,7 +3,7 @@
 
 use crate::{
     block::BlockInfoFlags,
-    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
+    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, FOOD_EAT_TIME, Faction},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemInfoFlags,
@@ -107,6 +107,19 @@ impl Gnome {
                 }
             }
             crate::job::JobAction::Wait(time) => self.base.timer = time,
+            crate::job::JobAction::Eat(_time) => {
+                self.eating = true;
+                self.base.food = super::BASE_FOOD;
+                self.base.timer = super::FOOD_EAT_TIME;
+            }
+            crate::job::JobAction::Sleep(_time) => {
+                self.sleeping = true;
+                self.base.tired = super::BASE_TIRED;
+                self.base.timer = super::SLEEP_TIME;
+                if self.base.health < super::BASE_HEALTH {
+                    self.base.health += 1;
+                }
+            }
             crate::job::JobAction::Finished => {
                 self.job = None;
             }
@@ -159,78 +172,22 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        // this feels a bit not-optimial but IDK
-        if self.base.is_tired() {
-            let bed_id = game_ctx.blocks.get_id("bed").unwrap();
-            if grid
-                .get_tile(self.base.pos)
-                .unwrap()
-                .get_block()
-                .is_some_and(|block| block == bed_id)
-            {
-                // great, sleep here
-                self.sleeping = true;
-                self.base.tired = super::BASE_TIRED;
-                self.base.timer = super::SLEEP_TIME;
-                if self.base.health < super::BASE_HEALTH {
-                    self.base.health += 1;
-                }
-                return None;
-            } else if let Some(path) = grid.find_path(
-                self.base.pos,
-                self.base.pos,
-                Some(Content::Block((bed_id, BlockInfoFlags::SLEEPABLE))),
-            ) {
-                // move to bed
-                // TODO: Only unoccupied bed...
-                self.path = path;
-                return None;
-            } else {
-                // log::warn("Unable to find bed...")
-                if self.base.tired == 0 {
-                    // pass out on the spot
-                    self.base.tired = super::BASE_TIRED;
-                    self.base.timer = super::PASS_OUT_TIME;
-                    self.sleeping = true;
-                    return None;
-                }
-            }
-        }
+        // log::warn("Unable to find bed...")
+        // if self.base.tired == 0 {
+        //     // pass out on the spot
+        //     self.base.tired = super::BASE_TIRED;
+        //     self.base.timer = super::PASS_OUT_TIME;
+        //     self.sleeping = true;
+        //     return None;
+        // }
 
-        if self.base.is_hungry() {
-            // TODO: This is the same as below...
-            // NOTE: Cancel job, create new special (not-tracked) job that is getting food ASAP
-            // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
-            // TODO: Create new system to identify items as food
-            let bread_id = game_ctx.items.get_id("bread").unwrap();
-            if let Some(item) = grid.remove(
-                self.base.pos,
-                Content::Item((bread_id, ItemInfoFlags::FOOD)),
-            ) {
-                let Content::Item(item) = item else { panic!() };
-                // self.items.push(item);
-                self.base.food = super::BASE_FOOD;
-                self.base.timer = super::FOOD_EAT_TIME;
-                // use up the bread...
-                let _ = item;
-                return None;
-            } else if let Some(path) = grid.find_path(
-                self.base.pos,
-                self.base.pos,
-                Some(Content::Item((bread_id, ItemInfoFlags::FOOD))),
-            ) {
-                self.path = path;
-                return None;
-            } else if self.base.food == 0 {
-                self.base.health = self.base.health.saturating_sub(1);
-                if self.base.health == 0 {
-                    return None;
-                }
-                // log::warn!("Unable to find food!");
-                // self.move_random(grid, game_ctx);
-                // return;
-            }
-        }
+    //     if self.base.food == 0 {
+    //         self.base.health = self.base.health.saturating_sub(1);
+    //         self.base.food = super::BASE_FOOD;
+    //         if self.base.health == 0 {
+    //             return None;
+    //         }
+    //    }
 
         // find a new job before we update job
         if self.job.is_none() {
