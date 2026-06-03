@@ -2,37 +2,102 @@ use bitflags::{Flags, bitflags};
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::{BlockId, BlockInfo, BlockInfoFlags},
+    block::{BlockId, BlockInfoFlags},
     entity::{EntityId, Faction},
     event::JobId,
     game::GameCtx,
-    item::ItemId,
+    item::{ItemId, ItemInfoFlags},
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum TileBiome {
+    #[default]
     Sky,
     Dirt,
     Stone,
     Water,
 }
 
+pub type ContentItem = (ItemId, ItemInfoFlags);
+pub type ContentEntity = (Faction, EntityId);
+pub type ContentBlock = (BlockId, BlockInfoFlags);
+pub type ContentJob = JobId;
+
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Content {
-    Item(ItemId),
-    Entity((Faction, EntityId)),
-    Block(BlockId),
-    Job(JobId),
+    Item(ContentItem),
+    Entity(ContentEntity),
+    Block(ContentBlock),
+    Job(ContentJob),
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(from = "TileRepr")]
+#[derive(Debug, Default, Clone, Serialize, Deserialize)]
+#[serde(from = "TileRepr")] // entity_flags: Faction,
+#[serde(into = "TileRepr")]
 pub struct Tile {
     // we need to manage flags based on content, so make not-pub
     // TODO: make non-pub for correctness...
     pub contents: Vec<Content>,
     pub biome: TileBiome,
-    flags: TileFlags,
+    tile_flags: TileFlags,
+    block_flags: BlockInfoFlags,
+    item_flags: ItemInfoFlags,
+}
+
+// We don't want flags to be serialized, they should be modifyable...
+#[derive(Serialize, Deserialize)]
+struct TileRepr {
+    contents: Vec<TileReprContents>,
+    biome: TileBiome,
+}
+
+#[derive(Serialize, Deserialize)]
+enum TileReprContents {
+    Item(ItemId),
+    Entity(ContentEntity),
+    Block(BlockId),
+    Job(ContentJob),
+}
+
+impl From<TileReprContents> for Content {
+    fn from(value: TileReprContents) -> Self {
+        match value {
+            TileReprContents::Item(item) => Content::Item((item, ItemInfoFlags::default())),
+            TileReprContents::Entity(entity) => Content::Entity(entity),
+            TileReprContents::Block(block) => Content::Block((block, BlockInfoFlags::default())),
+            TileReprContents::Job(job) => Content::Job(job),
+        }
+    }
+}
+
+impl From<Content> for TileReprContents {
+    fn from(value: Content) -> Self {
+        match value {
+            Content::Item((item_id, _)) => TileReprContents::Item(item_id),
+            Content::Entity(entity) => TileReprContents::Entity(entity),
+            Content::Block((block_id, _)) => TileReprContents::Block(block_id),
+            Content::Job(job) => TileReprContents::Job(job),
+        }
+    }
+}
+
+impl From<TileRepr> for Tile {
+    fn from(value: TileRepr) -> Self {
+        Self {
+            contents: value.contents.into_iter().map(Into::into).collect(),
+            biome: value.biome,
+            ..Default::default()
+        }
+    }
+}
+
+impl From<Tile> for TileRepr {
+    fn from(value: Tile) -> Self {
+        Self {
+            contents: value.contents.into_iter().map(Into::into).collect(),
+            biome: value.biome,
+        }
+    }
 }
 
 /*
@@ -47,148 +112,65 @@ bitflags! {
     // Add new flags here (has_job, job_type, etc.) as bottlenecks demand.
     #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     pub struct TileFlags: u8 {
-        // pathfinding can use this tile
+        // calculated flags
         const WALKABLE = 1 << 0;
-
-        // the block here cannot be passed through
-        const SOLID = 1 << 1;
-
-        //
-        const STORAGE = 1 << 3;
-
-        const CLIMBABLE = 1 << 4;
-    }
-}
-
-impl From<BlockInfoFlags> for TileFlags {
-    fn from(value: BlockInfoFlags) -> Self {
-        let mut flags = Self::default();
-        if value.contains(BlockInfoFlags::SOLID) {
-            flags.insert(TileFlags::SOLID);
-        }
-        if value.contains(BlockInfoFlags::STORAGE) {
-            flags.insert(TileFlags::STORAGE);
-        }
-        if value.contains(BlockInfoFlags::CLIMBABLE) {
-            flags.insert(TileFlags::CLIMBABLE);
-        }
-        flags
-    }
-}
-
-// Deserialize-only shape that accepts both the current `flags` field and the
-// legacy `walkable`/`solid` bools, so old save files still load. Each field
-// defaults, so a current save (no bools) and a legacy save (no `flags`) both
-// deserialize; `From` merges whichever were present. We avoid `Option` here
-// because RON requires explicit `Some(..)` for present optional fields.
-#[derive(Deserialize)]
-struct TileRepr {
-    contents: Vec<Content>,
-    biome: TileBiome,
-    // cached flags
-    #[serde(skip_deserializing, skip_serializing)]
-    flags: TileFlags,
-    // legacy fields (pre-TileFlags); absent in current saves.
-    #[serde(default)]
-    walkable: bool,
-    #[serde(default)]
-    solid: bool,
-}
-
-impl From<TileRepr> for Tile {
-    fn from(repr: TileRepr) -> Tile {
-        let mut flags = repr.flags;
-        // Fold in any legacy bools. No-ops for current saves where both are false.
-        flags.set(
-            TileFlags::WALKABLE,
-            flags.contains(TileFlags::WALKABLE) || repr.walkable,
-        );
-        flags.set(
-            TileFlags::SOLID,
-            flags.contains(TileFlags::SOLID) || repr.solid,
-        );
-        Tile {
-            contents: repr.contents,
-            biome: repr.biome,
-            flags,
-        }
     }
 }
 
 impl Tile {
-    pub fn new(biome: TileBiome) -> Tile {
-        Tile {
-            contents: Vec::new(),
+    pub fn new(biome: TileBiome) -> Self {
+        Self {
             biome,
-            flags: TileFlags::empty(),
+            ..Default::default()
         }
     }
 
     pub fn new_block(biome: TileBiome, block: BlockId, solid: bool) -> Tile {
-        let mut flags = TileFlags::empty();
-        flags.set(TileFlags::SOLID, solid);
+        let mut flags = BlockInfoFlags::empty();
+        flags.set(BlockInfoFlags::SOLID, solid);
         Tile {
-            contents: vec![Content::Block(block)],
+            contents: vec![Content::Block((block, flags))],
             biome,
-            flags,
+            ..Default::default()
         }
     }
 
     pub fn walkable(&self) -> bool {
-        self.flags.contains(TileFlags::WALKABLE)
+        self.tile_flags.contains(TileFlags::WALKABLE)
     }
 
-    pub fn solid(&self) -> bool {
-        self.flags.contains(TileFlags::SOLID)
+    pub fn block_flags(&self) -> BlockInfoFlags {
+        self.block_flags
     }
 
-    pub(crate) fn climbable(&self) -> bool {
-        self.flags.contains(TileFlags::CLIMBABLE)
-    }
-
-    pub(crate) fn storage(&self) -> bool {
-        self.flags.contains(TileFlags::STORAGE)
+    pub fn item_flags(&self) -> ItemInfoFlags {
+        self.item_flags
     }
 
     pub fn get_block(&self) -> Option<BlockId> {
         for content in self.contents.iter() {
-            if let Content::Block(block_id) = *content {
-                return Some(block_id);
+            if let Content::Block(block) = *content {
+                return Some(block.0);
             }
         }
         None
     }
 
     pub fn remove(&mut self, remove: &Content) -> Option<Content> {
-        if matches!(remove, Content::Block(_)) {
-            self.flags.clear();
-        }
-        Some(
-            self.contents
-                .remove(self.contents.iter().position(|content| content == remove)?),
-        )
+        let result = self
+            .contents
+            .remove(self.contents.iter().position(|content| content == remove)?);
+
+        self.modified();
+
+        Some(result)
     }
 
     pub fn add(&mut self, content: Content) {
-        assert!(!matches!(content, Content::Block(_)));
         self.contents.push(content);
-    }
 
-    fn update_block_flags(&mut self, block_info: &BlockInfo) {
-        if block_info.storage() {
-            self.flags.insert(TileFlags::STORAGE);
-        }
-        if block_info.solid() {
-            self.flags.insert(TileFlags::SOLID);
-        }
-        if block_info.climbable() {
-            self.flags.insert(TileFlags::CLIMBABLE);
-        }
-    }
-
-    pub fn add_block(&mut self, block_id: BlockId, block_info: &BlockInfo) {
-        self.update_block_flags(block_info);
-        self.contents.push(Content::Block(block_id));
+        // NOTE: if this were somehow a bottleneck we could easily only change the flags we need to
+        self.modified();
     }
 
     pub fn contains(&self, content: &Content) -> bool {
@@ -246,19 +228,44 @@ impl Tile {
     }
 
     // fixup our block flags, our walkable flag needs to be set by grid based on adjacent tiles
-    pub(crate) fn fixup(&mut self, game_ctx: &GameCtx) {
+    pub(crate) fn modified(&mut self) {
         // update our flags
-        if let Some(block_id) = self.get_block() {
-            if let Some(block_info) = game_ctx.blocks.get_info(&block_id) {
-                self.update_block_flags(block_info);
-            } else {
-                log::error!("Tile contains invalid block ID: {}", block_id);
+        self.block_flags.clear();
+        self.item_flags.clear();
+
+        for content in self.contents.iter() {
+            match content {
+                Content::Item((_id, flags)) => self.item_flags.insert(*flags),
+                Content::Entity(_) => {}
+                Content::Block((_id, flags)) => self.block_flags.insert(*flags),
+                Content::Job(_) => {}
+            }
+        }
+    }
+
+    pub fn fixup(&mut self, game_ctx: &GameCtx) {
+        for content in self.contents.iter_mut() {
+            match content {
+                Content::Item(item) => {
+                    *item = game_ctx
+                        .items
+                        .get_content(&item.0)
+                        .expect("Unknown item in map")
+                }
+                Content::Entity(_) => {}
+                Content::Block(block) => {
+                    *block = game_ctx
+                        .blocks
+                        .get_content(&block.0)
+                        .expect("Unknown block in map")
+                }
+                Content::Job(_) => todo!(),
             }
         }
     }
 
     pub(crate) fn set_walkable(&mut self, walkable: bool) {
-        self.flags.set(TileFlags::WALKABLE, walkable);
+        self.tile_flags.set(TileFlags::WALKABLE, walkable);
     }
 }
 
@@ -277,7 +284,7 @@ mod migration_tests {
         )"#;
         let tile: Tile = ron::from_str(legacy).unwrap();
         assert!(tile.walkable());
-        assert!(!tile.solid());
+        assert!(!tile.block_flags.contains(BlockInfoFlags::SOLID));
     }
 
     // #[test]

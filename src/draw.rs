@@ -6,19 +6,16 @@ use macroquad::{
 };
 
 use crate::{
+    block::BlockInfoFlags,
     context::Context,
-    entity::{
-        self, Entity,
-        gnome::Gnome,
-    },
+    entity::{self, Entity, gnome::Gnome},
     game::{Entities, Game, GameCtx},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
-    item::ItemId,
     text::{draw_text, draw_text_screen_centered},
-    tile::{Content, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
+    tile::{Content, ContentItem, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
@@ -30,7 +27,7 @@ pub fn draw_game(game: &Game, ctx: &Context) {
 fn draw_items(
     game_ctx: &GameCtx,
     ctx: &Context,
-    items: &[ItemId],
+    items: &[ContentItem],
     start: &Rect,
     stack_spacing: f32,
 ) {
@@ -38,7 +35,7 @@ fn draw_items(
     for item in items {
         // if let Content::Item(item) = item {
         ctx.tileset.draw_tile(
-            if let Some(item) = game_ctx.items.get_info(item) {
+            if let Some(item) = game_ctx.items.get_info(&item.0) {
                 &item.sprite
             } else {
                 "unknown"
@@ -90,7 +87,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     for dir in dirs::ALL {
                         if grid
                             .get_tile(pos + dir)
-                            .is_none_or(|tile| tile.solid() == false)
+                            .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
                         {
                             ctx.tileset.draw_tile_rot(
                                 "stone",
@@ -105,7 +102,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                 }
             }
             // then draw items
-            let items: Vec<ItemId> = tile
+            let items: Vec<ContentItem> = tile
                 .iter_content()
                 .filter_map(|content| {
                     if let Content::Item(item) = content {

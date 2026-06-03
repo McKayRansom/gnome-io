@@ -1,10 +1,9 @@
 use macroquad::rand::rand;
 
 use crate::{
-    entity::{gnome::GNOME_SPEED, gnome::Gnome, goblin::Goblin},
+    entity::{gnome::{GNOME_SPEED, Gnome}, goblin::Goblin},
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs},
-    item::ItemId,
+    grid::{Grid, Pos, pos::dirs}, tile::ContentItem,
 };
 
 pub mod gnome;
@@ -81,7 +80,7 @@ pub struct BaseEntity {
     pub tired: u16,
 
     pub timer: Tick,
-    pub items: Vec<ItemId>,
+    pub items: Vec<ContentItem>,
 }
 
 // food values

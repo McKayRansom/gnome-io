@@ -54,6 +54,7 @@
     ),
     "bed": (
         id: 301,
+        flags: ("SLEEPABLE"),
         requires: ["stone"]
     ),
     "furnace": (

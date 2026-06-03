@@ -101,7 +101,7 @@ impl Game {
 
         game.load_ctx().await;
 
-        game.grid.fixup(&mut game.game_ctx);
+        game.grid.fixup(&game.game_ctx);
 
         Ok(game)
     }
@@ -117,7 +117,12 @@ impl Game {
     fn gen_item(&mut self, pos: Pos, name: &str) {
         self.grid.add(
             pos,
-            Content::Item(self.game_ctx.items.get_id(name).unwrap()),
+            Content::Item(
+                self.game_ctx
+                    .items
+                    .get_content_name(name)
+                    .expect("Unknown item in game gen!"),
+            ),
         );
     }
 
@@ -125,7 +130,7 @@ impl Game {
         generate::generate(self);
 
         // why
-        self.grid.fixup(&mut self.game_ctx);
+        self.grid.fixup(&self.game_ctx);
 
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));

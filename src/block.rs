@@ -23,7 +23,7 @@ pub struct BlockInfo {
 }
 
 bitflags! {
-    #[derive(Debug, Default, Clone, Copy, PartialEq, Serialize, Deserialize)]
+    #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
     pub struct BlockInfoFlags: u8 {
         // This block itself is solid, we can climb the adjacent blocks because of that
         const SOLID = 1 << 1;
@@ -31,6 +31,8 @@ bitflags! {
         const CLIMBABLE = 1 << 2;
         // This block can store items
         const STORAGE = 1 << 3;
+        // for beds
+        const SLEEPABLE = 1 << 4;
     }
 }
 

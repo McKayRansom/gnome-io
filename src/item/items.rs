@@ -1,6 +1,8 @@
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
+use crate::tile::ContentItem;
+
 use super::*;
 
 type ItemInfos = FxHashMap<ItemId, ItemInfo>;
@@ -27,6 +29,8 @@ struct ItemInfoSave {
     sprite: String,
     #[serde(default)]
     recipe: Option<(String, Vec<String>)>,
+    #[serde(default)]
+    flags: ItemInfoFlags,
 }
 
 impl ItemInfoSave {
@@ -38,6 +42,7 @@ impl ItemInfoSave {
             } else {
                 self.sprite.clone()
             },
+            flags: self.flags,
             recipe: self.recipe.as_ref().map(|(block_at, ingredients)| {
                 (
                     block_at.clone(),
@@ -67,6 +72,14 @@ impl Items {
 
     pub fn get_id(&self, name: &str) -> Option<ItemId> {
         self.ids.get(name).copied()
+    }
+
+    pub fn get_content(&self, id: &ItemId) -> Option<ContentItem> {
+        Some((*id, self.infos.get(id)?.flags))
+    }
+
+    pub fn get_content_name(&self, name: &str) -> Option<ContentItem> {
+        self.get_content(&self.get_id(name)?)
     }
 
     pub async fn load(&mut self) {

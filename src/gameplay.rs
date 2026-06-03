@@ -322,7 +322,7 @@ impl Gameplay {
                                 self.game
                                     .game_ctx
                                     .items
-                                    .get_info(item)
+                                    .get_info(&item.0)
                                     .map(|item| item.name.as_str())
                                     .unwrap_or("???")
                             ),
@@ -332,7 +332,7 @@ impl Gameplay {
                                 self.game
                                     .game_ctx
                                     .blocks
-                                    .get_info(block)
+                                    .get_info(&block.0)
                                     .map(|block| block.sprite.as_str())
                                     .unwrap_or("???")
                             ),

@@ -2,9 +2,11 @@
 // use serde::{Deserialize, Serialize};
 
 use crate::{
+    block::BlockInfoFlags,
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
+    item::ItemInfoFlags,
     job::Job,
     tile::Content,
 };
@@ -44,6 +46,7 @@ pub struct Gnome {
     path: Vec<Pos>,
     // items: Vec<ItemId>,
 
+    // for animation purposes only...
     // food: u16,
     #[serde(default)]
     pub sleeping: bool,
@@ -87,7 +90,7 @@ impl Gnome {
                 {
                     self.path = path;
                 } else {
-                    log::warn!("Unable to find item {} for job", item);
+                    log::warn!("Unable to find item {} for job", item.0);
 
                     job.fail(grid, game_ctx);
                     self.job = None;
@@ -118,7 +121,10 @@ impl EntityBehaviour for Gnome {
         }
         grid.add(
             self.base.pos,
-            Content::Item(game_ctx.items.get_id("dead_gnome").unwrap()),
+            Content::Item((
+                game_ctx.items.get_id("dead_gnome").unwrap(),
+                ItemInfoFlags::default(),
+            )),
         );
         self.base.die(grid);
     }
@@ -170,9 +176,11 @@ impl EntityBehaviour for Gnome {
                     self.base.health += 1;
                 }
                 return None;
-            } else if let Some(path) =
-                grid.find_path(self.base.pos, self.base.pos, Some(Content::Block(bed_id)))
-            {
+            } else if let Some(path) = grid.find_path(
+                self.base.pos,
+                self.base.pos,
+                Some(Content::Block((bed_id, BlockInfoFlags::SLEEPABLE))),
+            ) {
                 // move to bed
                 // TODO: Only unoccupied bed...
                 self.path = path;
@@ -195,7 +203,10 @@ impl EntityBehaviour for Gnome {
             // that way we can use the normal job logic, BUT This would require adding MORE logic to the job to refil hunger, find food, etc...
             // TODO: Create new system to identify items as food
             let bread_id = game_ctx.items.get_id("bread").unwrap();
-            if let Some(item) = grid.remove(self.base.pos, Content::Item(bread_id)) {
+            if let Some(item) = grid.remove(
+                self.base.pos,
+                Content::Item((bread_id, ItemInfoFlags::FOOD)),
+            ) {
                 let Content::Item(item) = item else { panic!() };
                 // self.items.push(item);
                 self.base.food = super::BASE_FOOD;
@@ -203,9 +214,11 @@ impl EntityBehaviour for Gnome {
                 // use up the bread...
                 let _ = item;
                 return None;
-            } else if let Some(path) =
-                grid.find_path(self.base.pos, self.base.pos, Some(Content::Item(bread_id)))
-            {
+            } else if let Some(path) = grid.find_path(
+                self.base.pos,
+                self.base.pos,
+                Some(Content::Item((bread_id, ItemInfoFlags::FOOD))),
+            ) {
                 self.path = path;
                 return None;
             } else if self.base.food == 0 {
@@ -221,8 +234,7 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let Some(job) = grid.find_job(&self.base, &mut game_ctx.events)
-            {
+            if let Some(job) = grid.find_job(&self.base, &mut game_ctx.events) {
                 self.job = Some(job);
             }
         }

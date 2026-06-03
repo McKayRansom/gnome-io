@@ -10,6 +10,7 @@ use crate::{
         time::{HOURS_PER_DAY, TICKS_PER_HOUR},
     },
     item::{ITEM_NONE, Items},
+    tile::ContentBlock,
 };
 
 use super::{BlockId, BlockInfo};
@@ -180,6 +181,10 @@ impl Blocks {
 
     pub fn get_id(&self, name: &str) -> Option<BlockId> {
         self.ids.get(name).copied()
+    }
+
+    pub fn get_content(&self, block_id: &BlockId) -> Option<ContentBlock> {
+        Some((*block_id, self.infos.get(block_id)?.flags))
     }
 
     pub async fn load(&mut self, items: &Items, events: &EventNames) {

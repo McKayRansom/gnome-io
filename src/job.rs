@@ -3,12 +3,11 @@ use farm::FarmManager;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::{BLOCK_NONE, BlockId},
+    block::{BLOCK_NONE, BlockInfoFlags},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
-    item::ItemId,
-    tile::Content,
+    tile::{Content, ContentBlock, ContentItem},
 };
 
 pub mod build;
@@ -54,7 +53,7 @@ pub struct Job {
     pub pos: Pos,
     pub time: u16,
     pub content: Option<Content>,
-    pub requires: Vec<ItemId>,
+    pub requires: Vec<ContentItem>,
     pub category: JobType,
 }
 
@@ -70,7 +69,7 @@ pub enum JobType {
 }
 
 pub enum JobAction {
-    Aquire(ItemId),
+    Aquire(ContentItem),
     Goto(Pos),
     Wait(Tick),
     Finished,
@@ -91,7 +90,7 @@ impl Default for Job {
 }
 
 impl Job {
-    pub fn craft(pos: Pos, time: u16, item: ItemId, requires: Vec<ItemId>) -> Self {
+    pub fn craft(pos: Pos, time: u16, item: ContentItem, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
             time,
@@ -102,7 +101,7 @@ impl Job {
         }
     }
 
-    pub fn build(pos: Pos, time: u16, block: BlockId, requires: Vec<ItemId>) -> Self {
+    pub fn build(pos: Pos, time: u16, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
             time,
@@ -118,7 +117,7 @@ impl Job {
         Job {
             pos,
             time,
-            content: Some(Content::Block(BLOCK_NONE)),
+            content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
             category: JobType::MINE,
             ..Default::default()
         }
@@ -158,7 +157,7 @@ impl Job {
     pub fn update(
         &mut self,
         pos: Pos,
-        items: &mut Vec<ItemId>,
+        items: &mut Vec<ContentItem>,
         grid: &mut Grid,
         game_ctx: &mut GameCtx,
     ) -> JobAction {
@@ -168,7 +167,7 @@ impl Job {
                 if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {
                     let Content::Item(item) = item else { panic!() };
                     items.push(item);
-                    log::info!("Take item {} from tile", item);
+                    log::info!("Take item {} from tile", item.0);
                 } else {
                     log::info!("AQUIRE");
                     return JobAction::Aquire(*required_item);
@@ -196,8 +195,8 @@ impl Job {
         }
 
         let _ = match self.content {
-            Some(Content::Item(item_id)) => grid.add(self.pos, Content::Item(item_id)),
-            Some(Content::Block(block_id)) => grid.place_block(self.pos, block_id, game_ctx),
+            Some(Content::Item(item)) => grid.add(self.pos, Content::Item(item)),
+            Some(Content::Block(block)) => grid.place_block(self.pos, block.0, game_ctx),
             None => None,
             Some(_) => todo!(),
         };

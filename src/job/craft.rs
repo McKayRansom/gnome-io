@@ -15,10 +15,21 @@ pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx)
     let item_info = game_ctx.items.get_info(&item_id)?;
     let recipe = item_info.recipe.as_ref()?;
 
+    let requires = recipe
+        .1
+        .iter()
+        .map(|item_id| {
+            game_ctx
+                .items
+                .get_content(item_id)
+                .expect("Invalid Item Id")
+        })
+        .collect();
+
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::craft(pos, CRAFTING_TIME, item_id, recipe.1.clone()),
+        Job::craft(pos, CRAFTING_TIME, (item_id, item_info.flags), requires),
     );
     None
 }

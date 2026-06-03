@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::BlockId,
+    block::{BlockId, BlockInfoFlags},
     event::{Event, EventId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos, pos::dirs},
@@ -80,16 +80,18 @@ impl FarmManager {
         // must be non-solid and have solid beneath (for now)
         if grid
             .get_tile(*pos + dirs::DOWN)
-            .is_none_or(|tile| tile.solid() == false)
+            .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
         {
             log::warn!("Farm not supported by something!");
             return None;
         }
         let tile = grid.get_tile(*pos)?;
-        if tile.solid() {
+        if tile.block_flags().contains(BlockInfoFlags::SOLID) {
             log::warn!("Farm occupied!");
             return None;
         }
+
+        let farm_block_info = game_ctx.blocks.get_info(&*farm_block_id).unwrap();
 
         let block = tile.get_block().unwrap_or(0);
         let block_info = game_ctx.blocks.get_info(&block);
@@ -98,16 +100,18 @@ impl FarmManager {
             Some(Job::mine(*pos, HARVEST_TIME))
         } else if block_info.is_none_or(|info| info.growth.is_none()) {
             // till
+
+            let requires = farm_block_info
+                .requires
+                .iter()
+                .map(|item_id| (*item_id, game_ctx.items.get_info(item_id).unwrap().flags))
+                .collect();
+
             Some(Job::build(
                 *pos,
                 TILL_TIME,
-                *farm_block_id,
-                game_ctx
-                    .blocks
-                    .get_info(&*farm_block_id)
-                    .unwrap()
-                    .requires
-                    .clone(),
+                (*farm_block_id, farm_block_info.flags),
+                requires,
             ))
         } else {
             log::info!("Block is something weird: {}", block);
