@@ -56,6 +56,8 @@ impl CraftManager {
         game_ctx.events.add_event_class("craft");
         self.standing_orders
             .push((game_ctx.items.get_id("bread").unwrap(), 16));
+        self.workshop_block_ids
+            .push(game_ctx.blocks.get_id("furnace").unwrap())
     }
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
