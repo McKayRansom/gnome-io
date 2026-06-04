@@ -17,15 +17,6 @@ This will be almost impossible to balance, but I'm hoping to make it casual enou
 - Eventually multiplayer co-op or vs
 
 
-### Modding design
-Factorio modding design seems reasonable. Lua files for settings, data, and control.
-Settings and data are called on game load, control can register event handlers.
-
-Seems pretty reasonable, but a large amount of work. The changes they had to make to make lua deterministic are concerning. (Although it looks like the default rust HashMap is also non-deterministic to prevent DOS). Having a dedicated storage table in lua for saving and multiplayer also makes sense. 
-
-A first step would be just data creation, control could be done later.
-
-
 ## Gnomoria comparisons:
 
 ### Added features
@@ -33,14 +24,6 @@ A first step would be just data creation, control could be done later.
 - scales to larger numbers
 - Visual display of stats instead of just a number
 - Simulate enemy or friendly factions
-  - Gnomes: well-balanced overall, can grow wheat and mushrooms, can mine and build okay and reproduce medium
-  - Elves: great with forests and animals, stronger but reproduce slower (if this is even possible to balance, not required)
-    - LIVE IN TREES, like og minecraft! This would be so fun!
-  - Goblins: Hide in mountains, okay at mining but mostly steal.
-  - Orcs: Can poorly build stuff and farm, mostly have to survive by stealing (nomadic?)
-  - Dwarves: Very good at mining, as long as they don't mine too greedily or too deep. Poor at farming and do best trading metals for foods
-  - Men: Good at building castles and forts above ground, can mine okay
-  - Modded factins: I.E. Freemen that live only in deserts, spiders, mants, beetles
   would add replayability in a more interesting way than just more items.
 - Proceduraly generated instead of fixed map size?
 - More interesting terrain: Biomes(Deserts, forests, mountains), water, oceans (boats?)
@@ -65,6 +48,9 @@ Maybe mods can add this but I want to keep the base game as simple as possible.
   - Consider specific building size like in Timberborn.
   - Considering simple category/colors groups?
 - Professions at all? is a lot of work to do this...
+- Workshops: 
+  - Set and forget or require active gnome
+  - Single-tile or multi-tile
 
 Choices:
 High-level priorites: Mining vs Farming vs Woodcutting?

@@ -48,17 +48,15 @@ Key Decisions to make:
 
 - [ ] Re-enable stakes
   - [ ] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
-  - [ ] make winter actually consume the food buffer ([grid.rs:349](src/grid.rs#L349))
-  - [ ] Wire goblins back into generation + combat into the gnome update loop, as periodic raids. (On-ramp to Kingdom's ore→weapons + soldier allocation.)
+  - [ ] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
+    - [ ] Requires minor rework to how block events work with farms
+    - [ ] Add plants to world-get (but those won't be managed by farms unless added)
+    - [ ] Need some kind of indicator that a tile is farmed...
+  - [ ] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
+    - [ ] WINTER IS COMING!
   - [ ] Fix bread/crafting?
 - [ ] Create attack/flee logic
 - [ ] Create parrenting logic
-- [ ] Create tools
-  - [ ] Fix ore-gen and add ore/metal blocks/items/recipes
-  - [ ] Add equipment item enum/attribute
-  - [ ] Add sprites/drawing
-  - [ ] Make required for profession and/or jobs
-  - [ ] Picaxe/hoe/armor/etc...
 - [ ] Professions/labor allocations
   - [ ] Add proffesions
     - [ ] Auto-assign gnomes for debugging
@@ -67,6 +65,12 @@ Key Decisions to make:
     - [ ] Allocate gnomes
     - [ ] Show open jobs
     - [ ] Fix stocks UI while we're there
+- [ ] Create tools
+  - [ ] Fix ore-gen and add ore/metal blocks/items/recipes
+  - [ ] Add equipment item enum/attribute
+  - [ ] Add sprites/drawing
+  - [ ] Make required for profession and/or jobs
+  - [ ] Picaxe/hoe/armor/etc...
 
 Profession assignment:
 - Columns: Free, farm, soldier, mine, etc...
@@ -89,6 +93,41 @@ Examples:
 - I decide we can afford to allocate a few gnomes to have children, then are "locked-in" to this role until their kids are raised
   - This is a semi-permanant decision OR once they are born we could re-alloc?
 
+# Future Epics
+Planned items, unplanned go in ICEBOX.md. Roughly in priority order:
+
+## Polish for first release
+- Performance pass: Add benchmarks and tests, take a pass at low-handing fruit
+- Animations/draw polish
+- Lighting/limit view to in-sight
+- UI: Title screen/menus/settings/saves/autosave
+- Error handling: Clean reporting of save/load errors with popup, and pass at unwraps/expects
+- onboarding: tutorial/objectives/help
+- Webasm build
+- Soundfxs
+- Music
+- Itch-io: Polising and testing for itch.io release!
+
+## Explore future direction
+- Gnome skill exploration/gnome details
+- faction exploration
+- multiplayer exploration
+- mod exploration
+
+## Content Updates
+- Life update: trees that grow high, funguses down below, animals and stuff
+- Delved too deep update: Caves/enimies in the deep as well as rewards
+- Biome update: Desert/forest/mountains/ocean changes how you build your colony and what you face
+- Automation update: Machines/carts/etc
+
+# Minor tasks
+- Color pallate pass
+- Tile biome remove?
+- Unit test pass
+- controls pass: Fix menu shortcuts, zoom into point, right-click pan
+- debug features: Show reachable, more info, etc...
+
+# Past Epics
 
 ## MVP1: Survive Winter (requires seasons) 
 -  Tile-based drawing and sprites
