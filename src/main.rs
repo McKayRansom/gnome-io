@@ -9,6 +9,7 @@ mod tile;
 // mod tileset;
 pub mod block;
 mod context;
+mod debug_console;
 mod draw;
 mod event;
 mod gameplay;

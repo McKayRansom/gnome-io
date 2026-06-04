@@ -18,7 +18,7 @@ pub const FARM_EVENT_ID: EventId = 200;
 const TILL_TIME: Tick = 20;
 const HARVEST_TIME: Tick = 20;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct FarmManager {
     farm_pos: Vec<(Pos, BlockId)>,
 }

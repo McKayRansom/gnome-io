@@ -363,7 +363,7 @@ impl Job {
 // pub const JOB_QUEUE: EventId = 10;
 // pub const JOB_FAIL_QUEUE: EventId = 11;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct JobManager {
     pub farm_manager: FarmManager,
     pub craft_manager: CraftManager,

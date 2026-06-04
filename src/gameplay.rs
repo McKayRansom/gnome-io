@@ -11,6 +11,7 @@ use macroquad::{
 
 use crate::{
     context::Context,
+    debug_console::DebugConsole,
     draw::{draw_game, draw_tile_outline},
     entity::Entity,
     game::{Game, GameSpeed, time::GameTimeEvent},
@@ -55,6 +56,7 @@ pub struct Gameplay {
     time_select: Toolbar<TimeSelect>,
     popup: Option<Popup>,
     pause_menu: Menu<PauseMenuSelect>,
+    console: DebugConsole,
 }
 
 pub enum GameEvent {
@@ -95,7 +97,7 @@ impl Gameplay {
                     ToolbarItem::new("stairs", "Stairs", '3', "stairs".into()),
                     ToolbarItem::new("door", "Door", '4', "door".into()),
                     // ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
-                    // ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
+                    ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '5', "bed".into()),
                 ],
             ),
@@ -122,6 +124,7 @@ impl Gameplay {
                 MenuItem::new(PauseMenuSelect::Quit, "Quit".to_string()),
                 // MenuItem::new(PauseMenuSelect::Restart, "Restart".to_string()),
             ]),
+            console: DebugConsole::new(),
         }
     }
 
@@ -148,6 +151,31 @@ impl Gameplay {
             }
         }
         false
+    }
+
+    /// Handle a single debug command line from the console. Returns a
+    /// `GameEvent` if the command produces one. Add new commands here.
+    fn run_debug_command(&mut self, line: &str) -> Option<GameEvent> {
+        let mut parts = line.split_whitespace();
+        let cmd = parts.next()?;
+        match cmd {
+            "reload" => return Some(GameEvent::Reload),
+            "goblin" => {
+                let x = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                let y = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                self.game.spawn_goblin(Pos::new(x, y));
+            }
+            "jobs" => {
+                dbg!(&self.game.job_manager);
+            }
+            "help" => {
+                println!("commands: reload, goblin [x] [y], jobs, help");
+            }
+            other => {
+                println!("unknown command: {other:?} (try \"help\")");
+            }
+        }
+        None
     }
 
     pub fn update(&mut self, ctx: &mut Context) -> Option<GameEvent> {
@@ -195,6 +223,16 @@ impl Gameplay {
         }
         if is_key_pressed(KeyCode::G) {
             self.game.spawn_goblin(Pos::new(0, 0));
+        }
+        if is_key_pressed(KeyCode::M) {
+            dbg!(&self.game.job_manager);
+        }
+
+        // debug console commands typed into stdin
+        while let Some(cmd) = self.console.poll() {
+            if let Some(e) = self.run_debug_command(&cmd) {
+                event = Some(e);
+            }
         }
 
         if ctx.mouse_pos.is_none() {

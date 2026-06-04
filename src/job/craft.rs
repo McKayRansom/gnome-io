@@ -36,7 +36,7 @@ pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx)
 
 pub const CRAFT_EVENT_ID: EventId = 300;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize)]
 pub struct CraftManager {
     workshop_pos: Vec<Pos>,
     standing_orders: Vec<(ItemId, usize)>,

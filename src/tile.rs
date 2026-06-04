@@ -308,6 +308,9 @@ impl Tile {
         }
     }
 
+    // This is for fixing after loading a save
+    // We want to be able to change block_info and this will migrate it
+    // and this way we store as little as possible in the save
     pub fn fixup(&mut self, game_ctx: &GameCtx) {
         for content in self.contents.iter_mut() {
             match content {
@@ -324,7 +327,7 @@ impl Tile {
                         .get_content(&block.0)
                         .expect("Unknown block in map")
                 }
-                Content::Job(_) => todo!(),
+                Content::Job(_) => {}
             }
         }
     }
