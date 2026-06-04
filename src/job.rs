@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
-    entity::{BaseEntity, Entity},
+    entity::BaseEntity,
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
@@ -97,7 +97,7 @@ impl Default for Job {
 
 // look for jobs that are just there...
 // TODO: Move job.in_progress and job prio to tile?
-pub fn job_default_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_default_search(_pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
         let job = events.jobs.get(&job_id).expect("LEAKED JOB");
         if !job.in_progress {
@@ -246,6 +246,7 @@ impl Job {
         game_ctx: &mut GameCtx,
     ) -> JobAction {
         // collect items
+        // TODO: This will not work with mutliple of the same item!!!
         for required_item in self.requires.iter() {
             if !items.contains(required_item) {
                 if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {
@@ -283,7 +284,10 @@ impl Job {
         }
         // perform the job
         for required_item in self.requires.iter() {
-            if let Some(idx) = items.iter().position(|item| item == required_item) {
+            if let Some(idx) = items
+                .iter()
+                .position(|item| Content::Item(*item) == Content::Item(*required_item))
+            {
                 items.remove(idx);
             }
         }

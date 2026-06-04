@@ -47,7 +47,7 @@ Key Decisions to make:
   - Can we please avoid creating own professions? Base ones could somehow be good enough?
 
 - [ ] Re-enable stakes
-  - [ ] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
+  - [x] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
   - [ ] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
     - [ ] Requires minor rework to how block events work with farms
     - [ ] Add plants to world-get (but those won't be managed by farms unless added)

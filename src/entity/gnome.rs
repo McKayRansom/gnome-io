@@ -2,8 +2,7 @@
 // use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::BlockInfoFlags,
-    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, FOOD_EAT_TIME, Faction},
+    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemInfoFlags,
@@ -173,21 +172,21 @@ impl EntityBehaviour for Gnome {
         }
 
         // log::warn("Unable to find bed...")
-        // if self.base.tired == 0 {
-        //     // pass out on the spot
-        //     self.base.tired = super::BASE_TIRED;
-        //     self.base.timer = super::PASS_OUT_TIME;
-        //     self.sleeping = true;
-        //     return None;
-        // }
+        if self.base.tired == 0 {
+            // pass out on the spot
+            self.base.tired = super::BASE_TIRED;
+            self.base.timer = super::PASS_OUT_TIME;
+            self.sleeping = true;
+            return None;
+        }
 
-    //     if self.base.food == 0 {
-    //         self.base.health = self.base.health.saturating_sub(1);
-    //         self.base.food = super::BASE_FOOD;
-    //         if self.base.health == 0 {
-    //             return None;
-    //         }
-    //    }
+        if self.base.food == 0 {
+            self.base.health = self.base.health.saturating_sub(1);
+            self.base.food = super::BASE_FOOD;
+            if self.base.health == 0 {
+                return None;
+            }
+       }
 
         // find a new job before we update job
         if self.job.is_none() {
