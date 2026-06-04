@@ -6,7 +6,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemInfoFlags,
-    job::Job,
+    job::{Job, JobAction},
     tile::Content,
 };
 
@@ -46,11 +46,17 @@ pub struct Gnome {
     // items: Vec<ItemId>,
 
     // for animation purposes only...
-    // food: u16,
     #[serde(default)]
-    pub sleeping: bool,
-    #[serde(default)]
-    pub eating: bool,
+    pub status: GnomeStatus,
+}
+
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+pub enum GnomeStatus {
+    #[default]
+    NONE,
+    SLEEPING,
+    EATING,
+    FIGHTING,
 }
 
 pub const GNOME_SPEED: Tick = 20;
@@ -71,33 +77,32 @@ impl Gnome {
             },
             job: None,
             path: Vec::new(),
-
-            // tired: super::BASE_TIRED,
-            // food: BASE_FOOD,
-            sleeping: false,
-            eating: false,
+            status: GnomeStatus::NONE,
         }
     }
 
-    fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
         let job = self.job.as_mut().unwrap();
         // collect items
         match job.update(self.base.pos, &mut self.base.items, grid, game_ctx) {
-            crate::job::JobAction::Aquire(item) => {
-                if let Some(path) =
-                    grid.find_path(self.base.pos, job.pos, Some(Content::Item(item)))
-                {
+            JobAction::Aquire(content) => {
+                if let Some(mut path) = grid.find_path(self.base.pos, job.pos, Some(content)) {
+                    assert_eq!(path.remove(0), self.base.pos);
+                    // TODO: This is jank!!!
+                    job.aquired(&path, grid, game_ctx);
+
                     self.path = path;
                 } else {
-                    log::warn!("Unable to find item {} for job", item.0);
+                    log::warn!("Unable to find {:?} for job", content);
 
                     job.fail(grid, game_ctx);
                     self.job = None;
                 }
             }
-            crate::job::JobAction::Goto(pos) => {
-                if let Some(path) = grid.find_path(self.base.pos, pos, None) {
-                    log::info!("path");
+            JobAction::Goto(pos) => {
+                if let Some(mut path) = grid.find_path(self.base.pos, pos, None) {
+                    assert_eq!(path.remove(0), self.base.pos);
+                    // log::info!("path");
                     self.path = path;
                 } else {
                     log::warn!("Job at {:?} is unreachable", pos);
@@ -105,24 +110,30 @@ impl Gnome {
                     self.job = None;
                 }
             }
-            crate::job::JobAction::Wait(time) => self.base.timer = time,
-            crate::job::JobAction::Eat(_time) => {
-                self.eating = true;
+            JobAction::Wait(time) => self.base.timer = time,
+            JobAction::Eat(_time) => {
+                self.status = GnomeStatus::EATING;
                 self.base.food = super::BASE_FOOD;
                 self.base.timer = super::FOOD_EAT_TIME;
             }
-            crate::job::JobAction::Sleep(_time) => {
-                self.sleeping = true;
+            JobAction::Sleep(_time) => {
+                self.status = GnomeStatus::SLEEPING;
                 self.base.tired = super::BASE_TIRED;
                 self.base.timer = super::SLEEP_TIME;
                 if self.base.health < super::BASE_HEALTH {
                     self.base.health += 1;
                 }
             }
-            crate::job::JobAction::Finished => {
+            JobAction::Fight(entity) => {
+                self.status = GnomeStatus::FIGHTING;
+                self.base.timer = super::FIGHT_TIME;
+                return Some(EntityAction::Attack(entity));
+            }
+            JobAction::Finished => {
                 self.job = None;
             }
         }
+        None
     }
 }
 
@@ -153,9 +164,7 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        self.base.lag = 0;
-        self.sleeping = false;
-        self.eating = false;
+        self.status = GnomeStatus::NONE;
 
         if !self.path.is_empty() {
             //if self.tired < SLOW_TIRED {
@@ -163,10 +172,12 @@ impl EntityBehaviour for Gnome {
             // } else {
             // GNOME_SPEED;
             // };
-            if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid) {
-                // impassable terrain
-                self.path.clear();
-            }
+            // if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid)
+            // TODO: How do we decide to redo our path???
+            self.base.move_to(self.path.remove(0), GNOME_SPEED, grid);
+            // impassable terrain
+            self.path.clear();
+            // }
             return None;
         }
 
@@ -175,7 +186,7 @@ impl EntityBehaviour for Gnome {
             // pass out on the spot
             self.base.tired = super::BASE_TIRED;
             self.base.timer = super::PASS_OUT_TIME;
-            self.sleeping = true;
+            self.status = GnomeStatus::SLEEPING;
             return None;
         }
 
@@ -195,12 +206,11 @@ impl EntityBehaviour for Gnome {
         }
 
         if self.job.is_some() {
-            self.job_update(grid, game_ctx);
+            self.job_update(grid, game_ctx)
         } else {
             self.base.move_random(grid);
+            None
         }
-
-        None
     }
 
     fn attacked(&mut self) {

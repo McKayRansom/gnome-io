@@ -8,7 +8,8 @@ use crate::{
     },
     item::{self, ItemId},
     job::{
-        Job, job_default_search, job_drop_serach, job_eat_search, job_haul_search, job_sleep_search,
+        Job, job_default_search, job_drop_serach, job_eat_search, job_fight_search,
+        job_haul_search, job_sleep_search,
     },
     tile::{Content, ContentItem, Tile},
 };
@@ -274,6 +275,7 @@ impl Grid {
             job_drop_serach,
             job_eat_search,
             job_sleep_search,
+            job_fight_search,
         ];
         // log::info!("Hello");
         for pos in pathfinding::prelude::bfs_reach(entity.pos, |pos| {

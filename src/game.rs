@@ -6,7 +6,7 @@ use crate::{
     block::Blocks,
     entity::{Entity, EntityAction, EntityId, gnome::Gnome, goblin::Goblin},
     event::EventManager,
-    grid::{Grid, Pos},
+    grid::{Grid, Pos, pos::dirs},
     item::Items,
     job::{JobManager, build, mine::mine},
     tile::Content,
@@ -229,8 +229,17 @@ impl Game {
         self.entity_id += 1;
     }
 
-    #[allow(unused)]
-    pub fn spawn_goblin(&mut self, pos: Pos) {
+    pub fn spawn_goblin(&mut self, mut pos: Pos) {
+        loop {
+            let Some(tile) = self.grid.get_tile(pos) else {
+                log::warn!("Couldn't find place to spawn goblin!");
+                return;
+            };
+            if tile.is_passable() {
+                break;
+            }
+            pos = pos + dirs::DOWN;
+        }
         self.entities.insert(
             self.entity_id,
             Entity::Goblin(Goblin::new(self.entity_id, pos, &mut self.grid)),

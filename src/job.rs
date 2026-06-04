@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
-    entity::BaseEntity,
+    entity::{BaseEntity, EntityId, goblin::GOBLIN_FACTION},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
@@ -62,6 +62,7 @@ pub struct Job {
 // TEMP: In order of priority for now
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum JobType {
+    FIGHT,
     SLEEP,
     EAT,
     CRAFT,
@@ -73,10 +74,11 @@ pub enum JobType {
 }
 
 pub enum JobAction {
-    Aquire(ContentItem),
+    Aquire(Content),
     Goto(Pos),
     Wait(Tick),
     Sleep(Tick),
+    Fight(EntityId),
     Eat(Tick),
     Finished,
 }
@@ -158,7 +160,22 @@ pub fn job_sleep_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Jo
     }
 }
 
+pub fn job_fight_search(pos: Pos, tile: &Tile, _entity: &BaseEntity) -> Option<Job> {
+    tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
+        .map(|goblin| Job::fight(pos, goblin))
+}
+
 impl Job {
+    fn fight(pos: Pos, content: Content) -> Job {
+        Job {
+            pos,
+            time: 0,
+            category: JobType::FIGHT,
+            content: Some(content),
+            ..Default::default()
+        }
+    }
+
     pub fn sleep(pos: Pos) -> Self {
         Job {
             pos,
@@ -256,14 +273,25 @@ impl Job {
                     log::info!("Take item {} from tile", item.0);
                 } else {
                     log::info!("AQUIRE");
-                    return JobAction::Aquire(*required_item);
+                    return JobAction::Aquire(Content::Item(*required_item));
+                }
+            }
+        }
+        if matches!(self.category, JobType::FIGHT) {
+            if let Some(content) = self.content {
+                if !grid
+                    .get_tile(self.pos)
+                    .unwrap()
+                    .contains(&content)
+                {
+                    return JobAction::Aquire(content);
                 }
             }
         }
         // this is >1 instead of >0 so that we can mine and craft on blocks that are not pathable
         // there may be a better solution for this
         if pos.diff(self.pos) > 1 {
-            log::info!("GOTO");
+            // log::info!("GOTO");
             return JobAction::Goto(self.pos);
         }
         // TODO: Check for cancel!!
@@ -293,11 +321,12 @@ impl Job {
             }
         }
 
-        let _ = match self.content {
+        match self.content.take() {
             Some(Content::Item(item)) => grid.add(self.pos, Content::Item(item)),
             Some(Content::Block(block)) => grid.place_block(self.pos, block.0, game_ctx),
+            Some(Content::Entity(entity)) => return JobAction::Fight(entity.1),
+            Some(Content::Job(_)) => todo!(),
             None => None,
-            Some(_) => todo!(),
         };
 
         // pick up any items dropped
@@ -309,6 +338,15 @@ impl Job {
         log::info!("Finished job: {:?}", self);
         self.success(grid, game_ctx);
         JobAction::Finished
+    }
+
+    pub fn aquired(&mut self, path: &[Pos], grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if matches!(self.category, JobType::FIGHT) {
+            grid.remove(self.pos, Content::Job(self.id));
+            self.pos = *path.last().unwrap();
+            grid.add(self.pos, Content::Job(self.id));
+            let _old_job = game_ctx.events.update_job(self.clone());
+        }
     }
 
     pub fn fail(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {

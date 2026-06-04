@@ -12,6 +12,7 @@ use macroquad::{
 use crate::{
     context::Context,
     draw::{draw_game, draw_tile_outline},
+    entity::Entity,
     game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
     tile::Content,
@@ -162,7 +163,12 @@ impl Gameplay {
                 }
             }
         }
-        if self.game.entities.len() == 0 {
+        if !self
+            .game
+            .entities
+            .values()
+            .any(|entity| matches!(entity, Entity::Gnome(_)))
+        {
             self.popup = Some(Popup::new(format!(
                 "Game over, you survived until {:?} Year {}",
                 self.game.game_ctx.time.season, self.game.game_ctx.time.year
@@ -186,6 +192,9 @@ impl Gameplay {
 
         if is_key_pressed(KeyCode::F5) {
             event = Some(GameEvent::Reload);
+        }
+        if is_key_pressed(KeyCode::G) {
+            self.game.spawn_goblin(Pos::new(0, 0));
         }
 
         if ctx.mouse_pos.is_none() {

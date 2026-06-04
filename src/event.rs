@@ -138,6 +138,10 @@ impl EventManager {
         id
     }
 
+    pub fn update_job(&mut self, job: Job) -> Option<Job> {
+        self.jobs.insert(job.id, job)
+    }
+
     pub fn remove_job(&mut self, job: &JobId) {
         self.jobs.remove(job);
     }

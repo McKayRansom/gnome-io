@@ -21,7 +21,6 @@ pub enum EntityAction {
     Die(EntityId),
     #[allow(unused)]
     Birth(EntityId),
-    #[allow(unused)]
     Attack(EntityId),
 }
 
@@ -76,35 +75,39 @@ pub struct BaseEntity {
     pub faction: Faction,
     pub pos: Pos,
     pub dir: Pos,
-    pub lag: u16,
+    pub lag: Tick,
 
-    pub food: u16,
-    pub health: u8,
+    pub food: Tick,
+    pub health: Health,
     #[serde(default)]
-    pub tired: u16,
+    pub tired: Tick,
 
     pub timer: Tick,
     pub items: Vec<ContentItem>,
 }
 
 // food values
-const BASE_FOOD: u16 = hours(20);
-pub const FOOD_EAT: u16 = hours(4);
+const BASE_FOOD: Tick = hours(20);
+pub const FOOD_EAT: Tick = hours(4);
 
 // eat time
-const FOOD_EAT_TIME: u16 = hours(1);
+const FOOD_EAT_TIME: Tick = hours(1);
 
 // sleep values
-pub const BASE_TIRED: u16 = hours(20);
+pub const BASE_TIRED: Tick = hours(20);
 // const SLOW_TIRED: u16 = hours(2);
-pub const SLEEP_TIRED: u16 = hours(4);
+pub const SLEEP_TIRED: Tick = hours(4);
 
 // sleep times
-const PASS_OUT_TIME: u16 = hours(6);
-const SLEEP_TIME: u16 = hours(4);
+const PASS_OUT_TIME: Tick = hours(6);
+const SLEEP_TIME: Tick = hours(4);
 
 // health
-const BASE_HEALTH: u8 = 10;
+pub type Health = u8;
+const BASE_HEALTH: Health = 10;
+
+// fight
+const FIGHT_TIME: Tick = hours(1);
 
 impl Default for BaseEntity {
     fn default() -> Self {
@@ -114,9 +117,9 @@ impl Default for BaseEntity {
             pos: dirs::NONE,
             dir: dirs::NONE,
             lag: 0,
-            food: hours(24),
+            food: BASE_FOOD,
             tired: BASE_TIRED,
-            health: 10,
+            health: BASE_HEALTH,
             timer: 0,
             items: Vec::new(),
         }
@@ -140,6 +143,10 @@ impl BaseEntity {
         self.tired = self.tired.saturating_sub(1);
         if self.timer > 0 {
             self.timer -= 1;
+        }
+        // need to check this after, don't do else because self.timer will get reset
+        if self.timer == 0 {
+            self.lag = 0;
         }
 
         None

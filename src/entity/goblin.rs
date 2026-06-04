@@ -10,7 +10,9 @@ use crate::{
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Goblin {
-    base: BaseEntity,
+    pub base: BaseEntity,
+    #[serde(default)]
+    pub fighting: bool,
 }
 
 pub const GOBLIN_FACTION: Faction = 2;
@@ -19,7 +21,6 @@ const BASE_HEALTH: u8 = 10;
 const BASE_FOOD: u16 = hours(20);
 
 impl Goblin {
-    #[allow(unused)]
     pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Goblin {
         grid.gnome_enter(pos, (GOBLIN_FACTION, id));
 
@@ -32,6 +33,7 @@ impl Goblin {
                 food: BASE_FOOD,
                 ..Default::default()
             },
+            fighting: false,
         }
     }
 }
@@ -48,6 +50,7 @@ impl EntityBehaviour for Goblin {
         if self.base.timer > 0 {
             return None;
         }
+        self.fighting = false;
         if let Some(path) = grid.find_path(
             self.base.pos,
             self.base.pos,
@@ -58,8 +61,12 @@ impl EntityBehaviour for Goblin {
                 None
             } else {
                 let attack_pos = path[path.len() - 1];
+                self.base.timer = super::FIGHT_TIME;
+                self.fighting = true;
                 Some(super::EntityAction::Attack({
-                    let Content::Entity((_faction, id)) = grid .get_tile(attack_pos) .unwrap()
+                    let Content::Entity((_faction, id)) = grid
+                        .get_tile(attack_pos)
+                        .unwrap()
                         .find(&Content::Entity((GNOME_FACTION, 0)))
                         .unwrap()
                     else {

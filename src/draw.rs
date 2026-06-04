@@ -8,7 +8,7 @@ use macroquad::{
 use crate::{
     block::BlockInfoFlags,
     context::Context,
-    entity::{self, Entity, gnome::Gnome},
+    entity::{self, BaseEntity, Entity, gnome::Gnome, goblin::Goblin},
     game::{Entities, Game, GameCtx},
     grid::{
         Grid, Pos,
@@ -127,7 +127,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     // ctx.tileset.draw_tile(sprites, dest, color);
                     match entities.get(&gnome.1).unwrap() {
                         Entity::Gnome(gnome) => draw_gnome(game_ctx, ctx, gnome),
-                        _ => {}
+                        Entity::Goblin(goblin) => draw_goblin(game_ctx, ctx, goblin),
                     }
                 }
             }
@@ -155,58 +155,71 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
     }
 }
 
+const ITEM_Y_DIFF: f32 = 15.0;
+
+fn draw_goblin(_game_ctx: &GameCtx, ctx: &Context, goblin: &Goblin) {
+    let (flip, dest) = entity_draw_info(ctx, &goblin.base);
+
+    let mut item_start = dest.clone();
+    item_start.y -= PIXEL_SIZE * ITEM_Y_DIFF * ctx.camera.zoom;
+
+    ctx.tileset
+        .draw_tile_ex("goblin", colors::WHITE, &dest, flip);
+
+    if goblin.fighting {
+        ctx.tileset.draw_tile("fight", &item_start, colors::WHITE)
+    }
+}
+
 fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
-    let mut dest_rect: Rect = gnome.base.pos.into();
-    let flip = gnome.base.dir == dirs::LEFT || gnome.base.dir == dirs::DOWN;
+    let (flip, dest) = entity_draw_info(ctx, &gnome.base);
 
-    if gnome.base.lag > 0 {
-        let dir: Vec2 = gnome.base.dir.into();
+    let mut item_start = dest.clone();
+    item_start.y -= PIXEL_SIZE * ITEM_Y_DIFF * ctx.camera.zoom;
 
-        let offset = dir * (gnome.base.timer as f32 / gnome.base.lag as f32);
+    let sprite = match gnome.status {
+        entity::gnome::GnomeStatus::NONE => "gnome",
+        entity::gnome::GnomeStatus::SLEEPING => "gnome_sleep",
+        entity::gnome::GnomeStatus::EATING => "gnome_eat",
+        entity::gnome::GnomeStatus::FIGHTING => "gnome",
+    };
+    ctx.tileset.draw_tile_ex(sprite, colors::WHITE, &dest, flip);
+
+    match gnome.status {
+        entity::gnome::GnomeStatus::NONE => {
+            if gnome.base.is_tired() {
+                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+                ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
+            } else if gnome.base.is_hungry() {
+                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+                ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
+            } else {
+                draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
+            }
+        }
+        entity::gnome::GnomeStatus::SLEEPING => {
+            ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE)
+        }
+        entity::gnome::GnomeStatus::EATING => {}
+        entity::gnome::GnomeStatus::FIGHTING => {
+            ctx.tileset.draw_tile("fight", &item_start, colors::WHITE)
+        }
+    }
+}
+
+fn entity_draw_info(ctx: &Context, base: &BaseEntity) -> (bool, Rect) {
+    let mut dest_rect: Rect = base.pos.into();
+    let flip = base.dir == dirs::LEFT || base.dir == dirs::DOWN;
+
+    if base.lag > 0 {
+        let dir: Vec2 = base.dir.into();
+
+        let offset = dir * (base.timer as f32 / base.lag as f32);
         dest_rect = dest_rect.offset(offset);
         // dbg!(gnome, offset);
     }
     let dest = ctx.camera.to_screen_rect(dest_rect);
-
-    let mut item_start = dest.clone();
-    item_start.y -= PIXEL_SIZE * 15.0 * ctx.camera.zoom;
-
-    if gnome.base.tired < entity::SLEEP_TIRED {
-        ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-        ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
-
-        ctx.tileset
-            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
-
-        return;
-    } else if gnome.sleeping {
-        ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
-
-        // sleeping
-        ctx.tileset
-            .draw_tile_ex("gnome_sleep", colors::WHITE, &dest, flip);
-
-        return;
-    } else if gnome.eating {
-        // eating
-        ctx.tileset
-            .draw_tile_ex("gnome_eat", colors::WHITE, &dest, flip);
-
-        return;
-    } else if gnome.base.food < entity::FOOD_EAT {
-        ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-        ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
-
-        ctx.tileset
-            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
-
-        return;
-    } else {
-        draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
-
-        ctx.tileset
-            .draw_tile_ex("gnome", colors::WHITE, &dest, flip);
-    }
+    (flip, dest)
 }
 
 // pub const TILE_PERSPECTIVE_HEIGHT: f32 = PIXEL_SIZE * 6.;
