@@ -264,7 +264,7 @@ impl Job {
     ) -> JobAction {
         // collect items
         // TODO: This will not work with mutliple of the same item!!!
-        // TODO: BUG: This will take food every time this code gets run!
+        // TODO: This will take food every time this code gets run! we need to compare Content instead of ContentItem so the comparison will match on ItemFlags correctly
         for required_item in self.requires.iter() {
             if !items.contains(required_item) {
                 if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {
@@ -279,11 +279,7 @@ impl Job {
         }
         if matches!(self.category, JobType::FIGHT) {
             if let Some(content) = self.content {
-                if !grid
-                    .get_tile(self.pos)
-                    .unwrap()
-                    .contains(&content)
-                {
+                if !grid.get_tile(self.pos).unwrap().contains(&content) {
                     return JobAction::Aquire(content);
                 }
             }
@@ -324,6 +320,7 @@ impl Job {
         match self.content.take() {
             Some(Content::Item(item)) => grid.add(self.pos, Content::Item(item)),
             Some(Content::Block(block)) => grid.place_block(self.pos, block.0, game_ctx),
+            // TODO: This behaviour returns, and if it every required items, we would take those items twice!
             Some(Content::Entity(entity)) => return JobAction::Fight(entity.1),
             Some(Content::Job(_)) => todo!(),
             None => None,
