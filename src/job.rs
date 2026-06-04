@@ -247,6 +247,7 @@ impl Job {
     ) -> JobAction {
         // collect items
         // TODO: This will not work with mutliple of the same item!!!
+        // TODO: BUG: This will take food every time this code gets run!
         for required_item in self.requires.iter() {
             if !items.contains(required_item) {
                 if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {

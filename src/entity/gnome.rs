@@ -37,7 +37,7 @@ use crate::{
  */
 
 // #[derive(Serialize, Deserialize, Default, Debug)]
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Gnome {
     pub base: BaseEntity,
 
@@ -153,7 +153,6 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        self.base.tired = self.base.tired.saturating_sub(1);
         self.base.lag = 0;
         self.sleeping = false;
         self.eating = false;
@@ -186,7 +185,7 @@ impl EntityBehaviour for Gnome {
             if self.base.health == 0 {
                 return None;
             }
-       }
+        }
 
         // find a new job before we update job
         if self.job.is_none() {

@@ -8,7 +8,7 @@ use crate::{
     tile::Content,
 };
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct Goblin {
     base: BaseEntity,
 }
@@ -58,11 +58,15 @@ impl EntityBehaviour for Goblin {
                 None
             } else {
                 let attack_pos = path[path.len() - 1];
-                Some(super::EntityAction::Attack(
-                    grid.get_tile(attack_pos)
+                Some(super::EntityAction::Attack({
+                    let Content::Entity((_faction, id)) = grid .get_tile(attack_pos) .unwrap()
+                        .find(&Content::Entity((GNOME_FACTION, 0)))
                         .unwrap()
-                        .get_entity((GNOME_FACTION, 0)),
-                ))
+                    else {
+                        panic!();
+                    };
+                    id
+                }))
             }
         } else {
             self.base.move_random(grid);

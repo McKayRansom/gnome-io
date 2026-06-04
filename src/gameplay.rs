@@ -363,7 +363,12 @@ impl Gameplay {
             if self.game.grid.is_valid_pos(mouse_pos) {
                 if is_mouse_button_pressed(macroquad::input::MouseButton::Left) {
                     self.mouse_down_pos = Some(mouse_pos);
-                    dbg!(self.game.grid.get_tile(mouse_pos).unwrap());
+                    let tile = self.game.grid.get_tile(mouse_pos).unwrap();
+                    dbg!(tile);
+                    if let Some(entity_id) = tile.get_entity() {
+                        let entity = self.game.entities.get(&entity_id).unwrap();
+                        dbg!(entity);
+                    }
                 }
                 if is_mouse_button_released(macroquad::input::MouseButton::Left) {
                     for pos in self.mouse_down_pos.unwrap_or(mouse_pos).iter(mouse_pos) {

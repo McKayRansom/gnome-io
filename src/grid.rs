@@ -292,7 +292,6 @@ impl Grid {
             }
         }) {
             if let Some(tile) = self.get_tile(pos) {
-                let has_chest: bool = tile.block_flags().contains(BlockInfoFlags::STORAGE);
                 if let Some(new_job) = job_default_search(pos, tile, events) {
                     if found_job
                         .as_ref()
@@ -312,7 +311,6 @@ impl Grid {
                     }
                 }
 
-                if has_chest {}
                 if found_job.is_some() {
                     continue_past -= 1;
                 }

@@ -43,7 +43,7 @@ impl PartialEq for Content {
             }
 
             (Self::Entity(left), Self::Entity(right)) => {
-                left == right || (left.1 == 0 && left.0 == right.0)
+                left.0 == right.0 && (left.1 == right.1 || (left.1 == 0 || right.1 == 0))
             }
             (Self::Block(left), Self::Block(right)) => left == right,
             (Self::Job(left), Self::Job(right)) => left == right,
@@ -183,15 +183,6 @@ impl Tile {
         self.item_flags
     }
 
-    pub fn get_block(&self) -> Option<BlockId> {
-        for content in self.contents.iter() {
-            if let Content::Block(block) = *content {
-                return Some(block.0);
-            }
-        }
-        None
-    }
-
     pub fn remove(&mut self, remove: &Content) -> Option<Content> {
         let result = self
             .contents
@@ -209,7 +200,7 @@ impl Tile {
         self.modified();
     }
 
-    pub fn contains(&self, content: &Content) -> bool {
+    fn flags_contains(&self, content: &Content) -> bool {
         // see if we can exit early
         match content {
             Content::Item(_) => {
@@ -230,7 +221,19 @@ impl Tile {
             }
             _ => {}
         }
-        self.contents.contains(content)
+
+        true
+    }
+
+    pub fn contains(&self, content: &Content) -> bool {
+        self.flags_contains(content) && self.contents.contains(content)
+    }
+
+    pub fn find(&self, content: &Content) -> Option<Content> {
+        if !self.flags_contains(content) {
+            return None;
+        }
+        self.contents.iter().find(|c| *c == content).cloned()
     }
 
     pub fn iter_content(&self) -> std::slice::Iter<'_, Content> {
@@ -239,6 +242,15 @@ impl Tile {
 
     pub(crate) fn is_passable(&self) -> bool {
         self.walkable()
+    }
+
+    pub fn get_block(&self) -> Option<BlockId> {
+        for content in self.contents.iter() {
+            if let Content::Block(block) = *content {
+                return Some(block.0);
+            }
+        }
+        None
     }
 
     pub(crate) fn get_job(&self) -> Option<JobId> {
@@ -253,15 +265,16 @@ impl Tile {
         return None;
     }
 
-    pub(crate) fn get_entity(&self, entity: (u8, u32)) -> u32 {
+    pub(crate) fn get_entity(&self) -> Option<EntityId> {
+        if !self.has_entity() {
+            return None;
+        }
         for content in &self.contents {
-            if let Content::Entity((faction, id)) = content {
-                if faction == &entity.0 && (entity.1 == 0 || &entity.1 == id) {
-                    return *id;
-                }
+            if let Content::Entity((_faction, id)) = content {
+                return Some(*id);
             }
         }
-        0
+        None
     }
 
     pub fn item_count(&self) -> usize {
@@ -340,7 +353,7 @@ mod migration_tests {
     }
 
     #[test]
-    fn content_eq() {
+    fn content_item_eq() {
         assert_eq!(
             Content::Item((123, ItemInfoFlags::FOOD)),
             Content::Item((123, ItemInfoFlags::FOOD))
@@ -353,6 +366,14 @@ mod migration_tests {
             Content::Item((123, ItemInfoFlags::FOOD)),
             Content::Item((0, ItemInfoFlags::FOOD))
         )
+    }
+
+    #[test]
+    fn content_entity_eq() {
+        assert_ne!(Content::Entity((1, 2)), Content::Entity((2, 2)));
+        assert_eq!(Content::Entity((2, 2)), Content::Entity((2, 2)),);
+        assert_eq!(Content::Entity((2, 0)), Content::Entity((2, 2)),);
+        assert_eq!(Content::Entity((2, 2)), Content::Entity((0, 2)),)
     }
 
     #[test]

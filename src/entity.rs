@@ -1,9 +1,13 @@
 use macroquad::rand::rand;
 
 use crate::{
-    entity::{gnome::{GNOME_SPEED, Gnome}, goblin::Goblin},
+    entity::{
+        gnome::{GNOME_SPEED, Gnome},
+        goblin::Goblin,
+    },
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, pos::dirs}, tile::ContentItem,
+    grid::{Grid, Pos, pos::dirs},
+    tile::ContentItem,
 };
 
 pub mod gnome;
@@ -21,7 +25,7 @@ pub enum EntityAction {
     Attack(EntityId),
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub enum Entity {
     Gnome(Gnome),
     Goblin(Goblin),
@@ -66,7 +70,7 @@ impl Entity {
     }
 }
 
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Debug, serde::Serialize, serde::Deserialize)]
 pub struct BaseEntity {
     pub id: EntityId,
     pub faction: Faction,
@@ -133,6 +137,7 @@ impl BaseEntity {
             return Some(EntityAction::Die(self.id));
         }
         self.food = self.food.saturating_sub(1);
+        self.tired = self.tired.saturating_sub(1);
         if self.timer > 0 {
             self.timer -= 1;
         }
