@@ -6,8 +6,8 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemInfoFlags,
-    job::{Job, JobAction},
-    tile::Content,
+    job::{Busy, Job, JobActor, JobStatus},
+    tile::{Content, ContentItem},
 };
 
 /*
@@ -48,6 +48,10 @@ pub struct Gnome {
     // for animation purposes only...
     #[serde(default)]
     pub status: GnomeStatus,
+
+    // cache during update only
+    #[serde(skip_serializing, skip_deserializing)]
+    action: Option<EntityAction>,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -78,45 +82,50 @@ impl Gnome {
             job: None,
             path: Vec::new(),
             status: GnomeStatus::NONE,
+            action: None,
         }
     }
 
     fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
-        let job = self.job.as_mut().unwrap();
+        let mut job = self.job.take().unwrap();
         // collect items
-        match job.update(self.base.pos, &mut self.base.items, grid, game_ctx) {
-            JobAction::Aquire(content) => {
-                if let Some(mut path) = grid.find_path(self.base.pos, job.pos, Some(content)) {
-                    assert_eq!(path.remove(0), self.base.pos);
-                    // TODO: This is jank!!!
-                    job.aquired(&path, grid, game_ctx);
+        match job.update_new(self, grid, game_ctx) {
+            JobStatus::Active => self.job = Some(job),
+            JobStatus::Done => {}
+            JobStatus::Failed => {}
+        }
+        self.action.take()
+    }
+}
 
-                    self.path = path;
-                } else {
-                    log::warn!("Unable to find {:?} for job", content);
+impl JobActor for Gnome {
+    fn pos(&self) -> Pos {
+        self.base.pos
+    }
+    fn inventory(&mut self) -> &mut Vec<ContentItem> {
+        &mut self.base.items
+    }
 
-                    job.fail(grid, game_ctx);
-                    self.job = None;
-                }
-            }
-            JobAction::Goto(pos) => {
-                if let Some(mut path) = grid.find_path(self.base.pos, pos, None) {
-                    assert_eq!(path.remove(0), self.base.pos);
-                    // log::info!("path");
-                    self.path = path;
-                } else {
-                    log::warn!("Job at {:?} is unreachable", pos);
-                    job.fail(grid, game_ctx);
-                    self.job = None;
-                }
-            }
-            JobAction::Wait(time) => self.base.timer = time,
-            JobAction::Eat(_time) => {
+    // set self.path; gnome walks it over later ticks
+    fn walk(&mut self, mut path: Vec<Pos>) {
+        // TODO: I hate this but it does seem to be needed...
+        assert_eq!(path.remove(0), self.base.pos);
+        // if self.path.first().is_some_and(|pos| pos == &self.base.pos) {
+        //     self.path.remove(0);
+        // }
+        self.path = path;
+    }
+
+    // status + timer + (food/tired/heal) in one place
+    fn busy(&mut self, kind: Busy, time: Tick) {
+        match kind {
+            Busy::Wait => self.base.timer = time,
+            Busy::Eat => {
                 self.status = GnomeStatus::EATING;
                 self.base.food = super::BASE_FOOD;
                 self.base.timer = super::FOOD_EAT_TIME;
             }
-            JobAction::Sleep(_time) => {
+            Busy::Sleep => {
                 self.status = GnomeStatus::SLEEPING;
                 self.base.tired = super::BASE_TIRED;
                 self.base.timer = super::SLEEP_TIME;
@@ -124,16 +133,15 @@ impl Gnome {
                     self.base.health += 1;
                 }
             }
-            JobAction::Fight(entity) => {
+            Busy::Fight => {
                 self.status = GnomeStatus::FIGHTING;
                 self.base.timer = super::FIGHT_TIME;
-                return Some(EntityAction::Attack(entity));
-            }
-            JobAction::Finished => {
-                self.job = None;
             }
         }
-        None
+    }
+    // busy(Fight, …) + queue pending EntityAction
+    fn attack(&mut self, target: EntityId) {
+        self.action = Some(EntityAction::Attack(target));
     }
 }
 
@@ -173,9 +181,13 @@ impl EntityBehaviour for Gnome {
             // GNOME_SPEED;
             // };
             // if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid)
-            // TODO: How do we decide to redo our path???
+
             self.base.move_to(self.path.remove(0), GNOME_SPEED, grid);
             // impassable terrain
+            // if !grid.get_tile().is_passable() {
+            // HACK: Always clear our path so we re-path correctly to enimies
+            // It can work okay to just re-path when we get stuck, except when attacking is involved...
+            // TODO: How do we decide to redo our path???
             self.path.clear();
             // }
             return None;

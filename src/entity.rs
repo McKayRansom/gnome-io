@@ -1,4 +1,4 @@
-use macroquad::rand::rand;
+use macroquad::{prelude::rand, rand::rand};
 
 use crate::{
     entity::{
@@ -17,6 +17,7 @@ pub mod goblin;
 pub type EntityId = u32;
 pub type Faction = u8;
 
+#[derive(Debug)]
 pub enum EntityAction {
     Die(EntityId),
     #[allow(unused)]
@@ -117,8 +118,9 @@ impl Default for BaseEntity {
             pos: dirs::NONE,
             dir: dirs::NONE,
             lag: 0,
-            food: BASE_FOOD,
-            tired: BASE_TIRED,
+            // random so all entities don't pass out at/eat the exact same time
+            food: BASE_FOOD + rand::gen_range(0, BASE_FOOD / 2),
+            tired: BASE_TIRED + rand::gen_range(0, BASE_TIRED / 2),
             health: BASE_HEALTH,
             timer: 0,
             items: Vec::new(),

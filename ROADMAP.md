@@ -48,6 +48,7 @@ Key Decisions to make:
 
 - [ ] Re-enable stakes
   - [x] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
+    -[x] Fix eating wacking out
   - [ ] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
     - [ ] Requires minor rework to how block events work with farms
     - [ ] Add plants to world-get (but those won't be managed by farms unless added)
@@ -56,6 +57,10 @@ Key Decisions to make:
     - [ ] WINTER IS COMING!
   - [ ] Fix bread/crafting?
 - [ ] Create attack/flee logic
+    - [x] Create attack job and fix many, many bugs
+    - [ ] Make enemy entities unpathable (for fights and for doors...)
+    - [ ] Create flee job when it makes sense to do so
+    - [ ] Add grave blocks
 - [ ] Create parrenting logic
 - [ ] Professions/labor allocations
   - [ ] Add proffesions
@@ -71,6 +76,8 @@ Key Decisions to make:
   - [ ] Add sprites/drawing
   - [ ] Make required for profession and/or jobs
   - [ ] Picaxe/hoe/armor/etc...
+
+- [x] Sidetrack Job Step refactor (it's really cool tho...)
 
 Profession assignment:
 - Columns: Free, farm, soldier, mine, etc...

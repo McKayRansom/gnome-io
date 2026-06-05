@@ -9,7 +9,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos},
     item::{self, ItemInfoFlags},
-    tile::{Content, ContentBlock, ContentItem, Tile},
+    tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
 
 pub mod build;
@@ -53,10 +53,168 @@ pub struct Job {
     pub id: JobId,
     pub in_progress: bool,
     pub pos: Pos,
-    pub time: u16,
-    pub content: Option<Content>,
-    pub requires: Vec<ContentItem>,
+    pub steps: Vec<Step>,
+    pub cursor: usize,
+    // pub priority: u8,
+    // pub time: u16,
+    // pub content: Option<Content>,
+    // pub requires: Vec<ContentItem>,
     pub category: JobType,
+}
+
+enum Flow {
+    Next,           // instant step done → advance cursor, chain to next step THIS tick
+    Walk(Vec<Pos>), // hand path to actor, yield; re-enter SAME step on arrival (self-checks)
+    JobMoved(Vec<Pos>),
+    Busy(Busy, Tick), // set actor timer, advance cursor, yield; timer gates re-entry
+    Fail,
+}
+
+#[derive(Clone, Debug, Serialize, Deserialize)]
+pub enum Step {
+    Acquire(Vec<ContentItem>), // have it? Next. adjacent to a source? take it, Next. else Walk to source. none? Fail
+    Goto(Pos),                 // adjacent? Next : Walk(path to pos)
+    /// Functions like a Goto, but for entities that can move, so we will dynamically adjust the job position
+    Approach(ContentEntity),
+    Work(Tick),                // Busy(Wait, t)
+    Consume(Vec<ContentItem>), // remove requires from inventory, Next   (runs AFTER work, not before)
+    Produce(Content),          // PlaceBlock / SpawnItem / ClearBlock at self.pos, Next
+    TakeItems,
+    StoreCarried, // pick up / dump into storage tile, Next
+    Eat,
+    Sleep,                 // Busy(Eat|Sleep, t)
+    Attack(ContentEntity), // actor.attack(t) → Busy(Fight, t) + queued EntityAction
+}
+
+impl Step {
+    fn run(
+        &self,
+        job_pos: Pos,
+        actor: &mut dyn JobActor,
+        grid: &mut Grid,
+        game_ctx: &mut GameCtx,
+    ) -> Flow {
+        match self {
+            Step::Acquire(required_item) => {
+                for item in required_item {
+                    if actor.inventory().contains(item) {
+                        continue;
+                    }
+                    if let Some(item) = grid.remove(actor.pos(), Content::Item(*item)) {
+                        let Content::Item(item) = item else { panic!() };
+                        actor.inventory().push(item);
+                        log::info!("Take item {:?} from tile", item);
+                    } else {
+                        log::info!("Acquire seaching for {:?}", item);
+                        if let Some(path) =
+                            grid.find_path(actor.pos(), actor.pos(), Some(Content::Item(*item)))
+                        {
+                            return Flow::Walk(path);
+                        } else {
+                            log::warn!("Unable to find {:?} for job", item);
+
+                            // job.fail(grid, game_ctx);
+                            // self.job = None;
+                            return Flow::Fail;
+                        }
+                    }
+                }
+                Flow::Next
+            }
+            Step::Goto(pos) => {
+                // this is 1 instead of 0 so that we can mine and craft on blocks that are not pathable
+                // there may be a better solution for this
+                if pos.diff(actor.pos()) <= 1 {
+                    Flow::Next
+                } else if let Some(path) = grid.find_path(actor.pos(), *pos, None) {
+                    // log::info!("path");
+                    // self.path = path;
+                    Flow::Walk(path)
+                } else {
+                    log::warn!("Job at {:?} is unreachable", pos);
+                    Flow::Fail
+                }
+            }
+            Step::Approach(target_entity) => {
+                // this is 1 instead of 0 so that we can mine and craft on blocks that are not pathable
+                // there may be a better solution for this
+                if actor.pos().diff(job_pos) <= 1
+                    && grid
+                        .get_tile(job_pos)
+                        .is_some_and(|tile| tile.contains(&Content::Entity(*target_entity)))
+                {
+                    Flow::Next
+                } else if let Some(path) =
+                    grid.find_path(actor.pos(), job_pos, Some(Content::Entity(*target_entity)))
+                {
+                    // assert_eq!(path.remove(0), actor.pos());
+                    // log::info!("path");
+                    // self.path = path;
+                    Flow::JobMoved(path)
+                } else {
+                    log::warn!("Entity {:?} is unreachable", target_entity);
+                    Flow::Fail
+                }
+
+                // assert_eq!(path.remove(0), self.base.pos);
+                // TODO: This is jank!!!
+                // job.aquired(&path, grid, game_ctx);
+                // if matches!(self.category, JobType::FIGHT) {
+
+                // }
+                // Flow::Next
+            }
+            Step::Work(time) => Flow::Busy(Busy::Wait, *time),
+            Step::Consume(requires) => {
+                let inventory = actor.inventory();
+                for required_item in requires.iter() {
+                    if let Some(idx) = inventory
+                        .iter()
+                        .position(|item| Content::Item(*item) == Content::Item(*required_item))
+                    {
+                        inventory.remove(idx);
+                        // inventory.remo
+                    }
+                }
+                Flow::Next
+            }
+            Step::Produce(content) => {
+                match content {
+                    Content::Item(item) => grid.add(job_pos, Content::Item(*item)),
+                    Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
+                    // TODO: This behaviour returns, and if it every required items, we would take those items twice!
+                    Content::Entity(_entity) => todo!(),
+                    Content::Job(_) => todo!(),
+                };
+                Flow::Next
+            }
+            Step::TakeItems => {
+                grid.take_items(job_pos, actor.inventory());
+                Flow::Next
+            }
+            Step::StoreCarried => {
+                grid.store_items(job_pos, actor.inventory());
+                Flow::Next
+            }
+            Step::Eat => Flow::Busy(Busy::Eat, 0),
+            Step::Sleep => Flow::Busy(Busy::Sleep, 0),
+            Step::Attack(target) => {
+                // we have already verified we are close enough
+                // if we are attacking a faction we need to lookup the exact entity
+                // (or we could do so elsewhere I guess)
+                let Some(Content::Entity(entity)) = grid
+                    .get_tile(job_pos)
+                    .unwrap()
+                    .find(&Content::Entity(*target))
+                else {
+                    log::warn!("Unable to attack {:?} at {:?}", target, job_pos);
+                    return Flow::Fail;
+                };
+                actor.attack(entity.1);
+                Flow::Busy(Busy::Fight, 0)
+            }
+        }
+    }
 }
 
 // TEMP: In order of priority for now
@@ -73,14 +231,25 @@ pub enum JobType {
     NONE,
 }
 
-pub enum JobAction {
-    Aquire(Content),
-    Goto(Pos),
-    Wait(Tick),
-    Sleep(Tick),
-    Fight(EntityId),
-    Eat(Tick),
-    Finished,
+pub enum Busy {
+    Wait,
+    Eat,
+    Sleep,
+    Fight,
+} // maps to GnomeStatus + which need it restores
+
+pub enum JobStatus {
+    Active,
+    Done,
+    Failed,
+}
+
+pub trait JobActor {
+    fn pos(&self) -> Pos;
+    fn inventory(&mut self) -> &mut Vec<ContentItem>;
+    fn walk(&mut self, path: Vec<Pos>); // set self.path; gnome walks it over later ticks
+    fn busy(&mut self, kind: Busy, time: Tick); // status + timer + (food/tired/heal) in one place
+    fn attack(&mut self, target: EntityId); // busy(Fight, …) + queue pending EntityAction
 }
 
 impl Default for Job {
@@ -89,9 +258,11 @@ impl Default for Job {
             id: 0,
             in_progress: false,
             pos: Pos::new(0, 0),
-            time: 0,
-            content: None,
-            requires: Vec::new(),
+            steps: Vec::new(),
+            cursor: 0,
+            // time: 0,
+            // content: None,
+            // requires: Vec::new(),
             category: JobType::NONE,
         }
     }
@@ -162,16 +333,22 @@ pub fn job_sleep_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Jo
 
 pub fn job_fight_search(pos: Pos, tile: &Tile, _entity: &BaseEntity) -> Option<Job> {
     tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
-        .map(|goblin| Job::fight(pos, goblin))
+        .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
 }
 
 impl Job {
-    fn fight(pos: Pos, content: Content) -> Job {
+    // TODO: Does this need to be changed to ContentEntity so we can attack factions?
+    fn fight(pos: Pos, entity: ContentEntity) -> Job {
         Job {
             pos,
-            time: 0,
+            // time: 0,
             category: JobType::FIGHT,
-            content: Some(content),
+            // content: Some(content),
+            steps: vec![
+                // TODO!
+                Step::Approach(entity),
+                Step::Attack(entity),
+            ],
             ..Default::default()
         }
     }
@@ -179,8 +356,8 @@ impl Job {
     pub fn sleep(pos: Pos) -> Self {
         Job {
             pos,
-            time: 1, // TEMP
             category: JobType::SLEEP,
+            steps: vec![Step::Goto(pos), Step::Sleep],
             ..Default::default()
         }
     }
@@ -188,9 +365,15 @@ impl Job {
     pub fn eat(pos: Pos) -> Self {
         Job {
             pos,
-            time: 1, // TEMP
+            // time: 1, // TEMP
             category: JobType::EAT,
-            requires: vec![(0, ItemInfoFlags::FOOD)],
+            // requires: vec![(0, ItemInfoFlags::FOOD)],
+            steps: vec![
+                // TODO: Have this change pos...
+                Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Eat,
+            ],
             ..Default::default()
         }
     }
@@ -198,10 +381,17 @@ impl Job {
     pub fn craft(pos: Pos, time: u16, item: ContentItem, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
-            time,
-            content: Some(Content::Item(item)),
-            requires,
+            // time,
+            // content: Some(Content::Item(item)),
+            // requires,
             category: JobType::CRAFT,
+            steps: vec![
+                Step::Acquire(requires.clone()),
+                Step::Goto(pos),
+                Step::Work(time),
+                Step::Consume(requires),
+                Step::Produce(Content::Item(item)),
+            ],
             ..Default::default()
         }
     }
@@ -209,10 +399,17 @@ impl Job {
     pub fn build(pos: Pos, time: u16, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
-            time,
-            content: Some(Content::Block(block)),
-            requires,
+            // time,
+            // content: Some(Content::Block(block)),
+            // requires,
             category: JobType::BUILD,
+            steps: vec![
+                Step::Acquire(requires.clone()),
+                Step::Goto(pos),
+                Step::Work(time),
+                Step::Consume(requires),
+                Step::Produce(Content::Block(block)),
+            ],
             ..Default::default()
         }
     }
@@ -221,9 +418,15 @@ impl Job {
     pub fn mine(pos: Pos, time: u16) -> Self {
         Job {
             pos,
-            time,
-            content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
+            // time,
+            // content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
             category: JobType::MINE,
+            steps: vec![
+                Step::Goto(pos),
+                Step::Work(time),
+                Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
+                Step::TakeItems,
+            ],
             ..Default::default()
         }
     }
@@ -233,6 +436,7 @@ impl Job {
         Self {
             pos,
             category: JobType::HAUL,
+            steps: vec![Step::Goto(pos), Step::TakeItems],
             ..Default::default()
         }
     }
@@ -241,13 +445,9 @@ impl Job {
         Self {
             pos,
             category: JobType::DROP,
+            steps: vec![Step::Goto(pos), Step::StoreCarried],
             ..Default::default()
         }
-    }
-
-    // will this always be true?
-    pub fn is_craft(&self) -> bool {
-        matches!(self.content, Some(Content::Item(_)))
     }
 
     // TEMP: Eventually we will need a method to change priorities
@@ -255,94 +455,43 @@ impl Job {
         self.category < other.category
     }
 
-    pub fn update(
+    pub fn update_new(
         &mut self,
-        pos: Pos,
-        items: &mut Vec<ContentItem>,
+        actor: &mut dyn JobActor,
         grid: &mut Grid,
         game_ctx: &mut GameCtx,
-    ) -> JobAction {
-        // collect items
-        // TODO: This will not work with mutliple of the same item!!!
-        // TODO: This will take food every time this code gets run! we need to compare Content instead of ContentItem so the comparison will match on ItemFlags correctly
-        for required_item in self.requires.iter() {
-            if !items.contains(required_item) {
-                if let Some(item) = grid.remove(pos, Content::Item(*required_item)) {
-                    let Content::Item(item) = item else { panic!() };
-                    items.push(item);
-                    log::info!("Take item {} from tile", item.0);
-                } else {
-                    log::info!("AQUIRE");
-                    return JobAction::Aquire(Content::Item(*required_item));
-                }
-            }
-        }
-        if matches!(self.category, JobType::FIGHT) {
-            if let Some(content) = self.content {
-                if !grid.get_tile(self.pos).unwrap().contains(&content) {
-                    return JobAction::Aquire(content);
-                }
-            }
-        }
-        // this is >1 instead of >0 so that we can mine and craft on blocks that are not pathable
-        // there may be a better solution for this
-        if pos.diff(self.pos) > 1 {
-            // log::info!("GOTO");
-            return JobAction::Goto(self.pos);
-        }
-        // TODO: Check for cancel!!
-        // we are here!
-        if self.time > 0 {
-            let time = self.time;
-            self.time = 0;
-            return match self.category {
-                JobType::EAT => JobAction::Eat(time),
-                JobType::SLEEP => JobAction::Sleep(time),
-                // JobType::CRAFT => todo!(),
-                // JobType::BUILD => todo!(),
-                // JobType::MINE => todo!(),
-                // JobType::HAUL => todo!(),
-                // JobType::DROP => todo!(),
-                // JobType::NONE => todo!(),
-                _ => JobAction::Wait(time),
+    ) -> JobStatus {
+        loop {
+            let Some(step) = self.steps.get_mut(self.cursor) else {
+                self.success(grid, game_ctx);
+                return JobStatus::Done; // ran off the end → finished
             };
-        }
-        // perform the job
-        for required_item in self.requires.iter() {
-            if let Some(idx) = items
-                .iter()
-                .position(|item| Content::Item(*item) == Content::Item(*required_item))
-            {
-                items.remove(idx);
+            match step.run(self.pos, actor, grid, game_ctx) {
+                Flow::Next => self.cursor += 1, // chain instant steps
+                Flow::Walk(path) => {
+                    actor.walk(path);
+                    return JobStatus::Active;
+                    // cursor unchanged
+                }
+                Flow::JobMoved(path) => {
+                    grid.remove(self.pos, Content::Job(self.id));
+                    self.pos = *path.last().unwrap();
+                    grid.add(self.pos, Content::Job(self.id));
+                    let _old_job = game_ctx.events.update_job(self.clone());
+
+                    actor.walk(path);
+                    return JobStatus::Active;
+                }
+                Flow::Busy(k, t) => {
+                    actor.busy(k, t);
+                    self.cursor += 1;
+                    return JobStatus::Active;
+                }
+                Flow::Fail => {
+                    self.fail(grid, game_ctx);
+                    return JobStatus::Failed;
+                }
             }
-        }
-
-        match self.content.take() {
-            Some(Content::Item(item)) => grid.add(self.pos, Content::Item(item)),
-            Some(Content::Block(block)) => grid.place_block(self.pos, block.0, game_ctx),
-            // TODO: This behaviour returns, and if it every required items, we would take those items twice!
-            Some(Content::Entity(entity)) => return JobAction::Fight(entity.1),
-            Some(Content::Job(_)) => todo!(),
-            None => None,
-        };
-
-        // pick up any items dropped
-        grid.take_items(self.pos, items);
-
-        // this feels wrong...
-        grid.store_items(self.pos, items);
-
-        log::info!("Finished job: {:?}", self);
-        self.success(grid, game_ctx);
-        JobAction::Finished
-    }
-
-    pub fn aquired(&mut self, path: &[Pos], grid: &mut Grid, game_ctx: &mut GameCtx) {
-        if matches!(self.category, JobType::FIGHT) {
-            grid.remove(self.pos, Content::Job(self.id));
-            self.pos = *path.last().unwrap();
-            grid.add(self.pos, Content::Job(self.id));
-            let _old_job = game_ctx.events.update_job(self.clone());
         }
     }
 

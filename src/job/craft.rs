@@ -6,7 +6,6 @@ use crate::{
     game::{CRAFTING_TIME, GameCtx},
     grid::{Grid, Pos},
     item::ItemId,
-    tile::Content,
 };
 
 use super::{Job, JobManager};
@@ -108,21 +107,22 @@ impl CraftManager {
                 self.workshop_pos
                     .retain(|pos| pos != &block_update_event.value.pos);
                 // remove crafting jobs at this pos
-                for content in grid
-                    .get_tile(block_update_event.value.pos)
-                    .unwrap()
-                    .iter_content()
-                {
-                    if let Content::Job(job_id) = content {
-                        // game_ctx.events.c
-                        if let Some(job) = game_ctx.events.jobs.get(job_id) {
-                            if job.is_craft() {
-                                game_ctx.events.remove_job(job_id);
-                                // TODO: Also remove this from the grid?
-                            }
-                        }
-                    }
-                }
+                // TODO: Handle this elsewhere?
+                // for content in grid
+                //     .get_tile(block_update_event.value.pos)
+                //     .unwrap()
+                //     .iter_content()
+                // {
+                //     if let Content::Job(job_id) = content {
+                //         // game_ctx.events.c
+                //         if let Some(job) = game_ctx.events.jobs.get(job_id) {
+                //             if job.is_craft() {
+                //                 // TODO: Also remove this from the grid?
+                //                 game_ctx.events.remove_job(job_id);
+                //             }
+                //         }
+                //     }
+                // }
             }
             // } else {
             //     log::warn!("Unkown event dispached to craft event queue");
