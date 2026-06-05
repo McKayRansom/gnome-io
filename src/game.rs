@@ -65,7 +65,7 @@ impl Game {
             entities: Entities::default(),
             entity_id: 1,
             grid: Grid::new(DEFAULT_SIZE),
-            job_manager: JobManager::new(),
+            job_manager: JobManager::default(),
             game_ctx: GameCtx {
                 time: GameTime::default(),
                 blocks: Blocks::default(),

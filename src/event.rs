@@ -18,20 +18,20 @@ pub type EventId = u32;
 
 pub const EVENT_NONE: EventId = 0;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct BlockUpdateEvent {
     pub pos: Pos,
     pub _old: BlockId,
     pub new: BlockId,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Event {
     pub id: EventId,
     pub value: BlockUpdateEvent,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Debug, Clone, Serialize, Deserialize)]
 pub struct Timer {
     pub time: Tick,
     pub event: Option<Event>,
@@ -57,6 +57,7 @@ pub struct EventManager {
     // one queue per event for now
     // TODO: Serialize/deserialize with string
     // #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip_deserializing, skip_serializing)]
     events: FxHashMap<EventId, VecDeque<Event>>,
     // there are much better data structures for this but here we are
     // OOF HOW DO THIS?
@@ -134,6 +135,7 @@ impl EventManager {
         block_info: &BlockInfo,
     ) {
         self.timers.remove(&pos);
+        self.far
         if let Some(mine_event) = block_info.mine_event {
             self.push_event(Event {
                 id: mine_event,

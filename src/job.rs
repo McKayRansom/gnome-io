@@ -510,19 +510,13 @@ impl Job {
 // pub const JOB_QUEUE: EventId = 10;
 // pub const JOB_FAIL_QUEUE: EventId = 11;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct JobManager {
     pub farm_manager: FarmManager,
     pub craft_manager: CraftManager,
 }
 
 impl JobManager {
-    pub fn new() -> Self {
-        Self {
-            farm_manager: FarmManager::new(),
-            craft_manager: CraftManager::new(),
-        }
-    }
 
     // NOTE: Must be re-enterant!
     pub fn load_ctx(&mut self, game_ctx: &mut GameCtx) {

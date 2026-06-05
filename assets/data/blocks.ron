@@ -42,9 +42,6 @@
     "wheat_4": (
         id: 205,
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
-        // TODO: These should be removed, farm should somehow insert there...
-        place_event: Some("farm"),
-        mine_event: Some("farm"),
     ),
 
     // man-made

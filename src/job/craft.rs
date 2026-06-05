@@ -35,7 +35,7 @@ pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx)
 
 pub const CRAFT_EVENT_ID: EventId = 300;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftManager {
     workshop_pos: Vec<Pos>,
     standing_orders: Vec<(ItemId, usize)>,
@@ -44,14 +44,6 @@ pub struct CraftManager {
 }
 
 impl CraftManager {
-    pub fn new() -> Self {
-        Self {
-            workshop_pos: Vec::new(),
-            standing_orders: Vec::new(),
-            workshop_block_ids: Vec::new(),
-        }
-    }
-
     pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
         game_ctx.events.add_event_class("craft");
         if self.standing_orders.is_empty() {
