@@ -80,7 +80,7 @@ pub enum Step {
     // Find content and get it into inventory
     Acquire(Vec<ContentItem>),
     // Go to position or as close as possible
-    Goto(Pos),
+    Goto((Pos, bool)),
     /// Functions like a Goto, but for entities that can move, so we will dynamically adjust the job position
     Approach(ContentEntity),
     // Generic Delay
@@ -132,10 +132,10 @@ impl Step {
                 }
                 Flow::Next
             }
-            Step::Goto(pos) => {
+            Step::Goto((pos, exact)) => {
                 // this is 1 instead of 0 so that we can mine and craft on blocks that are not pathable
                 // there may be a better solution for this
-                if pos.diff(actor.pos()) <= 1 {
+                if pos == &actor.pos() || !exact && pos.diff(actor.pos()) <= 1 {
                     Flow::Next
                 } else if let Some(path) = grid.find_path(actor.pos(), *pos, None) {
                     // log::info!("path");
@@ -234,7 +234,7 @@ pub enum Busy {
     Eat,
     Sleep,
     Fight,
-} // maps to GnomeStatus + which need it restores
+}
 
 pub enum JobStatus {
     Active,
@@ -355,7 +355,7 @@ impl Job {
         Job {
             pos,
             category: JobType::SLEEP,
-            steps: vec![Step::Goto(pos), Step::Sleep],
+            steps: vec![Step::Goto((pos, true)), Step::Sleep],
             ..Default::default()
         }
     }
@@ -385,7 +385,7 @@ impl Job {
             category: JobType::CRAFT,
             steps: vec![
                 Step::Acquire(requires.clone()),
-                Step::Goto(pos),
+                Step::Goto((pos, true)),
                 Step::Work(time),
                 Step::Consume(requires),
                 Step::Produce(Content::Item(item)),
@@ -403,7 +403,7 @@ impl Job {
             category: JobType::BUILD,
             steps: vec![
                 Step::Acquire(requires.clone()),
-                Step::Goto(pos),
+                Step::Goto((pos, !block.1.contains(BlockInfoFlags::SOLID))),
                 Step::Work(time),
                 Step::Consume(requires),
                 Step::Produce(Content::Block(block)),
@@ -420,7 +420,7 @@ impl Job {
             // content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
             category: JobType::MINE,
             steps: vec![
-                Step::Goto(pos),
+                Step::Goto((pos, false)),
                 Step::Work(time),
                 Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
                 Step::TakeItems,
@@ -434,7 +434,7 @@ impl Job {
         Self {
             pos,
             category: JobType::HAUL,
-            steps: vec![Step::Goto(pos), Step::TakeItems],
+            steps: vec![Step::Goto((pos, true)), Step::TakeItems],
             ..Default::default()
         }
     }
@@ -443,7 +443,7 @@ impl Job {
         Self {
             pos,
             category: JobType::DROP,
-            steps: vec![Step::Goto(pos), Step::StoreCarried],
+            steps: vec![Step::Goto((pos, false)), Step::StoreCarried],
             ..Default::default()
         }
     }

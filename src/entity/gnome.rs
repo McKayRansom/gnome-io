@@ -76,8 +76,6 @@ impl Gnome {
                 id,
                 faction: GNOME_FACTION,
                 pos,
-                food: super::BASE_FOOD,
-                health: super::BASE_HEALTH,
                 ..Default::default()
             },
             job: None,
