@@ -51,7 +51,7 @@ pub struct Gnome {
 
     // cache during update only
     #[serde(skip_serializing, skip_deserializing)]
-    action: Option<EntityAction>,
+    delayed_action: Option<EntityAction>,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -61,6 +61,7 @@ pub enum GnomeStatus {
     SLEEPING,
     EATING,
     FIGHTING,
+    // add mining/etc... when animations
 }
 
 pub const GNOME_SPEED: Tick = 20;
@@ -82,19 +83,20 @@ impl Gnome {
             job: None,
             path: Vec::new(),
             status: GnomeStatus::NONE,
-            action: None,
+            delayed_action: None,
         }
     }
 
     fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
+        // leaned this cool rust trick: We take it so we can get around the borrow-checker!
+        // This does involve copying Job but it's not really that big of a struct
         let mut job = self.job.take().unwrap();
-        // collect items
-        match job.update_new(self, grid, game_ctx) {
+        match job.update(self, grid, game_ctx) {
             JobStatus::Active => self.job = Some(job),
             JobStatus::Done => {}
             JobStatus::Failed => {}
         }
-        self.action.take()
+        self.delayed_action.take()
     }
 }
 
@@ -141,7 +143,7 @@ impl JobActor for Gnome {
     }
     // busy(Fight, …) + queue pending EntityAction
     fn attack(&mut self, target: EntityId) {
-        self.action = Some(EntityAction::Attack(target));
+        self.delayed_action = Some(EntityAction::Attack(target));
     }
 }
 
@@ -193,9 +195,9 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        // log::warn("Unable to find bed...")
         if self.base.tired == 0 {
             // pass out on the spot
+            // TODO: Some kind of indicator to the player that this is happening and bad...
             self.base.tired = super::BASE_TIRED;
             self.base.timer = super::PASS_OUT_TIME;
             self.status = GnomeStatus::SLEEPING;
@@ -203,6 +205,8 @@ impl EntityBehaviour for Gnome {
         }
 
         if self.base.food == 0 {
+            // starving to death
+            // TODO: Some kind of indicator to the player that this is happening and bad...
             self.base.health = self.base.health.saturating_sub(1);
             self.base.food = super::BASE_FOOD;
             if self.base.health == 0 {

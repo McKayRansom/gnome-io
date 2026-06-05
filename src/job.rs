@@ -63,27 +63,37 @@ pub struct Job {
 }
 
 enum Flow {
-    Next,           // instant step done → advance cursor, chain to next step THIS tick
-    Walk(Vec<Pos>), // hand path to actor, yield; re-enter SAME step on arrival (self-checks)
+    // Run next step immediatly
+    Next,
+    // Go to position, will re-enter same step constantly currently/depending on pathfinding
+    Walk(Vec<Pos>),
+    // For following entities
     JobMoved(Vec<Pos>),
-    Busy(Busy, Tick), // set actor timer, advance cursor, yield; timer gates re-entry
+    // For waiting/other tasks
+    Busy(Busy, Tick),
+    // Signal the job to abort immediatly, job cannot be completed
     Fail,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub enum Step {
-    Acquire(Vec<ContentItem>), // have it? Next. adjacent to a source? take it, Next. else Walk to source. none? Fail
-    Goto(Pos),                 // adjacent? Next : Walk(path to pos)
+    // Find content and get it into inventory
+    Acquire(Vec<ContentItem>),
+    // Go to position or as close as possible
+    Goto(Pos),
     /// Functions like a Goto, but for entities that can move, so we will dynamically adjust the job position
     Approach(ContentEntity),
-    Work(Tick),                // Busy(Wait, t)
-    Consume(Vec<ContentItem>), // remove requires from inventory, Next   (runs AFTER work, not before)
-    Produce(Content),          // PlaceBlock / SpawnItem / ClearBlock at self.pos, Next
+    // Generic Delay
+    Work(Tick),
+    // Consume content (assumes it is already there, should follow Acquire)
+    Consume(Vec<ContentItem>),
+    // PlaceBlock/ClearBlock/Spawn item at job pos
+    Produce(Content),
     TakeItems,
-    StoreCarried, // pick up / dump into storage tile, Next
+    StoreCarried,
     Eat,
-    Sleep,                 // Busy(Eat|Sleep, t)
-    Attack(ContentEntity), // actor.attack(t) → Busy(Fight, t) + queued EntityAction
+    Sleep,
+    Attack(ContentEntity),
 }
 
 impl Step {
@@ -96,6 +106,7 @@ impl Step {
     ) -> Flow {
         match self {
             Step::Acquire(required_item) => {
+                // TODO: still broken if we require more than one of an item...
                 for item in required_item {
                     if actor.inventory().contains(item) {
                         continue;
@@ -147,22 +158,11 @@ impl Step {
                 } else if let Some(path) =
                     grid.find_path(actor.pos(), job_pos, Some(Content::Entity(*target_entity)))
                 {
-                    // assert_eq!(path.remove(0), actor.pos());
-                    // log::info!("path");
-                    // self.path = path;
                     Flow::JobMoved(path)
                 } else {
                     log::warn!("Entity {:?} is unreachable", target_entity);
                     Flow::Fail
                 }
-
-                // assert_eq!(path.remove(0), self.base.pos);
-                // TODO: This is jank!!!
-                // job.aquired(&path, grid, game_ctx);
-                // if matches!(self.category, JobType::FIGHT) {
-
-                // }
-                // Flow::Next
             }
             Step::Work(time) => Flow::Busy(Busy::Wait, *time),
             Step::Consume(requires) => {
@@ -173,7 +173,6 @@ impl Step {
                         .position(|item| Content::Item(*item) == Content::Item(*required_item))
                     {
                         inventory.remove(idx);
-                        // inventory.remo
                     }
                 }
                 Flow::Next
@@ -182,7 +181,6 @@ impl Step {
                 match content {
                     Content::Item(item) => grid.add(job_pos, Content::Item(*item)),
                     Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
-                    // TODO: This behaviour returns, and if it every required items, we would take those items twice!
                     Content::Entity(_entity) => todo!(),
                     Content::Job(_) => todo!(),
                 };
@@ -455,7 +453,7 @@ impl Job {
         self.category < other.category
     }
 
-    pub fn update_new(
+    pub fn update(
         &mut self,
         actor: &mut dyn JobActor,
         grid: &mut Grid,
@@ -464,14 +462,14 @@ impl Job {
         loop {
             let Some(step) = self.steps.get_mut(self.cursor) else {
                 self.success(grid, game_ctx);
-                return JobStatus::Done; // ran off the end → finished
+                return JobStatus::Done;
             };
             match step.run(self.pos, actor, grid, game_ctx) {
-                Flow::Next => self.cursor += 1, // chain instant steps
+                Flow::Next => self.cursor += 1,
                 Flow::Walk(path) => {
                     actor.walk(path);
                     return JobStatus::Active;
-                    // cursor unchanged
+                    // cursor unchanged, repeat this step
                 }
                 Flow::JobMoved(path) => {
                     grid.remove(self.pos, Content::Job(self.id));
