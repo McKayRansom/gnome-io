@@ -99,6 +99,7 @@ impl Gameplay {
                     // ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
                     ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '5', "bed".into()),
+                    ToolbarItem::new("gravestone", "grave", '5', "gravestone".into()),
                 ],
             ),
             time_select: Toolbar::new(

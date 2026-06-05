@@ -77,6 +77,11 @@
         id: 305,
         flags: ("CLIMBABLE"),
         requires: ["stone"],
-    )    
+    ),
+    // Would be cool if they remembered the name
+    "gravestone": (
+        id: 306,
+        requires: ["dead_gnome"],
+    )
 }
 )
