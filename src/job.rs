@@ -53,7 +53,9 @@ pub struct Job {
     pub id: JobId,
     pub in_progress: bool,
     pub pos: Pos,
+    #[serde(default)]
     pub steps: Vec<Step>,
+    #[serde(default)]
     pub cursor: usize,
     // pub priority: u8,
     // pub time: u16,
@@ -389,6 +391,7 @@ impl Job {
                 Step::Work(time),
                 Step::Consume(requires),
                 Step::Produce(Content::Item(item)),
+                Step::TakeItems,
             ],
             ..Default::default()
         }

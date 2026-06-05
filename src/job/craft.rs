@@ -39,6 +39,7 @@ pub const CRAFT_EVENT_ID: EventId = 300;
 pub struct CraftManager {
     workshop_pos: Vec<Pos>,
     standing_orders: Vec<(ItemId, usize)>,
+    #[serde(skip_deserializing, skip_serializing)]
     workshop_block_ids: Vec<BlockId>,
 }
 
@@ -53,8 +54,11 @@ impl CraftManager {
 
     pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
         game_ctx.events.add_event_class("craft");
-        self.standing_orders
-            .push((game_ctx.items.get_id("bread").unwrap(), 16));
+        if self.standing_orders.is_empty() {
+            // default standing orders
+            self.standing_orders
+                .push((game_ctx.items.get_id("bread").unwrap(), 16));
+        }
         self.workshop_block_ids
             .push(game_ctx.blocks.get_id("furnace").unwrap())
     }
