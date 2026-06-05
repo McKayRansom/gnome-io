@@ -79,6 +79,14 @@ Key Decisions to make:
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 
+We need a way to store block metadata:
+- Is there a farm here
+- Is this furnace WIP, and what does it grow into
+- Is this plant growing and what does it grow into
+
+We can continue to store it in events for now but is this really the best place? 
+Eventually I think there will be static block info that should go somewhere else...
+
 Profession assignment:
 - Columns: Free, farm, soldier, mine, etc...
   - Shows: 

@@ -169,8 +169,14 @@ impl Gameplay {
             "jobs" => {
                 dbg!(&self.game.job_manager);
             }
+            // "events" => {
+            //     dbg!(&self.game.game_ctx.events.);
+            // }
             "help" => {
                 println!("commands: reload, goblin [x] [y], jobs, help");
+            }
+            "trigger_all" => {
+                self.game.game_ctx.events.trigger_all_timers();
             }
             other => {
                 println!("unknown command: {other:?} (try \"help\")");
@@ -227,6 +233,9 @@ impl Gameplay {
         }
         if is_key_pressed(KeyCode::M) {
             dbg!(&self.game.job_manager);
+        }
+        if is_key_pressed(KeyCode::T) {
+            self.game.game_ctx.events.trigger_all_timers();
         }
 
         // debug console commands typed into stdin

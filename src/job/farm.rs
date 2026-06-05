@@ -3,21 +3,24 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::{BlockId, BlockInfoFlags},
     event::{Event, EventId},
-    game::{GameCtx, Tick},
+    game::{
+        GameCtx, Tick,
+        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
+    },
     grid::{Grid, Pos, pos::dirs},
 };
 
 use super::{Job, JobManager};
 
+pub const GROWTH_EVENT: u32 = 20;
+const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
+
 pub const FARM_EVENT_ID: EventId = 200;
-// pub struct Farm {
-//     pub start: Pos,
-//     pub end: Pos,
-// }
 
 const TILL_TIME: Tick = 20;
 const HARVEST_TIME: Tick = 20;
 
+// Farm module: Handles farming and growth
 #[derive(Debug, Serialize, Deserialize)]
 pub struct FarmManager {
     farm_pos: Vec<(Pos, BlockId)>,
@@ -36,10 +39,35 @@ impl FarmManager {
 
     // impl EventHandler for FarmManager {
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
+        self.update_growth(game_ctx, grid);
+
         while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
             if let Some(job) = self.handle_event(game_ctx, grid, event) {
                 JobManager::create_job(grid, &mut game_ctx.events, job);
             }
+        }
+    }
+
+    pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
+        // TODO: Don't do this in winter...
+        while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
+            // if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
+            // delay this growth event (for now?)
+            if game_ctx.time.season == Season::Winter {
+                game_ctx.events.push_timer(
+                    GROWTH_SEASON_DELAY_TIME,
+                    Event {
+                        id: GROWTH_EVENT,
+                        value: event.value,
+                    },
+                );
+            } else {
+                // NOTE: This may start new timers/trigger new events if nescesary
+                grid.place_block(event.value.pos, event.value.new, game_ctx);
+            }
+            // } else {
+            //     log::warn!("Unkown event pushed to growth queue");
+            // }
         }
     }
 

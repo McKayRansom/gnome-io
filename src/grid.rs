@@ -1,11 +1,8 @@
 use crate::{
     block::{BLOCK_NONE, BlockId, BlockInfoFlags},
     entity::{BaseEntity, EntityId, Faction},
-    event::{BlockUpdateEvent, Event, EventManager},
-    game::{
-        GameCtx, Tick,
-        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
-    },
+    event::EventManager,
+    game::GameCtx,
     item::{self, ItemId},
     job::{
         Job, job_default_search, job_drop_serach, job_eat_search, job_fight_search,
@@ -25,9 +22,6 @@ pub struct Grid {
     pub cells: Vec<Vec<Tile>>,
     pub stocks: FxHashMap<ItemId, usize>,
 }
-
-pub const GROWTH_EVENT: u32 = 20;
-const GROWTH_SEASON_DELAY_TIME: Tick = 1 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
 // a tile is walkable if there is a solid tile in one of these positions
 pub const WALKABLE_DIRS: [Pos; 5] = [
@@ -117,33 +111,25 @@ impl Grid {
         // items: &mut Vec<ItemId>,
     ) -> Option<()> {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos)?;
-        let old_block = tile.get_block();
-        if let Some(old_block_id) = old_block {
-            if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
-                tile.remove(&Content::Block((old_block_id, old_block_info.flags)));
-                if let Some(mine_event) = old_block_info.mine_event {
-                    game_ctx.events.push_event(Event {
-                        id: mine_event,
-                        value: BlockUpdateEvent {
-                            pos,
-                            _old: old_block_id,
-                            new: block_id,
-                        },
-                    });
-                }
-                for (chance, item_id) in old_block_info.drops.iter() {
-                    if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
-                        // TODO: Dedup!
-                        // TODO: Spill if over limit...
-                        tile.add(Content::Item(
-                            game_ctx
-                                .items
-                                .get_content(item_id)
-                                .expect("Tried to drop invalid item"),
-                        ));
-                        // items.push(*item_id);
-                        *self.stocks.entry(*item_id).or_insert(0) += 1;
-                    }
+        let old_block_id = tile.get_block().unwrap_or(BLOCK_NONE);
+        if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
+            tile.remove(&Content::Block((old_block_id, old_block_info.flags)));
+            game_ctx
+                .events
+                .block_remove(pos, old_block_id, block_id, old_block_info);
+
+            for (chance, item_id) in old_block_info.drops.iter() {
+                if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
+                    // TODO: Dedup!
+                    // TODO: Spill if over limit...
+                    tile.add(Content::Item(
+                        game_ctx
+                            .items
+                            .get_content(item_id)
+                            .expect("Tried to drop invalid item"),
+                    ));
+                    // items.push(*item_id);
+                    *self.stocks.entry(*item_id).or_insert(0) += 1;
                 }
             }
         }
@@ -151,31 +137,10 @@ impl Grid {
         if block_id != BLOCK_NONE {
             if let Some(block_info) = game_ctx.blocks.get_info(&block_id) {
                 tile.add(Content::Block((block_id, block_info.flags)));
-                if let Some(event) = block_info.place_event {
-                    game_ctx.events.push_event(Event {
-                        id: event,
-                        value: BlockUpdateEvent {
-                            pos,
-                            _old: BLOCK_NONE,
-                            new: block_id,
-                        },
-                    });
-                }
-                // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
-                // BUG: There could be more than one growth event in progress for the same block...
-                if let Some((delay, new_block)) = block_info.growth {
-                    game_ctx.events.push_timer(
-                        delay,
-                        Event {
-                            id: GROWTH_EVENT,
-                            value: BlockUpdateEvent {
-                                pos,
-                                _old: block_id,
-                                new: new_block,
-                            },
-                        },
-                    );
-                }
+
+                game_ctx
+                    .events
+                    .block_place(pos, old_block_id, block_id, block_info);
             } else {
                 log::error!("Tried to place invalid block_id: {}", block_id);
             }
@@ -345,27 +310,6 @@ impl Grid {
         tile.modified();
     }
 
-    pub fn update_growth(&mut self, game_ctx: &mut GameCtx) {
-        // TODO: Don't do this in winter...
-        while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
-            // if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-            // delay this growth event (for now?)
-            if game_ctx.time.season == Season::Winter {
-                game_ctx.events.push_timer(
-                    GROWTH_SEASON_DELAY_TIME,
-                    Event {
-                        id: GROWTH_EVENT,
-                        value: event.value,
-                    },
-                );
-            } else {
-                self.place_block(event.value.pos, event.value.new, game_ctx);
-            }
-            // } else {
-            //     log::warn!("Unkown event pushed to growth queue");
-            // }
-        }
-    }
 
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {

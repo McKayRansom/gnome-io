@@ -192,8 +192,6 @@ impl Game {
         // Update timers first?
         self.game_ctx.events.update_timers();
 
-        // no idea on this ordering..
-        self.grid.update_growth(&mut self.game_ctx);
         // Update game state
         let mut actions: Vec<EntityAction> = Vec::new();
         for entity in self.entities.values_mut() {

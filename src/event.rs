@@ -4,10 +4,14 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::BlockId,
+    block::{BlockId, BlockInfo},
     game::Tick,
-    grid::{GROWTH_EVENT, Pos},
-    job::{Job, craft::CRAFT_EVENT_ID, farm::FARM_EVENT_ID},
+    grid::Pos,
+    job::{
+        Job,
+        craft::CRAFT_EVENT_ID,
+        farm::{FARM_EVENT_ID, GROWTH_EVENT},
+    },
 };
 
 pub type EventId = u32;
@@ -47,7 +51,7 @@ pub type EventNames = FxHashMap<String, EventId>;
 
 #[derive(Serialize, Deserialize)]
 pub struct EventManager {
-    // #[serde(skip_deserializing, skip_serializing)]
+    #[serde(skip_deserializing, skip_serializing)]
     pub event_names: EventNames,
 
     // one queue per event for now
@@ -57,7 +61,7 @@ pub struct EventManager {
     // there are much better data structures for this but here we are
     // OOF HOW DO THIS?
     // #[serde(skip_deserializing, skip_serializing)]
-    pub timers: Vec<Timer>,
+    timers: FxHashMap<Pos, Timer>,
     pub jobs: FxHashMap<JobId, Job>,
     pub job_id: JobId,
 }
@@ -67,7 +71,7 @@ impl EventManager {
         Self {
             event_names: EventNames::default(),
             events: FxHashMap::default(),
-            timers: Vec::new(),
+            timers: FxHashMap::default(),
             jobs: FxHashMap::default(),
             job_id: 1,
         }
@@ -88,6 +92,60 @@ impl EventManager {
         }
     }
 
+    pub fn block_place(
+        &mut self,
+        pos: Pos,
+        old_block_id: BlockId,
+        block_id: BlockId,
+        block_info: &BlockInfo,
+    ) {
+        if let Some(event) = block_info.place_event {
+            self.push_event(Event {
+                id: event,
+                value: BlockUpdateEvent {
+                    pos,
+                    _old: old_block_id,
+                    new: block_id,
+                },
+            });
+        }
+        // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
+        // BUG: There could be more than one growth event in progress for the same block...
+        if let Some((delay, new_block)) = block_info.growth {
+            self.push_timer(
+                delay,
+                Event {
+                    id: GROWTH_EVENT,
+                    value: BlockUpdateEvent {
+                        pos,
+                        _old: block_id,
+                        new: new_block,
+                    },
+                },
+            );
+        }
+    }
+
+    pub fn block_remove(
+        &mut self,
+        pos: Pos,
+        block_id: BlockId,
+        new_block_id: BlockId,
+        block_info: &BlockInfo,
+    ) {
+        self.timers.remove(&pos);
+        if let Some(mine_event) = block_info.mine_event {
+            self.push_event(Event {
+                id: mine_event,
+                value: BlockUpdateEvent {
+                    pos,
+                    _old: block_id,
+                    new: new_block_id,
+                },
+            });
+        }
+    }
+
     pub fn push_event(&mut self, event: Event) {
         self.events
             .get_mut(&event.id)
@@ -103,15 +161,18 @@ impl EventManager {
     }
 
     pub fn push_timer(&mut self, time: Tick, event: Event) {
-        self.timers.push(Timer {
-            time,
-            event: Some(event),
-        });
+        self.timers.insert(
+            event.value.pos,
+            Timer {
+                time,
+                event: Some(event),
+            },
+        );
     }
 
     pub fn update_timers(&mut self) {
         // yes I know this sucks...
-        self.timers.retain_mut(|timer| {
+        self.timers.retain(|_pos, timer| {
             if timer.time > 0 {
                 timer.time -= 1;
                 true
@@ -144,6 +205,14 @@ impl EventManager {
 
     pub fn remove_job(&mut self, job: &JobId) {
         self.jobs.remove(job);
+    }
+
+    // debugging function
+    pub fn trigger_all_timers(&mut self) {
+        log::warn!("TRIGGERED ALL TIMERS");
+        for timer in self.timers.values_mut() {
+            timer.time = 0;
+        }
     }
 
     // pub fn update(&mut self, grid: &Grid) {
