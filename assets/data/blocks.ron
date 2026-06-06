@@ -11,15 +11,16 @@
     "ore": (
         id: 101,
         flags: ("SOLID"),
-        drops: [(1.0, "stone")],
+        drops: [(1.0, "ore_item")],
+    ),
+    "coal": (
+        id: 102,
+        flags: ("SOLID"),
+        drops: [(1.0, "coal_item")],
     ),
 
     // plants
-    "tree": (
-        id: 200,
-        flags: ("SOLID"),
-        drops: [(1.0, "wood")],
-    ),
+
     "wheat_0": (
         id: 201,
         // TODO: Change farm to require what's listed here...
@@ -48,6 +49,40 @@
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
         mine_event: Some("farm"),
     ),
+
+    "tree_0": (
+        id: 206,
+        requires: ["seed"],
+        growth: Some((days: 4, into: "tree_1")),
+        mine_event: Some("farm"),
+        // drops: [(1.0, "seed")],
+    ),
+    "tree_1": (
+        id: 207,
+        growth: Some((days: 4, into: "tree_2")),
+        mine_event: Some("farm"),
+        // drops: [(1.0, "seed")],
+    ),
+    "tree_2": (
+        id: 208,
+        growth: Some((days: 4, into: "tree_3")),
+        mine_event: Some("farm"),
+        // drops: [(1.0, "seed")],
+    ),
+    "tree_3": (
+        id: 208,
+        growth: Some((days: 4, into: "tree_4")),
+        mine_event: Some("farm"),
+        // drops: [(1.0, "seed")],
+    ),
+    "tree_4": (
+        id: 209,
+        growth: Some((days: 4, into: "tree_5")),
+        mine_event: Some("farm"),
+        drops: [(1.0, "seed")],
+    ),
+
+
 
     // man-made
     "craft_table": (

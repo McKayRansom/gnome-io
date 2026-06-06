@@ -149,11 +149,10 @@ impl Tile {
         }
     }
 
-    pub fn new_block(biome: TileBiome, block: BlockId, solid: bool) -> Tile {
-        let mut flags = BlockInfoFlags::empty();
-        flags.set(BlockInfoFlags::SOLID, solid);
+    pub fn new_block(biome: TileBiome, block_id: BlockId) -> Tile {
         Tile {
-            contents: vec![Content::Block((block, flags))],
+            // NOTE: Flags will be fixed up later, this is only used for world-gen
+            contents: vec![Content::Block((block_id, BlockInfoFlags::default()))],
             biome,
             ..Default::default()
         }

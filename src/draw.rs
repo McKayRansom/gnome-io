@@ -49,6 +49,7 @@ fn draw_items(
 }
 
 fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entities) {
+    let zoomed_out = ctx.camera.zoom < 0.25;
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
             let pos: Pos = (x, y).into();
@@ -82,18 +83,32 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     panic!("No block found fo id {}", block);
                 };
                 if block.solid() {
+                    let non_solid_dirs: Vec<&Pos> = dirs::ALL
+                        .iter()
+                        .filter(|dir| {
+                            grid.get_tile(pos + **dir).is_none_or(|tile| {
+                                !tile.block_flags().contains(BlockInfoFlags::SOLID)
+                            })
+                        })
+                        .collect();
+
                     // jank
-                    ctx.tileset.draw_tile(&block.sprite, &dest, colors::WHITE);
-                    for dir in dirs::ALL {
-                        if grid
-                            .get_tile(pos + dir)
-                            .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
-                        {
+                    ctx.tileset.draw_tile(
+                        &if non_solid_dirs.len() == 0 {
+                            "stone_floor"
+                        } else {
+                            &block.sprite
+                        },
+                        &dest,
+                        colors::WHITE,
+                    );
+                    if !zoomed_out {
+                        for dir in non_solid_dirs {
                             ctx.tileset.draw_tile_rot(
                                 "stone",
                                 colors::WHITE,
                                 &dest,
-                                dirs::to_radians(dir),
+                                dirs::to_radians(*dir),
                             );
                         }
                     }

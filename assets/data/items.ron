@@ -6,6 +6,14 @@
         id: 100,
         sprite: "stone_item",
     ),
+    "ore_item": (
+        id: 101,
+        sprite: "ore_item",
+    ),
+    "coal_item": (
+        id: 102,
+        sprite: "coal_item",
+    ),
 
     // plants
     "wood": (

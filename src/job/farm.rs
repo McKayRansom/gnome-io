@@ -23,22 +23,8 @@ const HARVEST_TIME: Tick = 20;
 
 // Farm module: Handles farming and growth
 #[derive(Default, Debug, Serialize, Deserialize)]
-#[serde(from = "FarmManagerRepr")]
 pub struct FarmManager {
     farm_pos: FxHashMap<Pos, BlockId>,
-}
-
-#[derive(Default, Debug, Serialize, Deserialize)]
-pub struct FarmManagerRepr {
-    farm_pos: Vec<(Pos, BlockId)>,
-}
-
-impl From<FarmManagerRepr> for FarmManager {
-    fn from(value: FarmManagerRepr) -> Self {
-        Self {
-            farm_pos: value.farm_pos.iter().map(|v| (v.0, v.1)).collect(),
-        }
-    }
 }
 
 impl FarmManager {

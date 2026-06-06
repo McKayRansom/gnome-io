@@ -9,7 +9,7 @@ pub type BlockId = u32;
 
 pub const BLOCK_NONE: BlockId = 0;
 
-#[derive(Debug, PartialEq)]
+#[derive(Default, Debug, PartialEq)]
 pub struct BlockInfo {
     pub name: String,
     pub sprite: String, // should this be elsewhere?

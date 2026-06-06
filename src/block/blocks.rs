@@ -170,6 +170,7 @@ impl BlockInfoSave {
 
 impl Blocks {
     pub fn add_block(&mut self, block_id: BlockId, block: BlockInfo) {
+        self.ids.insert(block.name.clone(), block_id);
         if let Some(_old) = self.infos.insert(block_id, block) {
             log::warn!("Block {} already exists!", block_id);
         }

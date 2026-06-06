@@ -1,5 +1,6 @@
 use std::collections::VecDeque;
 
+use macroquad::rand;
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
@@ -114,7 +115,8 @@ impl EventManager {
         // BUG: There could be more than one growth event in progress for the same block...
         if let Some((delay, new_block)) = block_info.growth {
             self.push_timer(
-                delay,
+                // add some randomness
+                delay + rand::gen_range(0, delay / 2),
                 Event {
                     id: GROWTH_EVENT,
                     value: BlockUpdateEvent {

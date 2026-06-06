@@ -4,7 +4,7 @@ use macroquad::{
         KeyCode, is_key_down, is_key_pressed, is_mouse_button_pressed, is_mouse_button_released,
         mouse_wheel,
     },
-    math::{Vec2, vec2},
+    math::{Rect, Vec2, vec2},
     time::get_time,
     ui::{hash, root_ui, widgets::Window},
 };
@@ -71,11 +71,18 @@ const SCROLL_SENSITIVITY: f32 = 0.05;
 
 impl Gameplay {
     pub async fn new(ctx: &mut Context) -> Self {
-        ctx.camera.change_zoom(0.2);
-        ctx.camera.camera = vec2(-100., 300.);
         let mut game = Game::new(get_time());
+
         game.load_ctx().await;
-        game.generate();
+        let start_pos = game.generate();
+
+        let rect: Rect = start_pos.into();
+        ctx.camera.change_zoom(0.5);
+        ctx.camera.center_camera((
+            rect.x + GRID_CELL_SIZE.0 / 2.0,
+            rect.y + GRID_CELL_SIZE.0 / 2.0,
+        ));
+
         Self {
             game,
             mouse_down_pos: None,

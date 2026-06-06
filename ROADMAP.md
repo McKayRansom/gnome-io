@@ -49,18 +49,20 @@ Key Decisions to make:
 - [ ] Re-enable stakes
   - [x] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
     -[x] Fix eating wacking out
-  - [ ] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
-    - [ ] Requires minor rework to how block events work with farms
-    - [ ] Add plants to world-get (but those won't be managed by farms unless added)
+  - [x] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
+    - [x] Requires minor rework to how block events work with farms
+    - [x] Add plants to world-get (but those won't be managed by farms unless added)
+  - [ ] Fix indicators
     - [ ] Need some kind of indicator that a tile is farmed...
+    - [ ] Better job indicators
   - [ ] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
     - [ ] WINTER IS COMING!
   - [ ] Fix bread/crafting?
 - [ ] Create attack/flee logic
     - [x] Create attack job and fix many, many bugs
-    - [ ] Make enemy entities unpathable (for fights and for doors...)
+    - [x] Make enemy entities unpathable (for fights and for doors...)
     - [ ] Create flee job when it makes sense to do so
-    - [ ] Add grave blocks
+    - [x] Add grave blocks
 - [ ] Create parrenting logic
 - [ ] Professions/labor allocations
   - [ ] Add proffesions
@@ -165,8 +167,8 @@ Thoughts after MVP completion:
 ## MVP2: Sideview
 Goal: Test out all current features on a side-view
 - [x] Map generation/size change
-  - [ ] Fix Ore gen
-  - [ ] Fix trees (Do we need to even fix trees????)
+  - [x] Fix Ore gen
+  - [x] Fix trees (Do we need to even fix trees????)
   - [x] Fix Plants not being able to be planted on air biome
 - [x] Pathfinding change
 - [x] Climbing or ramps or something???

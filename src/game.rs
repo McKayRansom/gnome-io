@@ -130,7 +130,7 @@ impl Game {
         );
     }
 
-    pub fn generate(&mut self) {
+    pub fn generate(&mut self) -> Pos {
         generate::generate(self);
 
         // why
@@ -139,7 +139,7 @@ impl Game {
         // ore?
         // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
 
-        let mut start_pos = Pos::new(6, 11);
+        let mut start_pos = Pos::new(self.grid.size.x / 2, 0);
         while self
             .grid
             .get_tile(start_pos)
@@ -173,6 +173,8 @@ impl Game {
         // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
+
+        start_pos
     }
 
     pub fn should_update(&mut self, frame_time: f64) -> bool {
