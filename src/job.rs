@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
-    entity::{BaseEntity, EntityId, goblin::GOBLIN_FACTION},
+    entity::{BaseEntity, EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{EventManager, JobId},
     game::{GameCtx, Tick},
-    grid::{Grid, Pos},
+    grid::{Grid, PathOutcome, Pos},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
@@ -82,7 +82,7 @@ pub enum Step {
     // Find content and get it into inventory
     Acquire(Vec<ContentItem>),
     // Go to position or as close as possible
-    Goto((Pos, bool)),
+    Goto(Pos),
     /// Functions like a Goto, but for entities that can move, so we will dynamically adjust the job position
     Approach(ContentEntity),
     // Generic Delay
@@ -113,59 +113,62 @@ impl Step {
                     if actor.inventory().contains(item) {
                         continue;
                     }
-                    if let Some(item) = grid.remove(actor.pos(), Content::Item(*item)) {
-                        let Content::Item(item) = item else { panic!() };
-                        actor.inventory().push(item);
-                        log::info!("Take item {:?} from tile", item);
-                    } else {
-                        log::info!("Acquire seaching for {:?}", item);
-                        if let Some(path) =
-                            grid.find_path(actor.pos(), actor.pos(), Some(Content::Item(*item)))
-                        {
-                            return Flow::Walk(path);
-                        } else {
-                            log::warn!("Unable to find {:?} for job", item);
+                    match grid.find_content(actor.pos(), Content::Item(*item), actor.faction()) {
+                        PathOutcome::Reached(pos) => {
+                            if let Some(item) = grid.remove(pos, Content::Item(*item)) {
+                                let Content::Item(item) = item else { panic!() };
+                                actor.inventory().push(item);
+                                log::info!("Take item {:?} from tile", item);
+                            } else {
+                                log::warn!("find_content bug, didn't find content!");
+                            }
+                        }
+                        PathOutcome::Path(path) => {
+                            log::info!("Acquire seaching for {:?}", item);
 
-                            // job.fail(grid, game_ctx);
-                            // self.job = None;
+                            return Flow::Walk(path);
+                        }
+                        PathOutcome::NoPath => {
+                            log::warn!("Unable to find {:?} for job", item);
                             return Flow::Fail;
                         }
                     }
                 }
                 Flow::Next
             }
-            Step::Goto((pos, exact)) => {
-                // this is 1 instead of 0 so that we can mine and craft on blocks that are not pathable
-                // there may be a better solution for this
-                if pos == &actor.pos() || !exact && pos.diff(actor.pos()) <= 1 {
+            Step::Goto(pos) => match grid.find_path(actor.pos(), *pos, actor.faction()) {
+                PathOutcome::Reached(reached_pos) => {
+                    assert_eq!(reached_pos, *pos);
                     Flow::Next
-                } else if let Some(path) = grid.find_path(actor.pos(), *pos, None) {
-                    // log::info!("path");
-                    // self.path = path;
-                    Flow::Walk(path)
-                } else {
+                }
+                PathOutcome::Path(path) => Flow::Walk(path),
+                PathOutcome::NoPath => {
                     log::warn!("Job at {:?} is unreachable", pos);
                     Flow::Fail
                 }
-            }
+            },
             Step::Approach(target_entity) => {
-                // this is 1 instead of 0 so that we can mine and craft on blocks that are not pathable
-                // there may be a better solution for this
-                if actor.pos().diff(job_pos) <= 1
-                    && grid
-                        .get_tile(job_pos)
-                        .is_some_and(|tile| tile.contains(&Content::Entity(*target_entity)))
-                {
-                    Flow::Next
-                } else if let Some(path) =
-                    grid.find_path(actor.pos(), job_pos, Some(Content::Entity(*target_entity)))
-                {
-                    Flow::JobMoved(path)
-                } else {
-                    log::warn!("Entity {:?} is unreachable", target_entity);
-                    Flow::Fail
+                match grid.find_content(
+                    actor.pos(),
+                    Content::Entity(*target_entity),
+                    actor.faction(),
+                ) {
+                    PathOutcome::Reached(pos) => {
+                        // TODO: This doesn't seem quite right...
+                        if pos != job_pos {
+                            Flow::JobMoved(vec![pos])
+                        } else {
+                            Flow::Next
+                        }
+                    }
+                    PathOutcome::Path(path) => Flow::JobMoved(path),
+                    PathOutcome::NoPath => {
+                        log::warn!("Entity {:?} is unreachable", target_entity);
+                        Flow::Fail
+                    }
                 }
             }
+
             Step::Work(time) => Flow::Busy(Busy::Wait, *time),
             Step::Consume(requires) => {
                 let inventory = actor.inventory();
@@ -246,6 +249,7 @@ pub enum JobStatus {
 
 pub trait JobActor {
     fn pos(&self) -> Pos;
+    fn faction(&self) -> Faction;
     fn inventory(&mut self) -> &mut Vec<ContentItem>;
     fn walk(&mut self, path: Vec<Pos>); // set self.path; gnome walks it over later ticks
     fn busy(&mut self, kind: Busy, time: Tick); // status + timer + (food/tired/heal) in one place
@@ -272,7 +276,7 @@ impl Default for Job {
 // TODO: Move job.in_progress and job prio to tile?
 pub fn job_default_search(_pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
-        let job = events.jobs.get(&job_id).expect("LEAKED JOB");
+        let job = events.job_get(&job_id).expect("LEAKED JOB");
         if !job.in_progress {
             return Some(job.clone());
         }
@@ -337,7 +341,6 @@ pub fn job_fight_search(pos: Pos, tile: &Tile, _entity: &BaseEntity) -> Option<J
 }
 
 impl Job {
-    // TODO: Does this need to be changed to ContentEntity so we can attack factions?
     fn fight(pos: Pos, entity: ContentEntity) -> Job {
         Job {
             pos,
@@ -357,7 +360,7 @@ impl Job {
         Job {
             pos,
             category: JobType::SLEEP,
-            steps: vec![Step::Goto((pos, true)), Step::Sleep],
+            steps: vec![Step::Goto(pos), Step::Sleep],
             ..Default::default()
         }
     }
@@ -387,7 +390,7 @@ impl Job {
             category: JobType::CRAFT,
             steps: vec![
                 Step::Acquire(requires.clone()),
-                Step::Goto((pos, true)),
+                Step::Goto(pos),
                 Step::Work(time),
                 Step::Consume(requires),
                 Step::Produce(Content::Item(item)),
@@ -406,7 +409,7 @@ impl Job {
             category: JobType::BUILD,
             steps: vec![
                 Step::Acquire(requires.clone()),
-                Step::Goto((pos, !block.1.contains(BlockInfoFlags::SOLID))),
+                Step::Goto(pos),
                 Step::Work(time),
                 Step::Consume(requires),
                 Step::Produce(Content::Block(block)),
@@ -425,7 +428,7 @@ impl Job {
             steps: vec![
                 // TODO
                 // Step::Goto((pos, block.1.contains(BlockInfoFlags::SOLID))),
-                Step::Goto((pos, false)),
+                Step::Goto(pos),
                 Step::Work(time),
                 Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
                 Step::TakeItems,
@@ -439,7 +442,7 @@ impl Job {
         Self {
             pos,
             category: JobType::HAUL,
-            steps: vec![Step::Goto((pos, true)), Step::TakeItems],
+            steps: vec![Step::Goto(pos), Step::TakeItems],
             ..Default::default()
         }
     }
@@ -448,7 +451,7 @@ impl Job {
         Self {
             pos,
             category: JobType::DROP,
-            steps: vec![Step::Goto((pos, false)), Step::StoreCarried],
+            steps: vec![Step::Goto(pos), Step::StoreCarried],
             ..Default::default()
         }
     }
@@ -464,6 +467,9 @@ impl Job {
         grid: &mut Grid,
         game_ctx: &mut GameCtx,
     ) -> JobStatus {
+        if game_ctx.events.job_is_canced(&self) {
+            return JobStatus::Done;
+        }
         loop {
             let Some(step) = self.steps.get_mut(self.cursor) else {
                 self.success(grid, game_ctx);

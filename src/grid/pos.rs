@@ -41,6 +41,7 @@ impl Pos {
         Pos { x, y }
     }
 
+    #[allow(unused)]
     pub(crate) fn diff(&self, pos: Pos) -> i16 {
         (self.x - pos.x).abs() + (self.y - pos.y).abs()
     }

@@ -4,7 +4,7 @@ use crate::{
         gnome::{GNOME_FACTION, GNOME_SPEED},
     },
     game::time::hours,
-    grid::Pos,
+    grid::{PathOutcome, Pos},
     tile::Content,
 };
 
@@ -51,16 +51,16 @@ impl EntityBehaviour for Goblin {
             return None;
         }
         self.fighting = false;
-        if let Some(path) = grid.find_path(
+        match grid.find_content(
             self.base.pos,
-            self.base.pos,
-            Some(Content::Entity((GNOME_FACTION, 0))),
+            Content::Entity((GNOME_FACTION, 0)),
+            GOBLIN_FACTION,
         ) {
-            if path.len() > 2 {
-                self.base.move_to(path[1], GNOME_SPEED, grid);
+            PathOutcome::Path(path) => {
+                self.base.move_to(path[0], GNOME_SPEED, grid);
                 None
-            } else {
-                let attack_pos = path[path.len() - 1];
+            }
+            PathOutcome::Reached(attack_pos) => {
                 self.base.timer = super::FIGHT_TIME;
                 self.fighting = true;
                 Some(super::EntityAction::Attack({
@@ -75,9 +75,10 @@ impl EntityBehaviour for Goblin {
                     id
                 }))
             }
-        } else {
-            self.base.move_random(grid);
-            None
+            PathOutcome::NoPath => {
+                self.base.move_random(grid);
+                None
+            }
         }
     }
 

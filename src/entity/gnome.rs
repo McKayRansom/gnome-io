@@ -92,6 +92,7 @@ impl Gnome {
         match job.update(self, grid, game_ctx) {
             JobStatus::Active => self.job = Some(job),
             JobStatus::Done => {}
+            // JobStats::Canceled
             JobStatus::Failed => {}
         }
         self.delayed_action.take()
@@ -102,21 +103,15 @@ impl JobActor for Gnome {
     fn pos(&self) -> Pos {
         self.base.pos
     }
+    fn faction(&self) -> Faction {
+        self.base.faction
+    }
     fn inventory(&mut self) -> &mut Vec<ContentItem> {
         &mut self.base.items
     }
-
-    // set self.path; gnome walks it over later ticks
-    fn walk(&mut self, mut path: Vec<Pos>) {
-        // TODO: I hate this but it does seem to be needed...
-        assert_eq!(path.remove(0), self.base.pos);
-        // if self.path.first().is_some_and(|pos| pos == &self.base.pos) {
-        //     self.path.remove(0);
-        // }
+    fn walk(&mut self, path: Vec<Pos>) {
         self.path = path;
     }
-
-    // status + timer + (food/tired/heal) in one place
     fn busy(&mut self, kind: Busy, time: Tick) {
         match kind {
             Busy::Wait => self.base.timer = time,
@@ -139,7 +134,6 @@ impl JobActor for Gnome {
             }
         }
     }
-    // busy(Fight, …) + queue pending EntityAction
     fn attack(&mut self, target: EntityId) {
         self.delayed_action = Some(EntityAction::Attack(target));
     }

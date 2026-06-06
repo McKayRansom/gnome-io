@@ -33,6 +33,8 @@ bitflags! {
         const STORAGE = 1 << 3;
         // for beds
         const SLEEPABLE = 1 << 4;
+        // for doors
+        const DOOR = 1 << 5;
     }
 }
 

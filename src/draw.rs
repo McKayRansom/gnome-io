@@ -138,7 +138,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     draw_tile_outline(
                         grid,
                         &pos,
-                        if let Some(job) = game_ctx.events.jobs.get(job) {
+                        if let Some(job) = game_ctx.events.job_get(job) {
                             if job.in_progress {
                                 Color::new(0., 0.3, 0., 1.0)
                             } else {

@@ -77,7 +77,7 @@
     ),
     "door": (
         id: 305,
-        flags: ("CLIMBABLE"),
+        flags: ("CLIMBABLE | DOOR"),
         requires: ["stone"],
     ),
     // Would be cool if they remembered the name

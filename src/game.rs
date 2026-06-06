@@ -4,7 +4,11 @@ use time::{GameTime, GameTimeEvent};
 
 use crate::{
     block::Blocks,
-    entity::{Entity, EntityAction, EntityId, gnome::Gnome, goblin::Goblin},
+    entity::{
+        Entity, EntityAction, EntityId,
+        gnome::Gnome,
+        goblin::{GOBLIN_FACTION, Goblin},
+    },
     event::EventManager,
     grid::{Grid, Pos, pos::dirs},
     item::Items,
@@ -233,7 +237,7 @@ impl Game {
                 log::warn!("Couldn't find place to spawn goblin!");
                 return;
             };
-            if tile.is_passable() {
+            if tile.is_passable(GOBLIN_FACTION) {
                 break;
             }
             pos = pos + dirs::DOWN;

@@ -32,6 +32,12 @@ pub const WALKABLE_DIRS: [Pos; 5] = [
     pos::dirs::DOWN_RIGHT,
 ];
 
+pub enum PathOutcome {
+    Reached(Pos),
+    Path(Vec<Pos>),
+    NoPath,
+}
+
 impl Grid {
     pub fn new(size: Pos) -> Grid {
         let cells =
@@ -169,7 +175,7 @@ impl Grid {
     }
 
     pub fn gnome_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<Pos> {
-        if !self.get_tile(end)?.is_passable() {
+        if !self.get_tile(end)?.is_passable(id.0) {
             return None;
         }
         self.gnome_exit(start, id);
@@ -201,31 +207,72 @@ impl Grid {
 
     // pub fn successors(&self, pos: &Pos) -> Option<
 
-    pub fn find_path(&self, start: Pos, end: Pos, content: Option<Content>) -> Option<Vec<Pos>> {
-        let is_passable = self.get_tile(end)?.is_passable();
-        pathfinding::prelude::bfs(
+    pub fn find_path(&self, start: Pos, end: Pos, faction: Faction) -> PathOutcome {
+        self.find_path_or_content(start, end, None, faction)
+    }
+
+    pub fn find_content(&self, start: Pos, content: Content, faction: Faction) -> PathOutcome {
+        self.find_path_or_content(start, start, Some(content), faction)
+    }
+
+    fn find_path_or_content(
+        &self,
+        start: Pos,
+        end: Pos,
+        content: Option<Content>,
+        faction: Faction,
+    ) -> PathOutcome {
+        if let Some(mut path) = pathfinding::prelude::bfs(
             &start,
             |pos| {
-                [
-                    Pos::new(pos.x + 1, pos.y),
-                    Pos::new(pos.x - 1, pos.y),
-                    Pos::new(pos.x, pos.y + 1),
-                    Pos::new(pos.x, pos.y - 1),
-                ]
-                .into_iter()
-                .filter(|pos| self.get_tile(*pos).map_or(false, |cell| cell.is_passable()))
-                .collect::<Vec<Pos>>()
+                // check adjacent walls
+                if self
+                    .get_tile(*pos)
+                    .is_some_and(|tile| tile.is_passable(faction))
+                {
+                    Some([
+                        Pos::new(pos.x + 1, pos.y),
+                        Pos::new(pos.x - 1, pos.y),
+                        Pos::new(pos.x, pos.y + 1),
+                        Pos::new(pos.x, pos.y - 1),
+                    ])
+                    .into_iter()
+                    .flatten()
+                } else {
+                    None.into_iter().flatten()
+                }
             },
             |pos| {
                 if let Some(content) = content {
-                    self.get_tile(*pos).unwrap().contains(&content)
-                } else if is_passable {
-                    pos == &end
+                    self.get_tile(*pos)
+                        .is_some_and(|tile| tile.contains(&content))
+                // } else if is_passable {
+                // pos == &end
                 } else {
-                    pos.diff(end) <= 1
+                    pos == &end
+                    // pos.diff(end) <= 1
                 }
             },
-        )
+        ) {
+            if path.len() <= 1
+                || (path.len() == 2
+                    && !self
+                        .get_tile(path[1])
+                        .is_some_and(|tile| tile.is_passable(faction)))
+            {
+                // We are at the destination already
+                // OR
+                // we cannot reach the destination, but we've decided we can reach things 1-away so we can mine, fight, etc...
+                PathOutcome::Reached(*path.last().unwrap())
+            } else {
+                // TODO: I hate this but it does seem to be needed or else the first time the entity tries to move it will be to the current pos
+                // this can clearly also be handled there, but why should it?
+                assert_eq!(path.remove(0), start);
+                PathOutcome::Path(path)
+            }
+        } else {
+            PathOutcome::NoPath
+        }
     }
 
     pub fn find_job(&mut self, entity: &BaseEntity, events: &mut EventManager) -> Option<Job> {
@@ -245,7 +292,10 @@ impl Grid {
         // log::info!("Hello");
         for pos in pathfinding::prelude::bfs_reach(entity.pos, |pos| {
             // check adjacent walls
-            if self.get_tile(*pos).is_some_and(|tile| tile.is_passable()) {
+            if self
+                .get_tile(*pos)
+                .is_some_and(|tile| tile.is_passable(entity.faction))
+            {
                 Some([
                     Pos::new(pos.x + 1, pos.y),
                     Pos::new(pos.x - 1, pos.y),
@@ -301,7 +351,7 @@ impl Grid {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
         tile.contents.retain(|content| {
             if let Content::Job(job_id) = content {
-                events.jobs.remove(job_id);
+                events.cancel_job(job_id);
                 false
             } else {
                 true
@@ -309,7 +359,6 @@ impl Grid {
         });
         tile.modified();
     }
-
 
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {

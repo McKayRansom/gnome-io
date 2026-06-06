@@ -398,8 +398,7 @@ impl Gameplay {
                                 self.game
                                     .game_ctx
                                     .events
-                                    .jobs
-                                    .get(job)
+                                    .job_get(job)
                                     .map(|job| job.category)
                                     .unwrap_or(crate::job::JobType::NONE)
                             ),
@@ -423,7 +422,7 @@ impl Gameplay {
                     let tile = self.game.grid.get_tile(mouse_pos).unwrap();
                     dbg!(tile);
                     if let Some(entity_id) = tile.get_entity() {
-                        let entity = self.game.entities.get(&entity_id).unwrap();
+                        let entity = self.game.entities.get(&entity_id.1).unwrap();
                         dbg!(entity);
                     }
                 }

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BlockId, BlockInfoFlags},
-    entity::{EntityId, Faction},
+    entity::{EntityId, Faction, gnome::GNOME_FACTION},
     event::JobId,
     game::GameCtx,
     item::{ItemId, ItemInfoFlags},
@@ -32,7 +32,6 @@ pub enum Content {
     Block(ContentBlock),
     Job(ContentJob),
 }
-
 
 impl PartialEq for Content {
     fn eq(&self, other: &Self) -> bool {
@@ -241,8 +240,12 @@ impl Tile {
         self.contents.iter()
     }
 
-    pub(crate) fn is_passable(&self) -> bool {
-        self.walkable()
+    pub(crate) fn is_passable(&self, faction: Faction) -> bool {
+        self.walkable() 
+            && self.get_entity().is_none_or(|entity| entity.0 == faction)
+            // NOTE: Only block non-gnomes so we don't have to store the faction of blocks
+            // will need to be changed if we ever have multiplayer
+            && (faction == GNOME_FACTION || !self.block_flags.contains(BlockInfoFlags::DOOR))
     }
 
     pub fn get_block(&self) -> Option<BlockId> {
@@ -266,13 +269,13 @@ impl Tile {
         return None;
     }
 
-    pub(crate) fn get_entity(&self) -> Option<EntityId> {
+    pub(crate) fn get_entity(&self) -> Option<ContentEntity> {
         if !self.has_entity() {
             return None;
         }
         for content in &self.contents {
-            if let Content::Entity((_faction, id)) = content {
-                return Some(*id);
+            if let Content::Entity(entity) = content {
+                return Some(*entity);
             }
         }
         None

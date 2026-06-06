@@ -63,8 +63,8 @@ pub struct EventManager {
     // OOF HOW DO THIS?
     // #[serde(skip_deserializing, skip_serializing)]
     timers: FxHashMap<Pos, Timer>,
-    pub jobs: FxHashMap<JobId, Job>,
-    pub job_id: JobId,
+    jobs: FxHashMap<JobId, Job>,
+    job_id: JobId,
 }
 
 impl EventManager {
@@ -202,6 +202,18 @@ impl EventManager {
 
     pub fn update_job(&mut self, job: Job) -> Option<Job> {
         self.jobs.insert(job.id, job)
+    }
+
+    pub fn cancel_job(&mut self, job_id: &JobId) {
+        self.jobs.remove(&job_id);
+    }
+
+    pub fn job_get(&self, job_id: &JobId) -> Option<&Job> {
+        self.jobs.get(job_id)
+    }
+
+    pub fn job_is_canced(&mut self, job: &Job) -> bool {
+        !self.jobs.contains_key(&job.id)
     }
 
     pub fn remove_job(&mut self, job: &JobId) {
