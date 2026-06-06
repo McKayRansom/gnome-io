@@ -140,11 +140,11 @@ impl JobActor for Gnome {
 }
 
 impl EntityBehaviour for Gnome {
-    fn die(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    fn die(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         if let Some(job) = &self.job {
             job.fail(grid, game_ctx);
         }
-        grid.add(
+        grid.create(
             self.base.pos,
             Content::Item((
                 game_ctx.items.get_id("dead_gnome").unwrap(),

@@ -16,11 +16,13 @@ use macroquad::rand;
 pub use pos::Pos;
 use rustc_hash::FxHashMap;
 
+type Stocks = FxHashMap<ItemId, usize>;
+
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
-    pub stocks: FxHashMap<ItemId, usize>,
+    pub stocks: Stocks,
 }
 
 // a tile is walkable if there is a solid tile in one of these positions
@@ -149,7 +151,8 @@ impl Grid {
                                 .get_content(item_id)
                                 .expect("Tried to drop invalid item"),
                         ));
-                        // items.push(*item_id);
+                        // Fixup stocks because we are bypassing grid.create()
+                        stocks_add(&mut self.stocks, *item_id);
                     }
                 }
             }
@@ -197,23 +200,21 @@ impl Grid {
         Some(end)
     }
 
-    pub fn add(&mut self, pos: Pos, content: Content) {
+    // assumes content didn't exist before (for stock purposes)
+    pub fn create(&mut self, pos: Pos, content: Content) {
         let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
             log::warn!("Tried to add content at invalid pos: {:?}", pos);
             return;
         };
         tile.add(content);
         if let Content::Item(item) = content {
-            *self.stocks.entry(item.0).or_insert(0) += 1;
+            stocks_add(&mut self.stocks, item.0);
         }
     }
 
-    pub fn remove(&mut self, pos: Pos, content: Content) -> Option<Content> {
-        let old_contents = Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content)?;
-        if let Content::Item(item) = old_contents {
-            *self.stocks.get_mut(&item.0).expect("Map stock mismatch") -= 1;
-        }
-        Some(old_contents)
+    // assumes content will be used again for stock purposes
+    pub fn take(&mut self, pos: Pos, content: Content) -> Option<Content> {
+        Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content)
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -357,7 +358,7 @@ impl Grid {
             job.in_progress = true;
             if job.id == 0 {
                 job.id = events.add_job(job.clone());
-                self.add(job.pos, Content::Job(job.id));
+                self.create(job.pos, Content::Job(job.id));
             }
             events.job_in_progress(job);
         }
@@ -377,6 +378,7 @@ impl Grid {
         tile.modified();
     }
 
+    // NOTE: Unsafe, directly modifies tile, and bypasses stocks
     pub(crate) fn take_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             if tile.block_flags().contains(BlockInfoFlags::STORAGE) {
@@ -388,7 +390,6 @@ impl Grid {
                     if items.len() < item::ITEM_CARRY_MAX {
                         items.push(*item);
                         log::info!("taking {:?}", item);
-                        *self.stocks.get_mut(&item.0).expect("Map stock mismatch") -= 1;
                         false
                     } else {
                         true
@@ -401,6 +402,7 @@ impl Grid {
         }
     }
 
+    // NOTE: Unsafe, directly modifies tile, and bypasses stocks
     pub fn store_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if items.is_empty() {
             return;
@@ -416,13 +418,65 @@ impl Grid {
                     chest_space += 1;
                     tile.contents.push(Content::Item(*item));
                     log::info!("Storing {:?}", item);
-                    *self.stocks.entry(item.0).or_insert(0) += 1;
                     false
                 } else {
                     true
                 }
             });
             tile.modified();
+        }
+    }
+}
+
+pub fn stocks_add(stocks: &mut Stocks, item: ItemId) {
+    *stocks.entry(item).or_insert(0) += 1;
+}
+
+pub fn stocks_remove(stocks: &mut Stocks, item: ItemId) {
+    if let Some(stock) = stocks.get_mut(&item) {
+        if *stock == 0 {
+            log::error!("Map stock mismatch for item {}", item);
+        }
+        *stock = *&stock.saturating_sub(1);
+    } else {
+        log::error!("Tried to remove from non-existant stock for item: {}", item);
+    }
+}
+
+pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &crate::game::Entities) {
+    let mut new_stocks: Stocks = Stocks::default();
+    for y in 0..grid.size.y {
+        for x in 0..grid.size.x {
+            for content in grid.get_tile((x, y).into()).unwrap().iter_content() {
+                if let Content::Item(item) = content {
+                    stocks_add(&mut new_stocks, item.0);
+                }
+            }
+        }
+    }
+    for entity in entities.values() {
+        for item in entity.base().items.iter() {
+            stocks_add(&mut new_stocks, item.0);
+        }
+    }
+
+    // check against old
+    for (item, new_value) in new_stocks.iter() {
+        if stocks
+            .get(item)
+            .is_none_or(|old_value| old_value != new_value)
+        {
+            log::error!(
+                "Stock mismatch: stock: {} actual: {}",
+                stocks.get(item).unwrap_or(&0),
+                new_value
+            );
+        }
+    }
+    // check for any not in new
+    for key in stocks.keys() {
+        if !new_stocks.contains_key(key) {
+            log::error!("Stock mismatch: stock: {} actual: 0", stocks.get(key).unwrap());
         }
     }
 }

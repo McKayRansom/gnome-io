@@ -7,7 +7,7 @@ use crate::{
     entity::{BaseEntity, EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{Event, EventManager, JobId},
     game::{GameCtx, Tick},
-    grid::{Grid, PathOutcome, Pos},
+    grid::{Grid, PathOutcome, Pos, stocks_remove},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
@@ -112,7 +112,7 @@ impl Step {
                     }
                     match grid.find_content(actor.pos(), Content::Item(*item), actor.faction()) {
                         PathOutcome::Reached(pos) => {
-                            if let Some(item) = grid.remove(pos, Content::Item(*item)) {
+                            if let Some(item) = grid.take(pos, Content::Item(*item)) {
                                 let Content::Item(item) = item else { panic!() };
                                 actor.inventory().push(item);
                                 log::info!("Take item {:?} from tile", item);
@@ -169,19 +169,25 @@ impl Step {
             Step::Work(time) => Flow::Busy(Busy::Wait, *time),
             Step::Consume(requires) => {
                 let inventory = actor.inventory();
-                for required_item in requires.iter() {
-                    if let Some(idx) = inventory
-                        .iter()
-                        .position(|item| Content::Item(*item) == Content::Item(*required_item))
-                    {
-                        inventory.remove(idx);
+                // could also just make mut, but this is safer
+                let mut requires = requires.clone();
+                inventory.retain(|inventory_item| {
+                    if let Some(idx) = requires.iter().position(|required_item| {
+                        Content::Item(*inventory_item) == Content::Item(*required_item)
+                    }) {
+                        requires.swap_remove(idx);
+                        // make sure we remove the inventory item, as the required item may just be ItemInfoFlags
+                        stocks_remove(&mut grid.stocks, inventory_item.0);
+                        false
+                    } else {
+                        true
                     }
-                }
+                });
                 Flow::Next
             }
             Step::Produce(content) => {
                 match content {
-                    Content::Item(item) => grid.add(job_pos, Content::Item(*item)),
+                    Content::Item(item) => grid.create(job_pos, Content::Item(*item)),
                     Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
                     Content::Entity(_entity) => log::warn!("Produce entity not implemented!"),
                     Content::Job(_) => log::warn!("Produce job not implemented!"),
@@ -470,9 +476,9 @@ impl Job {
                     // cursor unchanged, repeat this step
                 }
                 Flow::JobMoved(path) => {
-                    grid.remove(self.pos, Content::Job(self.id));
+                    grid.take(self.pos, Content::Job(self.id));
                     self.pos = *path.last().unwrap();
-                    grid.add(self.pos, Content::Job(self.id));
+                    grid.create(self.pos, Content::Job(self.id));
                     let _old_job = game_ctx.events.update_job(self.clone());
 
                     actor.walk(path);
@@ -493,12 +499,12 @@ impl Job {
 
     pub fn fail(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         game_ctx.events.remove_job(&self.id);
-        grid.remove(self.pos, Content::Job(self.id));
+        grid.take(self.pos, Content::Job(self.id));
     }
 
     pub fn success(&self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         game_ctx.events.remove_job(&self.id);
-        grid.remove(self.pos, Content::Job(self.id));
+        grid.take(self.pos, Content::Job(self.id));
     }
 }
 
@@ -527,7 +533,7 @@ impl JobManager {
         log::info!("Creating new job at {:?}", job);
         let pos = job.pos;
         let id = events.add_job(job);
-        grid.add(pos, Content::Job(id));
+        grid.create(pos, Content::Job(id));
     }
 
     pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {

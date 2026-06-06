@@ -10,7 +10,7 @@ use crate::{
         goblin::{GOBLIN_FACTION, Goblin},
     },
     event::EventManager,
-    grid::{Grid, Pos, pos::dirs},
+    grid::{Grid, Pos, pos::dirs, stocks_verify},
     item::Items,
     job::{JobManager, build, mine::mine},
     tile::Content,
@@ -59,7 +59,6 @@ pub struct Game {
 
 const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
-
 impl Game {
     pub fn new(frame_time: f64) -> Game {
         Game {
@@ -106,6 +105,8 @@ impl Game {
 
         game.grid.fixup(&game.game_ctx);
 
+        stocks_verify(&game.grid.stocks, &game.grid, &game.entities);
+
         Ok(game)
     }
 
@@ -118,7 +119,7 @@ impl Game {
     }
 
     fn gen_item(&mut self, pos: Pos, name: &str) {
-        self.grid.add(
+        self.grid.create(
             pos,
             Content::Item(
                 self.game_ctx
@@ -173,6 +174,8 @@ impl Game {
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
         // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
 
+        stocks_verify(&self.grid.stocks, &self.grid, &self.entities);
+
         start_pos
     }
 
@@ -207,7 +210,7 @@ impl Game {
         for action in actions {
             match action {
                 EntityAction::Die(id) => {
-                    let entity = self.entities.remove(&id).unwrap();
+                    let mut entity = self.entities.remove(&id).unwrap();
                     entity.die(&mut self.grid, &mut self.game_ctx);
                 }
                 EntityAction::Birth(_id) => todo!(),

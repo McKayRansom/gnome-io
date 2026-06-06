@@ -150,7 +150,7 @@ impl CraftManager {
                 Events::CraftFinishedEvent(block_id, item_id) => {
                     grid.place_block(event.pos, block_id, game_ctx);
 
-                    grid.add(
+                    grid.create(
                         event.pos,
                         Content::Item(game_ctx.items.get_content(&item_id).unwrap()),
                     );

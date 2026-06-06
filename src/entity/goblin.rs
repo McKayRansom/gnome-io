@@ -82,7 +82,7 @@ impl EntityBehaviour for Goblin {
         }
     }
 
-    fn die(&self, grid: &mut crate::grid::Grid, _ctx: &mut crate::game::GameCtx) {
+    fn die(&mut self, grid: &mut crate::grid::Grid, _ctx: &mut crate::game::GameCtx) {
         self.base.die(grid);
     }
 

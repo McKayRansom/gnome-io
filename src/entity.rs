@@ -36,7 +36,7 @@ pub enum Entity {
 
 pub trait EntityBehaviour {
     fn update(&mut self, grid: &mut Grid, ctx: &mut GameCtx) -> Option<EntityAction>;
-    fn die(&self, grid: &mut Grid, ctx: &mut GameCtx);
+    fn die(&mut self, grid: &mut Grid, ctx: &mut GameCtx);
     fn attacked(&mut self);
     #[allow(unused)]
     fn base(&self) -> &BaseEntity;
@@ -51,7 +51,7 @@ impl Entity {
         }
     }
 
-    pub fn die(&self, grid: &mut Grid, ctx: &mut GameCtx) {
+    pub fn die(&mut self, grid: &mut Grid, ctx: &mut GameCtx) {
         match self {
             Entity::Gnome(e) => e.die(grid, ctx),
             Entity::Goblin(e) => e.die(grid, ctx),
@@ -65,7 +65,7 @@ impl Entity {
         }
     }
 
-    pub fn _base(&self) -> &BaseEntity {
+    pub fn base(&self) -> &BaseEntity {
         match self {
             Entity::Gnome(e) => e.base(),
             Entity::Goblin(e) => e.base(),
@@ -139,8 +139,10 @@ impl Default for BaseEntity {
 }
 
 impl BaseEntity {
-    pub fn die(&self, grid: &mut Grid) {
+    pub fn die(&mut self, grid: &mut Grid) {
         grid.gnome_exit(self.pos, (self.faction, self.id));
+        // MUST drop items to not screw up stocks
+        grid.store_items(self.pos, &mut self.items);
     }
 
     pub fn attacked(&mut self) {
