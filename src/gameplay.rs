@@ -104,9 +104,9 @@ impl Gameplay {
                     ToolbarItem::new("stairs", "Stairs", '3', "stairs".into()),
                     ToolbarItem::new("door", "Door", '4', "door".into()),
                     // ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
-                    ToolbarItem::new("furnace", "Furnace", '4', "furnace".into()),
-                    ToolbarItem::new("bed", "Bed", '5', "bed".into()),
-                    ToolbarItem::new("gravestone", "grave", '5', "gravestone".into()),
+                    ToolbarItem::new("furnace", "Furnace", '5', "furnace".into()),
+                    ToolbarItem::new("bed", "Bed", '6', "bed".into()),
+                    ToolbarItem::new("gravestone", "grave", '7', "gravestone".into()),
                 ],
             ),
             time_select: Toolbar::new(
@@ -269,6 +269,28 @@ impl Gameplay {
         let mut event: Option<GameEvent> = None;
         draw_game(&self.game, ctx);
 
+        let mut game_action_key = None;
+
+        if is_key_down(KeyCode::LeftShift)
+            && matches!(self.action_toolbar.get_selected(), Some(GameAction::Build))
+        {
+            ctx.key_pressed = ctx.key_pressed.map(|char| match char {
+                '!' => '1',
+                '@' => '2',
+                '#' => '3',
+                '$' => '4',
+                '%' => '5',
+                '^' => '6',
+                '&' => '7',
+                '*' => '8',
+                '(' => '9',
+                ')' => '8',
+                ch => ch,
+            });
+            game_action_key = ctx.key_pressed;
+            ctx.key_pressed = None;
+        }
+
         self.action_toolbar.draw(
             ctx,
             ctx.screen_size.x / 2.0,
@@ -276,6 +298,7 @@ impl Gameplay {
         );
 
         if matches!(self.action_toolbar.get_selected(), Some(GameAction::Build)) {
+            ctx.key_pressed = game_action_key;
             self.build_toolbar.draw(
                 ctx,
                 ctx.screen_size.x / 2.0,
