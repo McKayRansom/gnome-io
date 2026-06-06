@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
     entity::{BaseEntity, EntityId, Faction, goblin::GOBLIN_FACTION},
-    event::{EventManager, JobId},
+    event::{Event, EventManager, JobId},
     game::{GameCtx, Tick},
     grid::{Grid, PathOutcome, Pos},
     item::{self, ItemInfoFlags},
@@ -92,6 +92,7 @@ pub enum Step {
     Eat,
     Sleep,
     Attack(ContentEntity),
+    PushTime((Tick, Event)),
 }
 
 impl Step {
@@ -211,6 +212,10 @@ impl Step {
                 };
                 actor.attack(entity.1);
                 Flow::Busy(Busy::Fight, 0)
+            }
+            Step::PushTime((time, event)) => {
+                game_ctx.events.push_timer(*time, event.clone());
+                Flow::Next
             }
         }
     }
@@ -367,7 +372,14 @@ impl Job {
         }
     }
 
-    pub fn craft(pos: Pos, time: u16, item: ContentItem, requires: Vec<ContentItem>) -> Self {
+    pub fn craft(
+        pos: Pos,
+        time: Tick,
+        delay_time: Tick,
+        requires: Vec<ContentItem>,
+        active_block: ContentBlock,
+        event: Event,
+    ) -> Self {
         Job {
             pos,
             category: JobType::CRAFT,
@@ -376,14 +388,15 @@ impl Job {
                 Step::Goto(pos),
                 Step::Work(time),
                 Step::Consume(requires),
-                Step::Produce(Content::Item(item)),
-                Step::TakeItems,
+                Step::Produce(Content::Block(active_block)),
+                Step::PushTime((delay_time, event)),
+                // Step::TakeItems,
             ],
             ..Default::default()
         }
     }
 
-    pub fn build(pos: Pos, time: u16, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
+    pub fn build(pos: Pos, time: Tick, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
             category: JobType::BUILD,

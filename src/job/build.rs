@@ -13,7 +13,11 @@ pub fn build(grid: &mut Grid, pos: Pos, block_name: &str, game_ctx: &mut GameCtx
         .get_id(block_name)
         .expect("Bad block_name passed to build()");
 
-    if grid.get_tile(pos)?.get_block().is_some() {
+    if grid
+        .get_tile(pos)?
+        .get_block()
+        .is_some_and(|block| block == id)
+    {
         return None;
     }
 

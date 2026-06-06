@@ -58,6 +58,9 @@ Key Decisions to make:
   - [ ] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
     - [ ] WINTER IS COMING!
   - [ ] Fix bread/crafting?
+  - [ ] Add snow/winter for real
+    - [ ] kill plants
+    - [ ] Moves slow?
 - [ ] Create attack/flee logic
     - [x] Create attack job and fix many, many bugs
     - [x] Make enemy entities unpathable (for fights and for doors...)
@@ -78,6 +81,11 @@ Key Decisions to make:
   - [ ] Add sprites/drawing
   - [ ] Make required for profession and/or jobs
   - [ ] Picaxe/hoe/armor/etc...
+- [ ] Add sunlight to tiles
+  - [ ] use this to drive plant growth
+  - [ ] use for drawing tile color
+- [ ] Add sight
+  - [ ] Use to detect the baddies attacking
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 

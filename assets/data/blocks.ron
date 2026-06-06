@@ -26,22 +26,25 @@
         // TODO: Change farm to require what's listed here...
         requires: ["grain"],
         growth: Some((days: 1, into: "wheat_1")),
-        drops: [(0.0, "grain")],
+        drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_1": (
         id: 202,
         growth: Some((days: 1, into: "wheat_2")),
+        drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_2": (
         id: 203,
         growth: Some((days: 1, into: "wheat_3")),
+        drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_3": (
         id: 204,
         growth: Some((days: 1, into: "wheat_4")),
+        drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_4": (
@@ -99,8 +102,9 @@
         requires: ["stone"],
         place_event: Some("craft"),
         mine_event: Some("craft"),
+        growth: Some((days: 0, into: "furnace_active")),
     ),
-    "chest": (
+   "chest": (
         id: 303,
         flags: ("STORAGE"),
         requires: ["stone"],
@@ -119,6 +123,13 @@
     "gravestone": (
         id: 306,
         requires: ["dead_gnome"],
-    )
+    ),
+    "furnace_active": (
+        id: 307,
+        // mark this so we don't drop on growth...
+        growth: Some((days: 0, into: "furnace")),
+        drops: [(1.0, "stone")],
+    ),
+ 
 }
 )

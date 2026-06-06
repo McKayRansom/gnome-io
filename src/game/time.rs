@@ -13,10 +13,12 @@ pub const fn hours(hours: Hour) -> Tick {
     hours as Tick * TICKS_PER_HOUR
 }
 pub type Day = u8;
+pub const fn days(days: Day) -> Tick {
+    (days as Hour * HOURS_PER_DAY) as Tick * TICKS_PER_HOUR
+}
 pub const DAYS_PER_SEASON: Day = 5; // ~ 5 IRL minutes
 
-#[derive(Debug, PartialEq, Eq, Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Debug, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum Season {
     #[default]
     Spring,
@@ -38,8 +40,7 @@ impl Season {
 
 pub type Year = u32;
 
-#[derive(Default)]
-#[derive(Serialize, Deserialize)]
+#[derive(Default, Serialize, Deserialize)]
 pub struct GameTime {
     pub tick_off: Tick,
     pub hour: Hour,

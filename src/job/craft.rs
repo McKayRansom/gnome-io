@@ -2,15 +2,29 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::BlockId,
-    event::EventId,
-    game::{CRAFTING_TIME, GameCtx},
+    event::{
+        Event, EventId,
+        Events::{self, CraftFinishedEvent},
+    },
+    game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
     item::ItemId,
+    job::JobType,
+    tile::Content,
 };
 
 use super::{Job, JobManager};
 
-pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx) -> Option<()> {
+pub const CRAFTING_TIME: Tick = game::time::hours(1);
+pub const FURNACE_TIME: Tick = game::time::days(1);
+
+pub fn craft(
+    grid: &mut Grid,
+    pos: Pos,
+    workshop_block_id: BlockId,
+    item_id: ItemId,
+    game_ctx: &mut GameCtx,
+) -> Option<()> {
     let item_info = game_ctx.items.get_info(&item_id)?;
     let recipe = item_info.recipe.as_ref()?;
 
@@ -25,10 +39,24 @@ pub fn craft(grid: &mut Grid, pos: Pos, item_id: ItemId, game_ctx: &mut GameCtx)
         })
         .collect();
 
+    let workshop_active_block = game_ctx.blocks.get_content(&307).unwrap();
+
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::craft(pos, CRAFTING_TIME, (item_id, item_info.flags), requires),
+        Job::craft(
+            pos,
+            CRAFTING_TIME,
+            FURNACE_TIME,
+            // (item_id, item_info.flags),
+            requires,
+            workshop_active_block,
+            Event {
+                id: CRAFT_EVENT_ID,
+                pos,
+                value: CraftFinishedEvent(workshop_block_id, item_id),
+            },
+        ),
     );
     None
 }
@@ -37,6 +65,7 @@ pub const CRAFT_EVENT_ID: EventId = 300;
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftManager {
+    // TODO:HASHMAP
     workshop_pos: Vec<Pos>,
     standing_orders: Vec<(ItemId, usize)>,
     #[serde(skip_deserializing, skip_serializing)]
@@ -64,13 +93,18 @@ impl CraftManager {
                 .is_none_or(|stock| *stock < *quantity)
             {
                 // lookup recipe
-                let (_workshop, requires) = game_ctx
+                let (workshop, requires) = game_ctx
                     .items
                     .get_info(item_id)
                     .expect("Standing order for unknown item")
                     .recipe
                     .as_ref()
                     .expect("Standing order for uncraftable item");
+
+                let workshop_block_id = game_ctx
+                    .blocks
+                    .get_id(workshop)
+                    .expect("Recipe has invalid workshop name!");
 
                 // for now, until we implement minimums don't take all there is
                 if requires.iter().any(|item| {
@@ -82,48 +116,46 @@ impl CraftManager {
                     continue;
                 }
 
+                // TODO: Only search for workshops with our ID
                 if let Some(pos) = self.workshop_pos.first() {
                     if grid.get_tile(*pos).unwrap().get_job().is_none() {
-                        craft(grid, *pos, *item_id, game_ctx);
+                        craft(grid, *pos, workshop_block_id, *item_id, game_ctx);
                     }
                 }
             }
         }
 
-        while let Some(block_update_event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
-            // if let Some(block_update_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
-            log::info!("Craft update event at {:?}", block_update_event.value.pos);
-            // self.tile_changed(events, grid, &block_update_event.pos)
-            if self
-                .workshop_block_ids
-                .contains(&block_update_event.value.new)
-            {
-                self.workshop_pos.push(block_update_event.value.pos);
-            } else {
-                self.workshop_pos
-                    .retain(|pos| pos != &block_update_event.value.pos);
-                // remove crafting jobs at this pos
-                // TODO: Handle this elsewhere?
-                // for content in grid
-                //     .get_tile(block_update_event.value.pos)
-                //     .unwrap()
-                //     .iter_content()
-                // {
-                //     if let Content::Job(job_id) = content {
-                //         // game_ctx.events.c
-                //         if let Some(job) = game_ctx.events.jobs.get(job_id) {
-                //             if job.is_craft() {
-                //                 // TODO: Also remove this from the grid?
-                //                 game_ctx.events.remove_job(job_id);
-                //             }
-                //         }
-                //     }
-                // }
+        while let Some(event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
+            match event.value {
+                Events::BlockUpdateEvent(_old, new) => {
+                    log::info!("Craft update event at {:?}", event.pos);
+
+                    if self.workshop_block_ids.contains(&new) {
+                        self.workshop_pos.push(event.pos);
+                    } else {
+                        self.workshop_pos.retain(|pos| pos != &event.pos);
+
+                        if grid
+                            .get_tile(event.pos)
+                            .unwrap()
+                            .get_job()
+                            .is_some_and(|job| {
+                                game_ctx.events.job_get(&job).unwrap().category == JobType::CRAFT
+                            })
+                        {
+                            grid.cancel_job(event.pos, &mut game_ctx.events);
+                        }
+                    }
+                }
+                Events::CraftFinishedEvent(block_id, item_id) => {
+                    grid.place_block(event.pos, block_id, game_ctx);
+
+                    grid.add(
+                        event.pos,
+                        Content::Item(game_ctx.items.get_content(&item_id).unwrap()),
+                    );
+                }
             }
-            // } else {
-            //     log::warn!("Unkown event dispached to craft event queue");
-            //     // None
-            // }
         }
     }
 }

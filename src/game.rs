@@ -59,7 +59,6 @@ pub struct Game {
 
 const DEFAULT_SIZE: Pos = Pos::new(128, 128);
 
-pub const CRAFTING_TIME: Tick = 30;
 
 impl Game {
     pub fn new(frame_time: f64) -> Game {

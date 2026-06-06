@@ -123,22 +123,34 @@ impl Grid {
         let old_block_id = tile.get_block().unwrap_or(BLOCK_NONE);
         if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
             tile.remove(&Content::Block((old_block_id, old_block_info.flags)));
+
             game_ctx
                 .events
                 .block_remove(pos, old_block_id, block_id, old_block_info);
 
-            for (chance, item_id) in old_block_info.drops.iter() {
-                if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
-                    // TODO: Dedup!
-                    // TODO: Spill if over limit...
-                    tile.add(Content::Item(
-                        game_ctx
-                            .items
-                            .get_content(item_id)
-                            .expect("Tried to drop invalid item"),
-                    ));
-                    // items.push(*item_id);
-                    *self.stocks.entry(*item_id).or_insert(0) += 1;
+            // don't drop on growth
+            if old_block_info
+                .growth
+                .is_none_or(|growth| growth.1 != block_id)
+            {
+                log::debug!(
+                    "Place block {} -> {} (growth is {:?} dropping!",
+                    old_block_id,
+                    block_id,
+                    old_block_info.growth
+                );
+                for (chance, item_id) in old_block_info.drops.iter() {
+                    if chance == &1.0 || rand::rand() as f32 / (u32::MAX as f32) < *chance {
+                        // TODO: Dedup!
+                        // TODO: Spill if over limit...
+                        tile.add(Content::Item(
+                            game_ctx
+                                .items
+                                .get_content(item_id)
+                                .expect("Tried to drop invalid item"),
+                        ));
+                        // items.push(*item_id);
+                    }
                 }
             }
         }

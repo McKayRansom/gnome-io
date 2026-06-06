@@ -8,6 +8,7 @@ use crate::{
     block::{BlockId, BlockInfo},
     game::Tick,
     grid::Pos,
+    item::ItemId,
     job::{
         Job,
         craft::CRAFT_EVENT_ID,
@@ -19,32 +20,48 @@ pub type EventId = u32;
 
 pub const EVENT_NONE: EventId = 0;
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
-pub struct BlockUpdateEvent {
-    pub pos: Pos,
-    pub _old: BlockId,
-    pub new: BlockId,
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub enum Events {
+    BlockUpdateEvent(BlockId, BlockId),
+    CraftFinishedEvent(BlockId, ItemId),
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+// #[serde(from = "EventRepr")]
 pub struct Event {
     pub id: EventId,
-    pub value: BlockUpdateEvent,
+    pub pos: Pos,
+    pub value: Events,
 }
 
-#[derive(Default, Debug, Clone, Serialize, Deserialize)]
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// struct EventRepr {
+//     pub id: EventId,
+//     value: BLockUpdateEventRepr,
+// }
+
+// impl From<EventRepr> for Event {
+//     fn from(value: EventRepr) -> Self {
+//         Self {
+//             id: value.id,
+//             pos: value.value.pos,
+//             value: Events::BlockUpdateEvent(value.value._old, value.value._old),
+//         }
+//     }
+// }
+
+// #[derive(Debug, Clone, Serialize, Deserialize)]
+// struct BLockUpdateEventRepr {
+//     pub pos: Pos,
+//     pub _old: BlockId,
+//     pub new: BlockId,
+// }
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Timer {
     pub time: Tick,
     pub event: Option<Event>,
 }
-
-// impl Event {
-//     pub new(id: EventId, v)
-// }
-
-// pub trait EventHandler {
-//     fn handle(&mut self, event: Event, grid: &Grid) -> Option<Event>;
-// }
 
 pub type JobId = u32;
 
@@ -104,28 +121,24 @@ impl EventManager {
         if let Some(event) = block_info.place_event {
             self.push_event(Event {
                 id: event,
-                value: BlockUpdateEvent {
-                    pos,
-                    _old: old_block_id,
-                    new: block_id,
-                },
+                pos,
+                value: Events::BlockUpdateEvent(old_block_id, block_id),
             });
         }
         // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
         // BUG: There could be more than one growth event in progress for the same block...
         if let Some((delay, new_block)) = block_info.growth {
-            self.push_timer(
-                // add some randomness
-                delay + rand::gen_range(0, delay / 2),
-                Event {
-                    id: GROWTH_EVENT,
-                    value: BlockUpdateEvent {
+            if delay > 0 {
+                self.push_timer(
+                    // add some randomness
+                    delay + rand::gen_range(0, delay / 2),
+                    Event {
+                        id: GROWTH_EVENT,
                         pos,
-                        _old: block_id,
-                        new: new_block,
+                        value: Events::BlockUpdateEvent(block_id, new_block),
                     },
-                },
-            );
+                );
+            }
         }
     }
 
@@ -140,11 +153,8 @@ impl EventManager {
         if let Some(mine_event) = block_info.mine_event {
             self.push_event(Event {
                 id: mine_event,
-                value: BlockUpdateEvent {
-                    pos,
-                    _old: block_id,
-                    new: new_block_id,
-                },
+                pos,
+                value: Events::BlockUpdateEvent(block_id, new_block_id),
             });
         }
     }
@@ -165,7 +175,7 @@ impl EventManager {
 
     pub fn push_timer(&mut self, time: Tick, event: Event) {
         self.timers.insert(
-            event.value.pos,
+            event.pos,
             Timer {
                 time,
                 event: Some(event),

@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BlockId, BlockInfoFlags},
-    event::{Event, EventId},
+    event::{EventId, Events},
     game::{
         GameCtx, Tick,
         time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
@@ -36,9 +36,8 @@ impl FarmManager {
         self.update_growth(game_ctx, grid);
 
         while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
-            if let Some(farm_block) = self.farm_pos.get(&event.value.pos) {
-                if let Some(job) = self.tile_changed(game_ctx, grid, &event.value.pos, *farm_block)
-                {
+            if let Some(farm_block) = self.farm_pos.get(&event.pos) {
+                if let Some(job) = self.tile_changed(game_ctx, grid, &event.pos, *farm_block) {
                     JobManager::create_job(grid, &mut game_ctx.events, job);
                 }
             }
@@ -48,31 +47,20 @@ impl FarmManager {
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         // TODO: Don't do this in winter...
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
-            // if let Some(block_growth_event) = event.value.downcast_ref::<BlockUpdateEvent>() {
+            let Events::BlockUpdateEvent(_old, new) = event.value else {
+                log::warn!("Invalid event pushed to GROWTH_EVENT queue");
+                continue;
+            };
+            log::debug!("Growth {} -> {}", _old, new);
             // delay this growth event (for now?)
             if game_ctx.time.season == Season::Winter {
-                game_ctx.events.push_timer(
-                    GROWTH_SEASON_DELAY_TIME,
-                    Event {
-                        id: GROWTH_EVENT,
-                        value: event.value,
-                    },
-                );
+                // TODO: Plants die in winter??
+                game_ctx.events.push_timer(GROWTH_SEASON_DELAY_TIME, event);
             } else {
                 // NOTE: This may start new timers/trigger new events if nescesary
-                grid.place_block(event.value.pos, event.value.new, game_ctx);
-                // if let Some(farm_block_id) = self.farm_pos.get(&event.value.pos) {
-                //     if let Some(job) =
-                //         self.tile_changed(game_ctx, grid, &event.value.pos, *farm_block_id)
-                //     {
-                //         JobManager::create_job(grid, &mut game_ctx.events, job);
-                //     }
-                // }
+                // Including the farm update event
+                grid.place_block(event.pos, new, game_ctx);
             }
-
-            // } else {
-            //     log::warn!("Unkown event pushed to growth queue");
-            // }
         }
     }
 
@@ -115,12 +103,14 @@ impl FarmManager {
 
         let block = tile.get_block().unwrap_or(0);
         let block_info = game_ctx.blocks.get_info(&block);
-        if block_info.is_some_and(|info| !info.drops.is_empty()) {
+
+        if block_info.is_some_and(|info| info.growth.is_none()) {
             // harvest
             Some(Job::mine(*pos, HARVEST_TIME))
-        } else if block_info.is_none_or(|info| info.growth.is_none()) {
-            // till
 
+        // till
+        // TODO: don't till in fall/winter...
+        } else if block_info.is_none() {
             let requires = farm_block_info
                 .requires
                 .iter()
@@ -134,7 +124,7 @@ impl FarmManager {
                 requires,
             ))
         } else {
-            log::info!("Block is something weird: {}", block);
+            // log::info!("Block is something weird: {}", block);
             None
         }
     }

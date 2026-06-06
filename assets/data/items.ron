@@ -28,7 +28,7 @@
         id: 300,
         flags: ("FOOD"),
         // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
-        recipe: Some(("furnace", ["grain"])),
+        recipe: Some(("furnace", ["grain", "coal_item"])),
     ),
 
     // other
