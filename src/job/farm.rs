@@ -48,6 +48,15 @@ impl FarmManager {
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         self.update_growth(game_ctx, grid);
+
+        while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
+            if let Some(farm_block) = self.farm_pos.get(&event.value.pos) {
+                if let Some(job) = self.tile_changed(game_ctx, grid, &event.value.pos, *farm_block)
+                {
+                    JobManager::create_job(grid, &mut game_ctx.events, job);
+                }
+            }
+        }
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
@@ -66,13 +75,13 @@ impl FarmManager {
             } else {
                 // NOTE: This may start new timers/trigger new events if nescesary
                 grid.place_block(event.value.pos, event.value.new, game_ctx);
-                if let Some(farm_block_id) = self.farm_pos.get(&event.value.pos) {
-                    if let Some(job) =
-                        self.tile_changed(game_ctx, grid, &event.value.pos, *farm_block_id)
-                    {
-                        JobManager::create_job(grid, &mut game_ctx.events, job);
-                    }
-                }
+                // if let Some(farm_block_id) = self.farm_pos.get(&event.value.pos) {
+                //     if let Some(job) =
+                //         self.tile_changed(game_ctx, grid, &event.value.pos, *farm_block_id)
+                //     {
+                //         JobManager::create_job(grid, &mut game_ctx.events, job);
+                //     }
+                // }
             }
 
             // } else {
@@ -107,6 +116,7 @@ impl FarmManager {
             .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
         {
             log::warn!("Farm not supported by something!");
+            // TODO: Remove plants when they are not supported?
             return None;
         }
         let tile = grid.get_tile(*pos)?;

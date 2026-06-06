@@ -26,22 +26,27 @@
         requires: ["grain"],
         growth: Some((days: 1, into: "wheat_1")),
         drops: [(0.0, "grain")],
+        mine_event: Some("farm"),
     ),
     "wheat_1": (
         id: 202,
         growth: Some((days: 1, into: "wheat_2")),
+        mine_event: Some("farm"),
     ),
     "wheat_2": (
         id: 203,
         growth: Some((days: 1, into: "wheat_3")),
+        mine_event: Some("farm"),
     ),
     "wheat_3": (
         id: 204,
         growth: Some((days: 1, into: "wheat_4")),
+        mine_event: Some("farm"),
     ),
     "wheat_4": (
         id: 205,
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
+        mine_event: Some("farm"),
     ),
 
     // man-made

@@ -135,7 +135,6 @@ impl EventManager {
         block_info: &BlockInfo,
     ) {
         self.timers.remove(&pos);
-        self.far
         if let Some(mine_event) = block_info.mine_event {
             self.push_event(Event {
                 id: mine_event,

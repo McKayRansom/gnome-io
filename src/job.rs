@@ -423,6 +423,8 @@ impl Job {
             // content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
             category: JobType::MINE,
             steps: vec![
+                // TODO
+                // Step::Goto((pos, block.1.contains(BlockInfoFlags::SOLID))),
                 Step::Goto((pos, false)),
                 Step::Work(time),
                 Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
@@ -517,7 +519,6 @@ pub struct JobManager {
 }
 
 impl JobManager {
-
     // NOTE: Must be re-enterant!
     pub fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
         self.farm_manager.load_ctx(game_ctx);
