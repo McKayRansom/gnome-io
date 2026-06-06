@@ -115,8 +115,11 @@ impl Grid {
         block_id: BlockId,
         game_ctx: &mut GameCtx,
         // items: &mut Vec<ItemId>,
-    ) -> Option<()> {
-        let tile = Self::cell_get_tile_mut(&mut self.cells, pos)?;
+    ) {
+        let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
+            log::warn!("Tried to place block in invalid pos: {:?}", pos);
+            return;
+        };
         let old_block_id = tile.get_block().unwrap_or(BLOCK_NONE);
         if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
             tile.remove(&Content::Block((old_block_id, old_block_info.flags)));
@@ -159,7 +162,6 @@ impl Grid {
             // update anyone who could depend on us
             self.update_walkable(pos - dir);
         }
-        Some(())
     }
 
     pub fn gnome_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
@@ -183,12 +185,15 @@ impl Grid {
         Some(end)
     }
 
-    pub fn add(&mut self, pos: Pos, content: Content) -> Option<()> {
-        Self::cell_get_tile_mut(&mut self.cells, pos)?.add(content);
+    pub fn add(&mut self, pos: Pos, content: Content) {
+        let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
+            log::warn!("Tried to add content at invalid pos: {:?}", pos);
+            return;
+        };
+        tile.add(content);
         if let Content::Item(item) = content {
             *self.stocks.entry(item.0).or_insert(0) += 1;
         }
-        None
     }
 
     pub fn remove(&mut self, pos: Pos, content: Content) -> Option<Content> {

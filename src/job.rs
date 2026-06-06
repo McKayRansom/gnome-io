@@ -57,10 +57,6 @@ pub struct Job {
     pub steps: Vec<Step>,
     #[serde(default)]
     pub cursor: usize,
-    // pub priority: u8,
-    // pub time: u16,
-    // pub content: Option<Content>,
-    // pub requires: Vec<ContentItem>,
     pub category: JobType,
 }
 
@@ -186,8 +182,8 @@ impl Step {
                 match content {
                     Content::Item(item) => grid.add(job_pos, Content::Item(*item)),
                     Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
-                    Content::Entity(_entity) => todo!(),
-                    Content::Job(_) => todo!(),
+                    Content::Entity(_entity) => log::warn!("Produce entity not implemented!"),
+                    Content::Job(_) => log::warn!("Produce job not implemented!"),
                 };
                 Flow::Next
             }
@@ -251,9 +247,9 @@ pub trait JobActor {
     fn pos(&self) -> Pos;
     fn faction(&self) -> Faction;
     fn inventory(&mut self) -> &mut Vec<ContentItem>;
-    fn walk(&mut self, path: Vec<Pos>); // set self.path; gnome walks it over later ticks
-    fn busy(&mut self, kind: Busy, time: Tick); // status + timer + (food/tired/heal) in one place
-    fn attack(&mut self, target: EntityId); // busy(Fight, …) + queue pending EntityAction
+    fn walk(&mut self, path: Vec<Pos>);
+    fn busy(&mut self, kind: Busy, time: Tick);
+    fn attack(&mut self, target: EntityId);
 }
 
 impl Default for Job {
@@ -264,16 +260,13 @@ impl Default for Job {
             pos: Pos::new(0, 0),
             steps: Vec::new(),
             cursor: 0,
-            // time: 0,
-            // content: None,
-            // requires: Vec::new(),
             category: JobType::NONE,
         }
     }
 }
 
 // look for jobs that are just there...
-// TODO: Move job.in_progress and job prio to tile?
+// OPTIMIZE: Cache job.in_progress and/or job prio to tile
 pub fn job_default_search(_pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
         let job = events.job_get(&job_id).expect("LEAKED JOB");
@@ -303,11 +296,6 @@ pub fn job_drop_serach(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job
     {
         log::info!("Creating drop-off job");
         return Some(Job::drop(pos));
-        // TODO: Should we implement this?
-        // if entity.items.len() == item::ITEM_CARRY_MAX {
-        //     // exit early, we are totally full
-        //     break;
-        // }
     }
     None
 }
@@ -365,14 +353,12 @@ impl Job {
         }
     }
 
+    // NOTE: The eat job will not change highlighted position if the food there is consumed and we have to find a new food...
     pub fn eat(pos: Pos) -> Self {
         Job {
             pos,
-            // time: 1, // TEMP
             category: JobType::EAT,
-            // requires: vec![(0, ItemInfoFlags::FOOD)],
             steps: vec![
-                // TODO: Have this change pos...
                 Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
                 Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
                 Step::Eat,
@@ -384,9 +370,6 @@ impl Job {
     pub fn craft(pos: Pos, time: u16, item: ContentItem, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
-            // time,
-            // content: Some(Content::Item(item)),
-            // requires,
             category: JobType::CRAFT,
             steps: vec![
                 Step::Acquire(requires.clone()),
@@ -403,9 +386,6 @@ impl Job {
     pub fn build(pos: Pos, time: u16, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
         Job {
             pos,
-            // time,
-            // content: Some(Content::Block(block)),
-            // requires,
             category: JobType::BUILD,
             steps: vec![
                 Step::Acquire(requires.clone()),
@@ -418,16 +398,11 @@ impl Job {
         }
     }
 
-    // if we ever added picaxe hardness we would have to add requires back to this one...
     pub fn mine(pos: Pos, time: u16) -> Self {
         Job {
             pos,
-            // time,
-            // content: Some(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
             category: JobType::MINE,
             steps: vec![
-                // TODO
-                // Step::Goto((pos, block.1.contains(BlockInfoFlags::SOLID))),
                 Step::Goto(pos),
                 Step::Work(time),
                 Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
@@ -437,7 +412,6 @@ impl Job {
         }
     }
 
-    // haul job is low-priority (for now) and does nothing basically
     pub fn haul(pos: Pos) -> Self {
         Self {
             pos,
@@ -543,28 +517,8 @@ impl JobManager {
         grid.add(pos, Content::Job(id));
     }
 
-    // pub fn find_job(events: &mut EventManager) -> Option<Box<Job>> {
-    //     events.pop_event(JOB_QUEUE).map(|event| {
-    //         event
-    //             .value
-    //             .downcast::<Job>()
-    //             .expect("Invalid event in job queue")
-    //     })
-    // }
-
     pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
         self.farm_manager.cancel_farm(pos);
         grid.cancel_job(pos, &mut game_ctx.events);
     }
-
-    // pub fn fail_job(events: &mut EventManager, job: Box<Job>) {
-    //     const JOB_RETRY_TIME: Tick = 60;
-    //     events.push_timer(
-    //         JOB_RETRY_TIME + (rand::rand() as u16 % JOB_RETRY_TIME),
-    //         Event {
-    //             id: JOB_QUEUE,
-    //             value: job,
-    //         },
-    //     );
-    // }
 }
