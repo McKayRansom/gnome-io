@@ -5,7 +5,10 @@ use crate::{
         gnome::{GNOME_SPEED, Gnome},
         goblin::Goblin,
     },
-    game::{GameCtx, Tick, time::hours},
+    game::{
+        GameCtx, Tick,
+        time::{days, hours},
+    },
     grid::{Grid, Pos, pos::dirs},
     tile::ContentItem,
 };
@@ -88,16 +91,23 @@ pub struct BaseEntity {
 }
 
 // food values
-const BASE_FOOD: Tick = hours(20);
-pub const FOOD_EAT: Tick = hours(4);
+// TO FIX gnomes always running out of food:
+// - We will eat way before we need to
+// - Only restore a certain amount of food
+const BASE_FOOD: Tick = days(4);
+pub const FOOD_EAT: Tick = days(3);
+pub const FOOD_RESTORED: Tick = days(1);
 
 // eat time
 const FOOD_EAT_TIME: Tick = hours(1);
 
 // sleep values
-pub const BASE_TIRED: Tick = hours(20);
+// to fix gnomes always passing out on the spot:
+// - sleep way before we need to
+pub const BASE_TIRED: Tick = days(2);
 // const SLOW_TIRED: u16 = hours(2);
-pub const SLEEP_TIRED: Tick = hours(4);
+pub const SLEEP_TIRED: Tick = days(1);
+pub const SLEEP_RESTORED: Tick = days(1);
 
 // sleep times
 const PASS_OUT_TIME: Tick = hours(6);

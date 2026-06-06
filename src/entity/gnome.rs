@@ -117,12 +117,12 @@ impl JobActor for Gnome {
             Busy::Wait => self.base.timer = time,
             Busy::Eat => {
                 self.status = GnomeStatus::EATING;
-                self.base.food = super::BASE_FOOD;
+                self.base.food += super::FOOD_RESTORED;
                 self.base.timer = super::FOOD_EAT_TIME;
             }
             Busy::Sleep => {
                 self.status = GnomeStatus::SLEEPING;
-                self.base.tired = super::BASE_TIRED;
+                self.base.tired += super::SLEEP_RESTORED;
                 self.base.timer = super::SLEEP_TIME;
                 if self.base.health < super::BASE_HEALTH {
                     self.base.health += 1;
@@ -174,8 +174,6 @@ impl EntityBehaviour for Gnome {
             // } else {
             // GNOME_SPEED;
             // };
-            // if !self.base.move_to(self.path.remove(0), GNOME_SPEED, grid)
-
             self.base.move_to(self.path.remove(0), GNOME_SPEED, grid);
             // impassable terrain
             // if !grid.get_tile().is_passable() {
@@ -190,7 +188,7 @@ impl EntityBehaviour for Gnome {
         if self.base.tired == 0 {
             // pass out on the spot
             // TODO: Some kind of indicator to the player that this is happening and bad...
-            self.base.tired = super::BASE_TIRED;
+            self.base.tired += super::SLEEP_RESTORED;
             self.base.timer = super::PASS_OUT_TIME;
             self.status = GnomeStatus::SLEEPING;
             return None;
@@ -200,7 +198,7 @@ impl EntityBehaviour for Gnome {
             // starving to death
             // TODO: Some kind of indicator to the player that this is happening and bad...
             self.base.health = self.base.health.saturating_sub(1);
-            self.base.food = super::BASE_FOOD;
+            self.base.food += super::FOOD_RESTORED;
             if self.base.health == 0 {
                 return None;
             }
