@@ -52,13 +52,23 @@ impl PartialEq for Content {
     }
 }
 
+/*
+ * Theory of pathfinding otimization:
+ * - Games like transport-io, gnomoria have shown that pathfinding is often the bottleneck.
+ * - For optimal pathfinding, all nescesary information to make a path should be in a spacially oriented datastructure (Grid or chunked grid in the future)
+ * - This allows all pathfinding lookups to have cache hits on not have to I.E. dereference other vectors or look up in hashmaps (poor cache locality)
+ * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
+ */
+
 #[derive(Debug, Default, Clone, Serialize, Deserialize)]
 #[serde(from = "TileRepr")] // entity_flags: Faction,
 #[serde(into = "TileRepr")]
 pub struct Tile {
     // we need to manage flags based on content, so make not-pub
     // TODO: make non-pub for correctness...
+    // TODO: move elsewhere and only store pathfinding info here!
     pub contents: Vec<Content>,
+    // TODO: remove
     pub biome: TileBiome,
     tile_flags: TileFlags,
     block_flags: BlockInfoFlags,
@@ -121,13 +131,6 @@ impl From<Tile> for TileRepr {
     }
 }
 
-/*
- * Theory of pathfinding otimization:
- * - Games like transport-io, gnomoria have shown that pathfinding is often the bottleneck.
- * - For optimal pathfinding, all nescesary information to make a path should be in a spacially oriented datastructure (Grid or chunked grid in the future)
- * - This allows all pathfinding lookups to have cache hits on not have to I.E. dereference other vectors or look up in hashmaps (poor cache locality)
- * - So our tile needs to store pathfinding information here in the struct and other info can be stored elsewhere
- */
 bitflags! {
     // Packed pathfinding/state flags kept inline on the tile for cache locality.
     // Add new flags here (has_job, job_type, etc.) as bottlenecks demand.
@@ -138,6 +141,7 @@ bitflags! {
         const HAS_ITEMS = 1 << 1;
         const HAS_JOB = 1 << 2;
         const HAS_ENTITY = 1 << 3;
+        const HAS_BLOCK = 1 << 4;
     }
 }
 
@@ -172,6 +176,10 @@ impl Tile {
 
     pub fn has_entity(&self) -> bool {
         self.tile_flags.contains(TileFlags::HAS_ENTITY)
+    }
+
+    pub fn has_block(&self) -> bool {
+        self.tile_flags.contains(TileFlags::HAS_BLOCK)
     }
 
     pub fn block_flags(&self) -> BlockInfoFlags {
@@ -248,6 +256,9 @@ impl Tile {
     }
 
     pub fn get_block(&self) -> Option<BlockId> {
+        if !self.has_block() {
+            return None;
+        }
         for content in self.contents.iter() {
             if let Content::Block(block) = *content {
                 return Some(block.0);
@@ -305,7 +316,10 @@ impl Tile {
                     self.item_flags.insert(*flags)
                 }
                 Content::Entity(_) => self.tile_flags.insert(TileFlags::HAS_ENTITY),
-                Content::Block((_id, flags)) => self.block_flags.insert(*flags),
+                Content::Block((_id, flags)) => {
+                    self.tile_flags.insert(TileFlags::HAS_BLOCK);
+                    self.block_flags.insert(*flags)
+                },
                 Content::Job(_) => self.tile_flags.insert(TileFlags::HAS_JOB),
             }
         }
@@ -341,7 +355,7 @@ impl Tile {
 }
 
 #[cfg(test)]
-mod migration_tests {
+mod tests {
     use super::*;
 
     #[test]
@@ -394,6 +408,24 @@ mod migration_tests {
         assert!(tile.contains(&Content::Item((123, ItemInfoFlags::FOOD))));
         assert!(tile.contains(&Content::Item((0, ItemInfoFlags::FOOD))));
         assert!(!tile.contains(&Content::Item((1, ItemInfoFlags::FOOD))));
+    }
+
+    #[test]
+    fn tile_contains_block() {
+        let mut tile = Tile::default();
+        assert!(!tile.has_block());
+        assert_eq!(tile.get_block(), None);
+        assert_eq!(tile.block_flags(), BlockInfoFlags::empty());
+
+        tile.add(Content::Block((123, BlockInfoFlags::empty())));
+
+        assert!(tile.has_block());
+        assert_eq!(tile.get_block(), Some(123));
+        assert_eq!(tile.block_flags(), BlockInfoFlags::empty());
+
+        tile.add(Content::Block((123, BlockInfoFlags::SOLID)));
+        assert_eq!(tile.block_flags(), BlockInfoFlags::SOLID);
+
     }
 
     // #[test]
