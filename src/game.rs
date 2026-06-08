@@ -1,16 +1,11 @@
 use quad_lib::storage::{LoadResult, SaveResult, Storage};
-use rustc_hash::FxHashMap;
 use time::{GameTime, GameTimeEvent};
 
 use crate::{
     block::Blocks,
-    entity::{
-        Entity, EntityAction, EntityId,
-        gnome::Gnome,
-        goblin::{GOBLIN_FACTION, Goblin},
-    },
-    event::EventManager,
-    grid::{Grid, Pos, pos::dirs, stocks_verify},
+    entity::Entities,
+    event::{EventManager, raid::RaidManager},
+    grid::{Grid, Pos, stocks_verify},
     item::Items,
     job::{JobManager, build, mine::mine},
     tile::Content,
@@ -44,14 +39,11 @@ pub struct GameCtx {
     pub events: EventManager,
 }
 
-pub type Entities = FxHashMap<EntityId, Entity>;
-
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Game {
     pub next_frame_time: f64,
     pub speed: GameSpeed,
     pub entities: Entities,
-    pub entity_id: EntityId,
     pub grid: Grid,
     pub job_manager: JobManager,
     pub game_ctx: GameCtx,
@@ -64,9 +56,7 @@ impl Game {
         Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
-            // TODO: Split to entity manager and move!
             entities: Entities::default(),
-            entity_id: 1,
 
             // TODO: Merge with something and take()?
             job_manager: JobManager::default(),
@@ -155,57 +145,13 @@ impl Game {
         // Update timers first?
         self.game_ctx.events.update_timers();
 
-        // Update game state
-        let mut actions: Vec<EntityAction> = Vec::new();
-        for entity in self.entities.values_mut() {
-            if let Some(action) = entity.update(&mut self.grid, &mut self.game_ctx) {
-                actions.push(action);
-            }
-        }
-        for action in actions {
-            match action {
-                EntityAction::Die(id) => {
-                    let mut entity = self.entities.remove(&id).unwrap();
-                    entity.die(&mut self.grid, &mut self.game_ctx);
-                }
-                EntityAction::Birth(_id) => todo!(),
-                EntityAction::Attack(id) => {
-                    if let Some(entity) = self.entities.get_mut(&id) {
-                        entity.attacked();
-                    }
-                }
-            }
-        }
+        self.entities.update(&mut self.grid, &mut self.game_ctx);
 
         self.job_manager.update(&mut self.game_ctx, &mut self.grid);
 
+        RaidManager::update(&mut self.game_ctx, &mut self.grid, &mut self.entities);
+
         self.game_ctx.time.update()
-    }
-
-    pub fn spawn_gnome(&mut self, pos: Pos) {
-        self.entities.insert(
-            self.entity_id,
-            Entity::Gnome(Gnome::new(self.entity_id, pos, &mut self.grid)),
-        );
-        self.entity_id += 1;
-    }
-
-    pub fn spawn_goblin(&mut self, mut pos: Pos) {
-        loop {
-            let Some(tile) = self.grid.get_tile(pos) else {
-                log::warn!("Couldn't find place to spawn goblin!");
-                return;
-            };
-            if tile.is_passable(GOBLIN_FACTION) {
-                break;
-            }
-            pos = pos + dirs::DOWN;
-        }
-        self.entities.insert(
-            self.entity_id,
-            Entity::Goblin(Goblin::new(self.entity_id, pos, &mut self.grid)),
-        );
-        self.entity_id += 1;
     }
 
     pub fn mine(&mut self, pos: Pos) {

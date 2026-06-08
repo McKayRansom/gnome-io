@@ -17,6 +17,7 @@ use crate::{
 };
 
 pub mod snow;
+pub mod raid;
 
 pub type EventId = u32;
 

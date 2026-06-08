@@ -82,4 +82,8 @@ impl GameTime {
         // - you survivied a year message
         GameTimeEvent::YearEnd
     }
+
+    pub(crate) fn season_start(&self, season: Season) -> bool {
+        self.season == season && self.tick_off == 0 && self.hour == 0 && self.day == 0
+    }
 }

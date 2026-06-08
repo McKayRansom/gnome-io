@@ -14,7 +14,7 @@ pub struct SnowManager {
     pub snow: FxHashMap<Pos, Tick>,
 }
 
-const SNOW_SPAWN_PER_256_TILES: usize = 1;
+// const SNOW_SPAWN_PER_256_TILES: usize = 1;
 const SNOW_FALL_TIME: Tick = 50;
 
 impl SnowManager {

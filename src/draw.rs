@@ -8,8 +8,8 @@ use macroquad::{
 use crate::{
     block::BlockInfoFlags,
     context::Context,
-    entity::{self, BaseEntity, Entity, gnome::Gnome, goblin::Goblin},
-    game::{Entities, Game, GameCtx},
+    entity::{self, BaseEntity, Entities, Entity, gnome::Gnome, goblin::Goblin},
+    game::{Game, GameCtx},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
@@ -142,7 +142,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
             for item in tile.iter_content() {
                 if let Content::Entity(gnome) = item {
                     // ctx.tileset.draw_tile(sprites, dest, color);
-                    match entities.get(&gnome.1).unwrap() {
+                    match entities.get(gnome.1).unwrap() {
                         Entity::Gnome(gnome) => draw_gnome(game_ctx, ctx, gnome),
                         Entity::Goblin(goblin) => draw_goblin(game_ctx, ctx, goblin),
                     }

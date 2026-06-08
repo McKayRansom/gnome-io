@@ -13,7 +13,7 @@ use crate::{
     context::Context,
     debug_console::DebugConsole,
     draw::{draw_game, draw_tile_outline},
-    entity::Entity,
+    entity::gnome::GNOME_FACTION,
     game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
     tile::Content,
@@ -171,7 +171,9 @@ impl Gameplay {
             "goblin" => {
                 let x = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
                 let y = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
-                self.game.spawn_goblin(Pos::new(x, y));
+                self.game
+                    .entities
+                    .spawn_goblin(Pos::new(x, y), &mut self.game.grid);
             }
             "jobs" => {
                 dbg!(&self.game.job_manager);
@@ -205,12 +207,7 @@ impl Gameplay {
                 }
             }
         }
-        if !self
-            .game
-            .entities
-            .values()
-            .any(|entity| matches!(entity, Entity::Gnome(_)))
-        {
+        if self.game.entities.population(GNOME_FACTION) == 0 {
             self.popup = Some(Popup::new(format!(
                 "Game over, you survived until {:?} Year {}",
                 self.game.game_ctx.time.season, self.game.game_ctx.time.year
@@ -236,7 +233,9 @@ impl Gameplay {
             event = Some(GameEvent::Reload);
         }
         if is_key_pressed(KeyCode::G) {
-            self.game.spawn_goblin(Pos::new(0, 0));
+            self.game
+                .entities
+                .spawn_goblin(Pos::new(0, 0), &mut self.game.grid);
         }
         if is_key_pressed(KeyCode::M) {
             dbg!(&self.game.job_manager);
@@ -452,7 +451,7 @@ impl Gameplay {
                     let tile = self.game.grid.get_tile(mouse_pos).unwrap();
                     dbg!(tile);
                     if let Some(entity_id) = tile.get_entity() {
-                        let entity = self.game.entities.get(&entity_id.1).unwrap();
+                        let entity = self.game.entities.get(entity_id.1).unwrap();
                         dbg!(entity);
                     }
                 }

@@ -166,7 +166,7 @@ impl Game {
 
         // spawn some gnomes
         for _ in 0..4 {
-            self.spawn_gnome(start_pos);
+            self.entities.spawn_gnome(start_pos, &mut self.grid);
         }
 
         // spawn some goblins

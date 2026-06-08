@@ -1,9 +1,11 @@
 use macroquad::{prelude::rand, rand::rand};
+use rustc_hash::FxHashMap;
+use serde::{Deserialize, Serialize};
 
 use crate::{
     entity::{
         gnome::{GNOME_SPEED, Gnome},
-        goblin::Goblin,
+        goblin::{GOBLIN_FACTION, Goblin},
     },
     game::{
         GameCtx, Tick,
@@ -193,5 +195,90 @@ impl BaseEntity {
 
     pub(crate) fn is_hungry(&self) -> bool {
         self.food < FOOD_EAT
+    }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Entities {
+    entities: FxHashMap<EntityId, Entity>,
+    entity_id: EntityId,
+}
+
+impl Default for Entities {
+    fn default() -> Self {
+        Self {
+            entities: Default::default(),
+            entity_id: 1,
+        }
+    }
+}
+
+impl Entities {
+    pub fn update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        // Update game state
+        let mut actions: Vec<EntityAction> = Vec::new();
+        for entity in self.entities.values_mut() {
+            if let Some(action) = entity.update(grid, game_ctx) {
+                actions.push(action);
+            }
+        }
+        for action in actions {
+            match action {
+                EntityAction::Die(id) => {
+                    let mut entity = self.entities.remove(&id).unwrap();
+                    entity.die(grid, game_ctx);
+                }
+                EntityAction::Birth(_id) => todo!(),
+                EntityAction::Attack(id) => {
+                    if let Some(entity) = self.entities.get_mut(&id) {
+                        entity.attacked();
+                    }
+                }
+            }
+        }
+    }
+
+    pub fn spawn_gnome(&mut self, pos: Pos, grid: &mut Grid) {
+        self.entities.insert(
+            self.entity_id,
+            Entity::Gnome(Gnome::new(self.entity_id, pos, grid)),
+        );
+        self.entity_id += 1;
+    }
+
+    pub fn spawn_goblin(&mut self, mut pos: Pos, grid: &mut Grid) {
+        loop {
+            let Some(tile) = grid.get_tile(pos) else {
+                log::warn!("Couldn't find place to spawn goblin!");
+                return;
+            };
+            if tile.is_passable(GOBLIN_FACTION) {
+                break;
+            }
+            pos = pos + dirs::DOWN;
+        }
+        self.entities.insert(
+            self.entity_id,
+            Entity::Goblin(Goblin::new(self.entity_id, pos, grid)),
+        );
+        self.entity_id += 1;
+    }
+
+    pub fn population(&self, faction: Faction) -> usize {
+        self.entities.values().fold(0, |acc, entity| {
+            if entity.base().faction == faction {
+                acc + 1
+            } else {
+                acc
+            }
+        })
+    }
+
+    pub fn get(&self, entity: EntityId) -> Option<&Entity> {
+        self.entities.get(&entity)
+    }
+
+    pub fn values(&self) -> std::collections::hash_map::Values<'_, u32, Entity> {
+        self.entities.values()
     }
 }

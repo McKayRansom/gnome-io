@@ -1,6 +1,6 @@
 use crate::{
     block::{BLOCK_NONE, BlockId, BlockInfoFlags},
-    entity::{BaseEntity, EntityId, Faction},
+    entity::{BaseEntity, Entities, EntityId, Faction},
     event::EventManager,
     game::GameCtx,
     item::{self, ItemId},
@@ -443,7 +443,7 @@ pub fn stocks_remove(stocks: &mut Stocks, item: ItemId) {
     }
 }
 
-pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &crate::game::Entities) {
+pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
     let mut new_stocks: Stocks = Stocks::default();
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
