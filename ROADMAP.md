@@ -52,9 +52,9 @@ Key Decisions to make:
   - [x] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
     - [x] Requires minor rework to how block events work with farms
     - [x] Add plants to world-get (but those won't be managed by farms unless added)
-  - [ ] Fix indicators
-    - [ ] Need some kind of indicator that a tile is farmed...
-    - [ ] Better job indicators
+  - [x] Fix indicators
+    - [x] Need some kind of indicator that a tile is farmed...
+    - [x] Better job indicators
   - [x] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
     - [x] WINTER IS COMING!
   - [x] Fix bread/crafting?

@@ -131,6 +131,7 @@
         id: 307,
         // mark this so we don't drop on growth...
         growth: Some((days: 0, into: "furnace")),
+        mine_event: Some("craft"),
         drops: [(1.0, "stone")],
     ),
  
