@@ -22,7 +22,7 @@ impl SnowManager {
         // if game_time.season == Season::Winter {
         // spawn some snow
         // for _ in 0..((SNOW_SPAWN_PER_256_TILES * grid.size.x as usize) / 256) {
-        let pos: Pos = (rand::gen_range(0, grid.size.x * 4), 0).into();
+        let pos: Pos = (rand::gen_range(0, grid.size.x * 8), 0).into();
         if pos.x < grid.size.x {
             self.snow.insert(pos, SNOW_FALL_TIME);
         }
