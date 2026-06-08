@@ -15,14 +15,13 @@ use super::{Job, JobManager};
 
 const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
-
 const TILL_TIME: Tick = 20;
 const HARVEST_TIME: Tick = 20;
 
 // Farm module: Handles farming and growth
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct FarmManager {
-    farm_pos: FxHashMap<Pos, BlockId>,
+    pub farm_pos: FxHashMap<Pos, BlockId>,
 }
 
 impl FarmManager {

@@ -277,9 +277,13 @@ fn draw_managers(manager: &JobManager, _game_ctx: &GameCtx, ctx: &Context) {
     for (pos, _) in manager.snow_manager.snow.iter() {
         // could also interpolate
         let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
-
         ctx.tileset.draw_tile("snow", &rect, colors::WHITE);
     }
+    for (pos, _) in manager.farm_manager.farm_pos.iter() {
+        let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
+        ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
+    }
+    // NOTE: We could switch to drawing furnace_active here...
 }
 
 fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {

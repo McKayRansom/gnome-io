@@ -126,6 +126,7 @@
         id: 306,
         requires: ["dead_gnome"],
     ),
+    // NOTE: We could switch to drawing this and managing this in craft_manager instead of as a block growth...
     "furnace_active": (
         id: 307,
         // mark this so we don't drop on growth...
