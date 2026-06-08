@@ -64,10 +64,14 @@ impl Game {
         Game {
             next_frame_time: frame_time,
             speed: GameSpeed::Normal,
+            // TODO: Split to entity manager and move!
             entities: Entities::default(),
             entity_id: 1,
-            grid: Grid::new(DEFAULT_SIZE),
+
+            // TODO: Merge with something and take()?
             job_manager: JobManager::default(),
+
+            grid: Grid::new(DEFAULT_SIZE),
             game_ctx: GameCtx {
                 time: GameTime::default(),
                 blocks: Blocks::default(),
@@ -128,55 +132,6 @@ impl Game {
                     .expect("Unknown item in game gen!"),
             ),
         );
-    }
-
-    pub fn generate(&mut self) -> Pos {
-        generate::generate(self);
-
-        // why
-        self.grid.fixup(&self.game_ctx);
-
-        // ore?
-        // let _ore_id = game.blocks.add_block(1, BlockType::new(sprites::ORE));
-
-        let mut start_pos = Pos::new(self.grid.size.x / 2, 0);
-        while self
-            .grid
-            .get_tile(start_pos)
-            .is_some_and(|tile| !tile.walkable())
-        {
-            start_pos.y += 1;
-        }
-
-        // place chest
-        self.gen_block(start_pos, "chest");
-
-        // spawn some wheat
-        for _ in 0..32 {
-            // self.grid.add(start_pos, TileContents::Item(WHEAT_SEED));
-            self.gen_item(start_pos, "grain");
-            self.gen_item(start_pos, "bread");
-        }
-
-        // spawn some gnomes
-        for _ in 0..4 {
-            self.spawn_gnome(start_pos);
-        }
-
-        // spawn some goblins
-        // for _ in 0..4 {
-        //     self.spawn_goblin(Pos::new(6, 17));
-        // }
-
-        // self.grid.place_block(Pos::new(13, 14), None, &mut self.game_ctx);
-        // self.grid.place_block(Pos::new(14, 13), None, &mut game.self_ctx);
-        // game.grid.place_block(Pos::new(14, 14), None, &mut game.game_ctx);
-        // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
-        // game.grid.place_block(Pos::new(13, 13), None, &mut game.game_ctx);
-
-        stocks_verify(&self.grid.stocks, &self.grid, &self.entities);
-
-        start_pos
     }
 
     pub fn should_update(&mut self, frame_time: f64) -> bool {

@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
     entity::{BaseEntity, EntityId, Faction, goblin::GOBLIN_FACTION},
-    event::{Event, EventManager, JobId},
+    event::{Event, EventManager, JobId, snow::SnowManager},
     game::{GameCtx, Tick},
     grid::{Grid, PathOutcome, Pos, stocks_remove},
     item::{self, ItemInfoFlags},
@@ -515,6 +515,7 @@ impl Job {
 pub struct JobManager {
     pub farm_manager: FarmManager,
     pub craft_manager: CraftManager,
+    pub snow_manager: SnowManager,
 }
 
 impl JobManager {
@@ -527,6 +528,7 @@ impl JobManager {
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         self.farm_manager.update(game_ctx, grid);
         self.craft_manager.update(game_ctx, grid);
+        self.snow_manager.update(game_ctx, grid);
     }
 
     pub fn create_job(grid: &mut Grid, events: &mut EventManager, job: Job) {

@@ -16,6 +16,8 @@ use crate::{
     },
 };
 
+pub mod snow;
+
 pub type EventId = u32;
 
 pub const EVENT_NONE: EventId = 0;

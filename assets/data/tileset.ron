@@ -2,7 +2,7 @@
     path: "assets/tileset_new.png",
     sprites: [
     [
-        "",
+        "snow",
         "sky",
         "stone",
         "stone_wall",

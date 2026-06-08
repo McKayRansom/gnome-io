@@ -14,12 +14,14 @@ use crate::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
+    job::JobManager,
     text::{draw_text, draw_text_screen_centered},
     tile::{Content, ContentItem, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.entities);
+    draw_managers(&game.job_manager, &game.game_ctx, ctx);
     draw_stocks(&game.grid, &game.game_ctx, ctx);
     draw_status(game, ctx);
 }
@@ -265,6 +267,15 @@ pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     // } else {
     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
     // }
+}
+
+fn draw_managers(manager: &JobManager, _game_ctx: &GameCtx, ctx: &Context) {
+    for (pos, _) in manager.snow_manager.snow.iter() {
+        // could also interpolate
+        let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
+
+        ctx.tileset.draw_tile("snow", &rect, colors::WHITE);
+    }
 }
 
 fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {

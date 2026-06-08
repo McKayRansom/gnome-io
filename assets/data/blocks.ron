@@ -40,11 +40,13 @@
         growth: Some((days: 1, into: "wheat_3")),
         drops: [(1.0, "grain")],
         mine_event: Some("farm"),
+        // sprite: "snow",
     ),
     "wheat_3": (
         id: 204,
         growth: Some((days: 1, into: "wheat_4")),
         drops: [(1.0, "grain")],
+        // sprite: "snow",
         mine_event: Some("farm"),
     ),
     "wheat_4": (
