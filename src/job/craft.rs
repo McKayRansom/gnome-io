@@ -3,8 +3,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::BlockId,
     event::{
-        Event, EventId,
-        Events::{self, CraftFinishedEvent},
+        CRAFT_EVENT_ID, Event, Events::{self, CraftFinishedEvent}
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
@@ -61,7 +60,6 @@ pub fn craft(
     None
 }
 
-pub const CRAFT_EVENT_ID: EventId = 300;
 
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftManager {
@@ -74,7 +72,7 @@ pub struct CraftManager {
 
 impl CraftManager {
     pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
-        game_ctx.events.add_event_class("craft");
+        // game_ctx.events.add_event_class("craft");
         if self.standing_orders.is_empty() {
             // default standing orders
             self.standing_orders
@@ -154,6 +152,9 @@ impl CraftManager {
                         event.pos,
                         Content::Item(game_ctx.items.get_content(&item_id).unwrap()),
                     );
+                }
+                event => {
+                    log::warn!("Invalid event {:?} pushed to craft event", event);
                 }
             }
         }

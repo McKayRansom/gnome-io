@@ -13,7 +13,11 @@ use crate::{
     context::Context,
     debug_console::DebugConsole,
     draw::{draw_game, draw_tile_outline},
-    entity::gnome::GNOME_FACTION,
+    entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION},
+    event::{
+        Events::{self},
+        FACTION_EXIST_EVENT, GAME_TIME_EVENT, GAMEPLAY_EVENT,
+    },
     game::{Game, GameSpeed, time::GameTimeEvent},
     grid::{Pos, pos::GRID_CELL_SIZE},
     tile::Content,
@@ -197,21 +201,45 @@ impl Gameplay {
     pub fn update(&mut self, ctx: &mut Context) -> Option<GameEvent> {
         let mut event: Option<GameEvent> = None;
         while self.game.should_update(get_time()) {
-            match self.game.update() {
-                GameTimeEvent::None => {}
-                GameTimeEvent::YearEnd => {
-                    self.popup = Some(Popup::new(format!(
-                        "You survived Year {}!",
-                        self.game.game_ctx.time.year - 1
-                    )));
-                }
+            self.game.update();
+            // could argue this should go in game.update()...
+            if let Some(mut event) = self.game.game_ctx.events.pop_event(FACTION_EXIST_EVENT) {
+                event.id = GAMEPLAY_EVENT;
+                self.game.game_ctx.events.push_event(event);
+            }
+            if let Some(mut event) = self.game.game_ctx.events.pop_event(GAME_TIME_EVENT) {
+                event.id = GAMEPLAY_EVENT;
+                self.game.game_ctx.events.push_event(event);
             }
         }
-        if self.game.entities.population(GNOME_FACTION) == 0 {
-            self.popup = Some(Popup::new(format!(
-                "Game over, you survived until {:?} Year {}",
-                self.game.game_ctx.time.season, self.game.game_ctx.time.year
-            )));
+
+        if self.popup.is_none() {
+            if let Some(event) = self.game.game_ctx.events.pop_event(GAMEPLAY_EVENT) {
+                match event.value {
+                    Events::GameTimeEvent(evt) => match evt {
+                        GameTimeEvent::YearEnd => {
+                            self.popup = Some(Popup::new(format!(
+                                "You survived Year {}!",
+                                self.game.game_ctx.time.year - 1
+                            )));
+                        }
+                    },
+                    Events::FactionExistsEvent(faction, exists)
+                        if faction == GNOME_FACTION && exists == false =>
+                    {
+                        self.popup = Some(Popup::new(format!(
+                            "Game over, you survived until {:?} Year {}",
+                            self.game.game_ctx.time.season, self.game.game_ctx.time.year
+                        )));
+                    }
+                    Events::FactionExistsEvent(faction, exists)
+                        if faction == GOBLIN_FACTION && exists == true =>
+                    {
+                        self.popup = Some(Popup::new(format!("Goblins have been spotted!!")))
+                    }
+                    _ => {}
+                }
+            }
         }
 
         // check WASD

@@ -69,7 +69,7 @@ pub const GNOME_FACTION: Faction = 1;
 
 impl Gnome {
     pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Gnome {
-        grid.gnome_enter(pos, (GNOME_FACTION, id));
+        grid.entity_enter(pos, (GNOME_FACTION, id));
 
         Gnome {
             base: BaseEntity {

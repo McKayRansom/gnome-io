@@ -249,7 +249,8 @@ impl Tile {
 
     pub(crate) fn is_passable(&self, faction: Faction) -> bool {
         self.walkable() 
-            && self.get_entity().is_none_or(|entity| entity.0 == faction)
+            // TODO: REMOVE THIS faction == 0 check, that is for goblins, and they need their own pathing system...
+            && self.get_entity().is_none_or(|entity| entity.0 == faction || entity.0 == 0)
             // NOTE: Only block non-gnomes so we don't have to store the faction of blocks
             // will need to be changed if we ever have multiplayer
             && (faction == GNOME_FACTION || !self.block_flags.contains(BlockInfoFlags::DOOR))

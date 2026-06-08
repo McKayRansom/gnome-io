@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BlockId, BlockInfoFlags},
-    event::{EventId, Events},
+    event::{Events, FARM_EVENT_ID, GROWTH_EVENT},
     game::{
         GameCtx, Tick,
         time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
@@ -13,10 +13,8 @@ use crate::{
 
 use super::{Job, JobManager};
 
-pub const GROWTH_EVENT: u32 = 20;
 const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
-pub const FARM_EVENT_ID: EventId = 200;
 
 const TILL_TIME: Tick = 20;
 const HARVEST_TIME: Tick = 20;
@@ -28,8 +26,8 @@ pub struct FarmManager {
 }
 
 impl FarmManager {
-    pub(crate) fn load_ctx(&self, game_ctx: &mut GameCtx) {
-        game_ctx.events.add_event_class("farm");
+    pub(crate) fn load_ctx(&self, _game_ctx: &mut GameCtx) {
+        // game_ctx.events.add_event_class("farm");
     }
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {

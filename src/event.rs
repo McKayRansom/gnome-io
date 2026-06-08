@@ -6,25 +6,22 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BlockId, BlockInfo},
-    game::Tick,
+    entity::Faction,
+    game::{Tick, time::GameTimeEvent},
     grid::Pos,
     item::ItemId,
-    job::{
-        Job,
-        craft::CRAFT_EVENT_ID,
-        farm::{FARM_EVENT_ID, GROWTH_EVENT},
-    },
+    job::Job,
 };
 
-pub mod snow;
 pub mod raid;
+pub mod snow;
 
 pub type EventId = u32;
 
-pub const EVENT_NONE: EventId = 0;
-
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum Events {
+    FactionExistsEvent(Faction, bool),
+    GameTimeEvent(GameTimeEvent),
     BlockUpdateEvent(BlockId, BlockId),
     CraftFinishedEvent(BlockId, ItemId),
 }
@@ -88,6 +85,14 @@ pub struct EventManager {
     job_id: JobId,
 }
 
+pub const GROWTH_EVENT: u32 = 20;
+pub const EVENT_NONE: EventId = 0;
+pub const GAME_TIME_EVENT: EventId = 123;
+pub const FACTION_EXIST_EVENT: EventId = 22;
+pub const GAMEPLAY_EVENT: EventId = 2;
+pub const CRAFT_EVENT_ID: EventId = 300;
+pub const FARM_EVENT_ID: EventId = 200;
+
 impl EventManager {
     pub fn new() -> Self {
         Self {
@@ -101,17 +106,19 @@ impl EventManager {
 
     pub fn load(&mut self) {
         // TEMP: BECAUSE I AM TOO LAZY TO DO events.ron right now for 2 events
-        self.event_names.insert("farm".to_string(), FARM_EVENT_ID);
-        self.event_names.insert("craft".to_string(), CRAFT_EVENT_ID);
-        self.event_names.insert("growth".to_string(), GROWTH_EVENT);
+        self.reg_event("faction_exist", FACTION_EXIST_EVENT);
+        self.reg_event("time", GAME_TIME_EVENT);
+        self.reg_event("farm", FARM_EVENT_ID);
+        self.reg_event("craft", CRAFT_EVENT_ID);
+        self.reg_event("growth", GROWTH_EVENT);
+        self.reg_event("gameplay", GAMEPLAY_EVENT);
     }
 
-    pub fn add_event_class(&mut self, name: &str) {
-        let id = self.event_names.get(name).expect("Unknown event name");
-
-        if !self.events.contains_key(id) {
-            self.events.insert(*id, VecDeque::new());
+    fn reg_event(&mut self, name: &str, id: EventId) {
+        if !self.events.contains_key(&id) {
+            self.events.insert(id, VecDeque::new());
         }
+        self.event_names.insert(name.to_string(), id);
     }
 
     pub fn block_place(

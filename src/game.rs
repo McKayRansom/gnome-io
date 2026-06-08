@@ -1,5 +1,5 @@
 use quad_lib::storage::{LoadResult, SaveResult, Storage};
-use time::{GameTime, GameTimeEvent};
+use time::GameTime;
 
 use crate::{
     block::Blocks,
@@ -141,7 +141,7 @@ impl Game {
         }
     }
 
-    pub fn update(&mut self) -> GameTimeEvent {
+    pub fn update(&mut self) {
         // Update timers first?
         self.game_ctx.events.update_timers();
 
@@ -151,7 +151,7 @@ impl Game {
 
         RaidManager::update(&mut self.game_ctx, &mut self.grid, &mut self.entities);
 
-        self.game_ctx.time.update()
+        self.game_ctx.time.update();
     }
 
     pub fn mine(&mut self, pos: Pos) {

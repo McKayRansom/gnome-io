@@ -51,8 +51,8 @@ impl Grid {
         }
     }
 
-    pub fn init(&mut self, game_ctx: &mut GameCtx) {
-        game_ctx.events.add_event_class("growth");
+    pub fn init(&mut self, _game_ctx: &mut GameCtx) {
+        // game_ctx.events.add_event_class("growth");
     }
 
     pub fn fixup(&mut self, game_ctx: &GameCtx) {
@@ -179,24 +179,24 @@ impl Grid {
         }
     }
 
-    pub fn gnome_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
+    pub fn entity_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
         Self::cell_get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .add(Content::Entity(id));
     }
 
-    pub fn gnome_exit(&mut self, pos: Pos, id: (Faction, EntityId)) {
+    pub fn entity_exit(&mut self, pos: Pos, id: (Faction, EntityId)) {
         Self::cell_get_tile_mut(&mut self.cells, pos)
             .unwrap()
             .remove(&Content::Entity(id));
     }
 
-    pub fn gnome_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<Pos> {
+    pub fn entity_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<Pos> {
         if !self.get_tile(end)?.is_passable(id.0) {
             return None;
         }
-        self.gnome_exit(start, id);
-        self.gnome_enter(end, id);
+        self.entity_exit(start, id);
+        self.entity_enter(end, id);
         Some(end)
     }
 
@@ -476,7 +476,10 @@ pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
     // check for any not in new
     for key in stocks.keys() {
         if !new_stocks.contains_key(key) {
-            log::error!("Stock mismatch: stock: {} actual: 0", stocks.get(key).unwrap());
+            log::error!(
+                "Stock mismatch: stock: {} actual: 0",
+                stocks.get(key).unwrap()
+            );
         }
     }
 }

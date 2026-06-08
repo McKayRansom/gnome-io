@@ -7,6 +7,7 @@ use crate::{
         gnome::{GNOME_SPEED, Gnome},
         goblin::{GOBLIN_FACTION, Goblin},
     },
+    event::{Event, Events, FACTION_EXIST_EVENT},
     game::{
         GameCtx, Tick,
         time::{days, hours},
@@ -21,6 +22,8 @@ pub mod goblin;
 
 pub type EntityId = u32;
 pub type Faction = u8;
+// pub const NONE_FACTION: Faction = 0;
+pub const HIDDEN_FACTION: Faction = 0;
 
 #[derive(Debug)]
 pub enum EntityAction {
@@ -142,7 +145,7 @@ impl Default for BaseEntity {
 
 impl BaseEntity {
     pub fn die(&mut self, grid: &mut Grid) {
-        grid.gnome_exit(self.pos, (self.faction, self.id));
+        grid.entity_exit(self.pos, (self.faction, self.id));
         // MUST drop items to not screw up stocks
         grid.store_items(self.pos, &mut self.items);
     }
@@ -169,7 +172,7 @@ impl BaseEntity {
     }
 
     fn move_to(&mut self, pos: Pos, speed: Tick, grid: &mut Grid) -> bool {
-        if let Some(pos) = grid.gnome_move((self.faction, self.id), self.pos, pos) {
+        if let Some(pos) = grid.entity_move((self.faction, self.id), self.pos, pos) {
             self.dir = self.pos - pos;
             self.pos = pos;
             self.timer = speed;
@@ -202,6 +205,9 @@ impl BaseEntity {
 pub struct Entities {
     entities: FxHashMap<EntityId, Entity>,
     entity_id: EntityId,
+    // cache (no need to serialize)
+    #[serde(skip)]
+    pops: FxHashMap<Faction, usize>,
 }
 
 impl Default for Entities {
@@ -209,15 +215,20 @@ impl Default for Entities {
         Self {
             entities: Default::default(),
             entity_id: 1,
+            pops: Default::default(),
         }
     }
 }
 
+
 impl Entities {
     pub fn update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         // Update game state
+        let old_pops = self.pops.clone();
+        self.pops.clear();
         let mut actions: Vec<EntityAction> = Vec::new();
         for entity in self.entities.values_mut() {
+            *self.pops.entry(entity.base().faction).or_insert(0) += 1;
             if let Some(action) = entity.update(grid, game_ctx) {
                 actions.push(action);
             }
@@ -234,6 +245,24 @@ impl Entities {
                         entity.attacked();
                     }
                 }
+            }
+        }
+        for faction in old_pops.keys() {
+            if !self.pops.contains_key(&faction) {
+                game_ctx.events.push_event(Event {
+                    id: FACTION_EXIST_EVENT,
+                    pos: (0, 0).into(), // could be changed...
+                    value: Events::FactionExistsEvent(*faction, false),
+                });
+            }
+        }
+        for faction in self.pops.keys() {
+            if !old_pops.contains_key(&faction) {
+                game_ctx.events.push_event(Event {
+                    id: FACTION_EXIST_EVENT,
+                    pos: (0, 0).into(), // could be changed...
+                    value: Events::FactionExistsEvent(*faction, true),
+                });
             }
         }
     }

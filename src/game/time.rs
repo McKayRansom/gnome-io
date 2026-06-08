@@ -49,38 +49,37 @@ pub struct GameTime {
     pub year: Year,
 }
 
-#[derive(Debug, PartialEq, Eq)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum GameTimeEvent {
-    None,
     YearEnd,
 }
 
 impl GameTime {
-    pub fn update(&mut self) -> GameTimeEvent {
+    pub fn update(&mut self) -> Option<GameTimeEvent> {
         self.tick_off += 1;
         if self.tick_off < TICKS_PER_HOUR {
-            return GameTimeEvent::None;
+            return None;
         }
         self.tick_off = 0;
         self.hour += 1;
         if self.hour < HOURS_PER_DAY {
-            return GameTimeEvent::None;
+            return None;
         }
         self.hour = 0;
         self.day += 1;
         if self.day < DAYS_PER_SEASON {
-            return GameTimeEvent::None;
+            return None;
         }
         self.day = 0;
         self.season = self.season.next();
         if self.season != Season::Spring {
-            return GameTimeEvent::None;
+            return None;
         }
         self.year += 1;
         // TODO: return or emit event for end of year!
         // - gnomads (if implemented)
         // - you survivied a year message
-        GameTimeEvent::YearEnd
+        Some(GameTimeEvent::YearEnd)
     }
 
     pub(crate) fn season_start(&self, season: Season) -> bool {

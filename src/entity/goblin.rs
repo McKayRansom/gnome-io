@@ -1,6 +1,6 @@
 use crate::{
     entity::{
-        BaseEntity, EntityBehaviour, EntityId, Faction,
+        BaseEntity, EntityBehaviour, EntityId, Faction, HIDDEN_FACTION,
         gnome::{GNOME_FACTION, GNOME_SPEED},
     },
     game::time::hours,
@@ -19,15 +19,17 @@ pub const GOBLIN_FACTION: Faction = 2;
 
 const BASE_HEALTH: u8 = 10;
 const BASE_FOOD: u16 = hours(20);
+const VISIBLE_DISTANCE: usize = 10;
 
 impl Goblin {
-    pub fn new(id: EntityId, pos: Pos, grid: &mut crate::grid::Grid) -> Goblin {
-        grid.gnome_enter(pos, (GOBLIN_FACTION, id));
+    pub fn new(id: EntityId, pos: Pos, _grid: &mut crate::grid::Grid) -> Goblin {
+        // don't enter the grid yet, we may want to be hidden...
+        // grid.entity_enter(pos, (GOBLIN_FACTION, id));
 
         Goblin {
             base: BaseEntity {
                 id,
-                faction: GOBLIN_FACTION,
+                faction: HIDDEN_FACTION,
                 pos,
                 health: BASE_HEALTH,
                 food: BASE_FOOD,
@@ -51,12 +53,21 @@ impl EntityBehaviour for Goblin {
             return None;
         }
         self.fighting = false;
+        // reset hiding status
+        self.base.faction = GOBLIN_FACTION;
+
+        // TODO: Find path including tunneling
         match grid.find_content(
             self.base.pos,
             Content::Entity((GNOME_FACTION, 0)),
             GOBLIN_FACTION,
         ) {
             PathOutcome::Path(path) => {
+                // hide
+                if path.len() > VISIBLE_DISTANCE {
+                    self.base.faction = HIDDEN_FACTION;
+                }
+
                 self.base.move_to(path[0], GNOME_SPEED, grid);
                 None
             }
@@ -76,6 +87,8 @@ impl EntityBehaviour for Goblin {
                 }))
             }
             PathOutcome::NoPath => {
+                // TODO: Remove this case...
+                self.base.faction = HIDDEN_FACTION;
                 self.base.move_random(grid);
                 None
             }
