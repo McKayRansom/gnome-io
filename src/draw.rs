@@ -168,6 +168,13 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     );
                 }
             }
+
+            // draw debug info last last
+            if let Some(faction) = game_ctx.debug.draw_pathable {
+                if tile.is_passable(faction) {
+                    draw_tile_outline(grid, &pos, colors::GREEN, ctx);
+                }
+            }
         }
     }
 }
@@ -243,8 +250,7 @@ fn entity_draw_info(ctx: &Context, base: &BaseEntity) -> (bool, Rect) {
     (flip, dest)
 }
 
-// pub const TILE_PERSPECTIVE_HEIGHT: f32 = PIXEL_SIZE * 6.;
-
+// use for debug info (it's ugly)
 pub fn draw_rect_outline(rect: &Rect, color: Color, ctx: &Context) {
     draw_rectangle_lines(
         rect.x,
@@ -258,17 +264,7 @@ pub fn draw_rect_outline(rect: &Rect, color: Color, ctx: &Context) {
 
 pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     let rect: Rect = (*pos).into();
-    // if grid.get_tile(*pos).is_some_and(|tile| !tile.is_passable()) {
-    //     // draw "box" around block
-    //     // "top side"
-    //     rect.h = GRID_CELL_SIZE.0;
-    //     rect.y -= TILE_PERSPECTIVE_HEIGHT;
-    //     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
-    //     // "front side" facing camera
-    //     rect.h = TILE_PERSPECTIVE_HEIGHT;
-    //     rect.y += GRID_CELL_SIZE.0;
-    //     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
-    // } else {
+
     draw_rect_outline(&ctx.camera.to_screen_rect(rect), color, ctx);
     // }
 }

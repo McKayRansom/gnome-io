@@ -1,8 +1,9 @@
-use crate::{game::Game, gameplay::GameEvent, grid::Pos};
+use crate::{entity::Faction, game::Game, gameplay::GameEvent, grid::Pos};
 
 #[derive(Default)]
 pub struct DebugVars {
     pub draw_hidden: bool,
+    pub draw_pathable: Option<Faction>,
 }
 
 impl Game {
@@ -23,6 +24,10 @@ impl Game {
             }
             "draw_hidden" => {
                 self.game_ctx.debug.draw_hidden = true;
+            }
+            "draw_pathable" => {
+                let faction = parts.next().and_then(|s| s.parse().ok()).unwrap_or(0);
+                self.game_ctx.debug.draw_pathable = Some(faction);
             }
             // "events" => {
             //     dbg!(&self.game.game_ctx.events.);
