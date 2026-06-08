@@ -1,5 +1,4 @@
 use quad_lib::storage::{LoadResult, SaveResult, Storage};
-use time::GameTime;
 
 use crate::{
     block::Blocks,
@@ -11,6 +10,7 @@ use crate::{
     tile::Content,
 };
 
+pub mod debug;
 mod generate;
 pub mod time;
 
@@ -31,12 +31,14 @@ pub enum GameSpeed {
  * Instanced:
  * - gnomes/gnomeId, job manager(or refactor to store faction_id), stocks (move out of grid?)
  */
-#[derive(serde::Serialize, serde::Deserialize)]
+#[derive(Default, serde::Serialize, serde::Deserialize)]
 pub struct GameCtx {
     pub time: time::GameTime,
     pub blocks: Blocks,
     pub items: Items,
     pub events: EventManager,
+    #[serde(skip)]
+    pub debug: debug::DebugVars,
 }
 
 #[derive(serde::Serialize, serde::Deserialize)]
@@ -62,12 +64,7 @@ impl Game {
             job_manager: JobManager::default(),
 
             grid: Grid::new(DEFAULT_SIZE),
-            game_ctx: GameCtx {
-                time: GameTime::default(),
-                blocks: Blocks::default(),
-                items: Items::default(),
-                events: EventManager::new(),
-            },
+            game_ctx: GameCtx::default(),
         }
     }
 

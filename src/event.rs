@@ -85,6 +85,18 @@ pub struct EventManager {
     job_id: JobId,
 }
 
+impl Default for EventManager {
+    fn default() -> Self {
+        Self {
+            event_names: EventNames::default(),
+            events: FxHashMap::default(),
+            timers: FxHashMap::default(),
+            jobs: FxHashMap::default(),
+            job_id: 1,
+        }
+    }
+}
+
 pub const GROWTH_EVENT: u32 = 20;
 pub const EVENT_NONE: EventId = 0;
 pub const GAME_TIME_EVENT: EventId = 123;
@@ -94,16 +106,6 @@ pub const CRAFT_EVENT_ID: EventId = 300;
 pub const FARM_EVENT_ID: EventId = 200;
 
 impl EventManager {
-    pub fn new() -> Self {
-        Self {
-            event_names: EventNames::default(),
-            events: FxHashMap::default(),
-            timers: FxHashMap::default(),
-            jobs: FxHashMap::default(),
-            job_id: 1,
-        }
-    }
-
     pub fn load(&mut self) {
         // TEMP: BECAUSE I AM TOO LAZY TO DO events.ron right now for 2 events
         self.reg_event("faction_exist", FACTION_EXIST_EVENT);

@@ -8,7 +8,7 @@ use macroquad::{
 use crate::{
     block::BlockInfoFlags,
     context::Context,
-    entity::{self, BaseEntity, Entities, Entity, gnome::Gnome, goblin::Goblin},
+    entity::{self, BaseEntity, Entities, Entity, HIDDEN_FACTION, gnome::Gnome, goblin::Goblin},
     game::{Game, GameCtx},
     grid::{
         Grid, Pos,
@@ -174,7 +174,11 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
 
 const ITEM_Y_DIFF: f32 = 15.0;
 
-fn draw_goblin(_game_ctx: &GameCtx, ctx: &Context, goblin: &Goblin) {
+fn draw_goblin(game_ctx: &GameCtx, ctx: &Context, goblin: &Goblin) {
+    // skip drawing hidden goblins
+    if goblin.base.faction == HIDDEN_FACTION && !game_ctx.debug.draw_hidden {
+        return;
+    }
     let (flip, dest) = entity_draw_info(ctx, &goblin.base);
 
     let mut item_start = dest.clone();

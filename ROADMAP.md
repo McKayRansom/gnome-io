@@ -55,10 +55,10 @@ Key Decisions to make:
   - [ ] Fix indicators
     - [ ] Need some kind of indicator that a tile is farmed...
     - [ ] Better job indicators
-  - [ ] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
-    - [ ] WINTER IS COMING!
-  - [ ] Fix bread/crafting?
-  - [ ] Add snow/winter for real
+  - [x] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
+    - [x] WINTER IS COMING!
+  - [x] Fix bread/crafting?
+  - [x] Add snow/winter for real
     - [ ] kill plants
     - [ ] Moves slow?
 - [ ] Create attack/flee logic
@@ -75,7 +75,7 @@ Key Decisions to make:
     - [ ] Allocate gnomes
     - [ ] Show open jobs
     - [ ] Fix stocks UI while we're there
-- [ ] Create tools
+- [ ] Create tools OR some other way to allocate resources to enhance one profession (forces more choices...)
   - [ ] Fix ore-gen and add ore/metal blocks/items/recipes
   - [ ] Add equipment item enum/attribute
   - [ ] Add sprites/drawing
@@ -84,8 +84,8 @@ Key Decisions to make:
 - [ ] Add sunlight to tiles
   - [ ] use this to drive plant growth
   - [ ] use for drawing tile color
-- [ ] Add sight
-  - [ ] Use to detect the baddies attacking
+- [x] Add sight
+  - [x] Use to detect the baddies attacking
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 
