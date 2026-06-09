@@ -21,16 +21,17 @@ pub struct Labor {
 
 const COLUMN_SPACING: Vec2 = Vec2::new(70.0, 15.0);
 
-const PROFFESIONS: [GnomeProfession; 6] = [
+const PROFFESIONS: [GnomeProfession; 7] = [
     GnomeProfession::NONE,
     GnomeProfession::CRAFTING,
     GnomeProfession::BUILDING,
     GnomeProfession::MINING,
     GnomeProfession::FARMING,
     GnomeProfession::FIGHTING,
+    GnomeProfession::CHILDING,
 ];
 
-const PROFFESIONS_NAME: [&str; 6] = ["ANY", "CRAFT", "BUILD", "MINE", "FARM", "FIGHT"];
+const PROFFESIONS_NAME: [&str; 7] = ["ANY", "CRAFT", "BUILD", "MINE", "FARM", "FIGHT", "CHILD"];
 
 const SELECTED_COLOR: Color = Color::new(1.0, 1.0, 1.0, 0.2);
 

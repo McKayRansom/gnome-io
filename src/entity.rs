@@ -29,7 +29,7 @@ pub const HIDDEN_FACTION: Faction = 0;
 pub enum EntityAction {
     Die(EntityId),
     #[allow(unused)]
-    Birth(EntityId),
+    Birth((Faction, Pos)),
     Attack(EntityId),
 }
 
@@ -238,7 +238,9 @@ impl Entities {
                     let mut entity = self.entities.remove(&id).unwrap();
                     entity.die(grid, game_ctx);
                 }
-                EntityAction::Birth(_id) => todo!(),
+                EntityAction::Birth((_faction, pos)) => {
+                    self.spawn_gnome(pos, grid);
+                },
                 EntityAction::Attack(id) => {
                     if let Some(entity) = self.entities.get_mut(&id) {
                         entity.attacked();

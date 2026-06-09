@@ -219,15 +219,16 @@ fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
 
     match gnome.status {
         entity::gnome::GnomeStatus::NONE => {
-            if gnome.base.is_tired() {
-                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-                ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
-            } else if gnome.base.is_hungry() {
-                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-                ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
-            } else {
+            // I know I implemented all of this, but I actually don't like it, it's a bunch of extra noise
+            // if gnome.base.is_tired() {
+            //     ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+            //     ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
+            // } else if gnome.base.is_hungry() {
+            //     ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+            //     ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
+            // } else {
                 draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
-            }
+            // }
         }
         entity::gnome::GnomeStatus::SLEEPING => {
             ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE)

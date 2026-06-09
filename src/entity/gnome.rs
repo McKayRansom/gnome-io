@@ -4,10 +4,10 @@
 use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     event::EventManager,
-    game::{GameCtx, Tick},
+    game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, path::JobSearchFn},
     item::{self, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobManager, JobStatus},
+    job::{self, Busy, Job, JobActor, JobStatus},
     tile::{Content, ContentItem},
 };
 
@@ -66,6 +66,7 @@ pub enum GnomeProfession {
     MINING,
     FARMING,
     FIGHTING,
+    CHILDING,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -104,20 +105,22 @@ impl Gnome {
         self.profession = profession;
         // cancel job???
         if let Some(job) = &self.job {
-            let should_cancel = profession != GnomeProfession::NONE && match job.category {
-                // this seems like a bad idea but I guess we'll allow it
-                job::JobType::FIGHT => profession != GnomeProfession::FIGHTING,
-                // don't cancel basic needs
-                job::JobType::SLEEP => false,
-                job::JobType::EAT => false,
-                job::JobType::CRAFT => profession != GnomeProfession::CRAFTING,
-                job::JobType::FARM => profession != GnomeProfession::FARMING,
-                job::JobType::BUILD => profession != GnomeProfession::BUILDING,
-                job::JobType::MINE => profession != GnomeProfession::MINING,
-                job::JobType::HAUL => true,
-                job::JobType::DROP => true,
-                job::JobType::NONE => true,
-            };
+            let should_cancel = profession != GnomeProfession::NONE
+                && match job.category {
+                    // this seems like a bad idea but I guess we'll allow it
+                    job::JobType::FIGHT => profession != GnomeProfession::FIGHTING,
+                    // don't cancel basic needs
+                    job::JobType::SLEEP => false,
+                    job::JobType::EAT => false,
+                    job::JobType::CRAFT => profession != GnomeProfession::CRAFTING,
+                    job::JobType::FARM => profession != GnomeProfession::FARMING,
+                    job::JobType::BUILD => profession != GnomeProfession::BUILDING,
+                    job::JobType::MINE => profession != GnomeProfession::MINING,
+                    job::JobType::CHILD => profession != GnomeProfession::CHILDING,
+                    job::JobType::HAUL => true,
+                    job::JobType::DROP => true,
+                    job::JobType::NONE => true,
+                };
             if should_cancel {
                 log::info!("Canceling job {:?}", profession);
                 events.reset_job(&job.id);
@@ -161,6 +164,7 @@ impl Gnome {
             GnomeProfession::MINING => job::job_mine_search,
             GnomeProfession::FARMING => job::job_farm_search,
             GnomeProfession::FIGHTING => job::job_fight_search,
+            GnomeProfession::CHILDING => job::job_child_search,
         });
 
         grid.find_job(&self.base, &mut game_ctx.events, &searches)
@@ -182,6 +186,13 @@ impl JobActor for Gnome {
     }
     fn busy(&mut self, kind: Busy, time: Tick) {
         match kind {
+            Busy::Birth => {
+                self.delayed_action = Some(EntityAction::Birth((GNOME_FACTION, self.base.pos)));
+                self.base.tired = 0;
+                self.base.food = 0;
+                self.base.timer = hours(2);
+                self.profession = GnomeProfession::NONE; // auto-cancel??
+            }
             Busy::Wait => self.base.timer = time,
             Busy::Eat => {
                 self.status = GnomeStatus::EATING;

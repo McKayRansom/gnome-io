@@ -6,7 +6,7 @@ use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
     entity::{EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{Event, EventManager, JobId, raid::RaidManager, snow::SnowManager},
-    game::{GameCtx, Tick},
+    game::{GameCtx, Tick, time::days},
     grid::{Grid, Pos, path::PathOutcome, stocks_remove},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
@@ -91,6 +91,7 @@ pub enum Step {
     StoreCarried,
     Eat,
     Sleep,
+    Birth,
     Attack(ContentEntity),
     PushTime((Tick, Event)),
 }
@@ -204,6 +205,7 @@ impl Step {
             }
             Step::Eat => Flow::Busy(Busy::Eat, 0),
             Step::Sleep => Flow::Busy(Busy::Sleep, 0),
+            Step::Birth => Flow::Busy(Busy::Birth, 0),
             Step::Attack(target) => {
                 // we have already verified we are close enough
                 // if we are attacking a faction we need to lookup the exact entity
@@ -245,6 +247,8 @@ pub enum JobType {
     // stored in grid from player
     MINE,
     // created on-the-fly
+    CHILD,
+    // created on-the-fly
     HAUL,
     // created on-the-fly
     DROP,
@@ -255,6 +259,7 @@ pub enum Busy {
     Wait,
     Eat,
     Sleep,
+    Birth,
     Fight,
 }
 
@@ -366,13 +371,41 @@ pub fn job_fight_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option
         .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
 }
 
+pub fn job_child_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    // just have a kid for now?
+    if tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
+        && !tile.has_job()
+        && !tile.has_entity()
+    {
+        Some(Job::child(pos))
+    } else {
+        None
+    }
+}
+
 impl Job {
+    fn child(pos: Pos) -> Job {
+        Job {
+            pos,
+            category: JobType::CHILD,
+            steps: vec![
+                // eat so we have lots of food
+                Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Eat,
+                // go to bed
+                Step::Goto(pos),
+                // wait (not sleep) (if we pass out it's fine I guess)
+                Step::Work(days(3)),
+                Step::Birth,
+            ],
+            ..Default::default()
+        }
+    }
     fn fight(pos: Pos, entity: ContentEntity) -> Job {
         Job {
             pos,
-            // time: 0,
             category: JobType::FIGHT,
-            // content: Some(content),
             steps: vec![
                 // TODO!
                 Step::Approach(entity),
