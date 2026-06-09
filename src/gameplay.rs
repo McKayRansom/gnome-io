@@ -22,6 +22,7 @@ use crate::{
     grid::{Pos, pos::GRID_CELL_SIZE},
     tile::Content,
     ui::{
+        labor::Labor,
         menu::{Menu, MenuItem},
         popup::{Popup, PopupResult},
         toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
@@ -61,6 +62,7 @@ pub struct Gameplay {
     popup: Option<Popup>,
     pause_menu: Menu<PauseMenuSelect>,
     console: DebugConsole,
+    labor: Labor,
 }
 
 pub enum GameEvent {
@@ -137,6 +139,7 @@ impl Gameplay {
                 // MenuItem::new(PauseMenuSelect::Restart, "Restart".to_string()),
             ]),
             console: DebugConsole::new(),
+            labor: Labor::default(),
         }
     }
 
@@ -164,7 +167,6 @@ impl Gameplay {
         }
         false
     }
-
 
     pub fn update(&mut self, ctx: &mut Context) -> Option<GameEvent> {
         let mut event: Option<GameEvent> = None;
@@ -437,6 +439,9 @@ impl Gameplay {
                 log::info!("UI RETURNED FALSE?");
             }
         }
+
+        // draw this first so mouseover works
+        self.labor.draw_labor(&mut self.game, ctx);
 
         if let Some(mouse_pos) = ctx.mouse_pos {
             // if let Some(pos) =

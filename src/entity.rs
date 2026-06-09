@@ -220,7 +220,6 @@ impl Default for Entities {
     }
 }
 
-
 impl Entities {
     pub fn update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         // Update game state
@@ -309,5 +308,13 @@ impl Entities {
 
     pub fn values(&self) -> std::collections::hash_map::Values<'_, u32, Entity> {
         self.entities.values()
+    }
+
+    pub(crate) fn iter(&self) -> std::collections::hash_map::Iter<'_, u32, Entity> {
+        self.entities.iter()
+    }
+
+    pub(crate) fn get_mut(&mut self, id: EntityId) -> Option<&mut Entity> {
+        self.entities.get_mut(&id)
     }
 }

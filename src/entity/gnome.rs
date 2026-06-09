@@ -43,7 +43,7 @@ pub struct Gnome {
 
     job: Option<Job>,
     path: Vec<Pos>,
-    profession: GnomeProfession,
+    pub profession: GnomeProfession,
 
     // for animation purposes only...
     #[serde(default)]
@@ -54,7 +54,9 @@ pub struct Gnome {
     delayed_action: Option<EntityAction>,
 }
 
-#[derive(Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
+#[derive(
+    Debug, Default, Clone, PartialEq, Eq, Hash, Copy, serde::Serialize, serde::Deserialize,
+)]
 pub enum GnomeProfession {
     #[default]
     NONE,

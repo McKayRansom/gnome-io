@@ -33,7 +33,7 @@
     ],
     [
         "farm_pos",
-        "grass",
+        "labor_full",
         "water",
         "wheat_0",
         "wheat_1",
@@ -43,7 +43,7 @@
     ],
     [
         "mark",
-        "_ant",
+        "labor_empty",
         "_gnorp",
         "gnome_eat",
         "gnome_sleep",
