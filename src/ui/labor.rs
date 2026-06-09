@@ -45,7 +45,9 @@ impl Labor {
 
         for (id, entity) in game.entities.iter() {
             if let Entity::Gnome(gnome) = entity {
-                map.entry(gnome.profession).or_insert(Vec::new()).push(*id);
+                map.entry(gnome.get_profession())
+                    .or_insert(Vec::new())
+                    .push(*id);
             }
         }
 
@@ -107,7 +109,7 @@ impl Labor {
             col_rect.y -= 60.0;
             for enttiy in labor_map.get(&proffesion).unwrap_or(&Vec::new()) {
                 if let Entity::Gnome(gnome) = game.entities.get(*enttiy).unwrap() {
-                    if gnome.profession == proffesion {
+                    if gnome.get_profession() == proffesion {
                         ctx.tileset
                             .draw_tile("labor_full", &col_rect, colors::WHITE);
                         if ctx
@@ -143,11 +145,14 @@ impl Labor {
                     let Some(Entity::Gnome(gnome)) = game.entities.get_mut(*id) else {
                         panic!("Fault in labor logic!")
                     };
-                    gnome.profession = if action.add {
-                        action.proffesion
-                    } else {
-                        GnomeProfession::NONE
-                    };
+                    gnome.set_profession(
+                        if action.add {
+                            action.proffesion
+                        } else {
+                            GnomeProfession::NONE
+                        },
+                        &mut game.game_ctx.events,
+                    );
                 }
             }
         }

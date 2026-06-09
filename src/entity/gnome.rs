@@ -3,10 +3,11 @@
 
 use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
+    event::EventManager,
     game::{GameCtx, Tick},
     grid::{Grid, Pos, path::JobSearchFn},
     item::{self, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobStatus},
+    job::{self, Busy, Job, JobActor, JobManager, JobStatus},
     tile::{Content, ContentItem},
 };
 
@@ -43,7 +44,7 @@ pub struct Gnome {
 
     job: Option<Job>,
     path: Vec<Pos>,
-    pub profession: GnomeProfession,
+    profession: GnomeProfession,
 
     // for animation purposes only...
     #[serde(default)]
@@ -92,6 +93,36 @@ impl Gnome {
                 ..Default::default()
             },
             ..Default::default()
+        }
+    }
+
+    pub fn get_profession(&self) -> GnomeProfession {
+        self.profession
+    }
+
+    pub fn set_profession(&mut self, profession: GnomeProfession, events: &mut EventManager) {
+        self.profession = profession;
+        // cancel job???
+        if let Some(job) = &self.job {
+            let should_cancel = profession != GnomeProfession::NONE && match job.category {
+                // this seems like a bad idea but I guess we'll allow it
+                job::JobType::FIGHT => profession != GnomeProfession::FIGHTING,
+                // don't cancel basic needs
+                job::JobType::SLEEP => false,
+                job::JobType::EAT => false,
+                job::JobType::CRAFT => profession != GnomeProfession::CRAFTING,
+                job::JobType::FARM => profession != GnomeProfession::FARMING,
+                job::JobType::BUILD => profession != GnomeProfession::BUILDING,
+                job::JobType::MINE => profession != GnomeProfession::MINING,
+                job::JobType::HAUL => true,
+                job::JobType::DROP => true,
+                job::JobType::NONE => true,
+            };
+            if should_cancel {
+                log::info!("Canceling job {:?}", profession);
+                events.reset_job(&job.id);
+                self.job = None;
+            }
         }
     }
 

@@ -228,6 +228,12 @@ impl EventManager {
         self.jobs.insert(job.id, job)
     }
 
+    pub fn reset_job(&mut self, job_id: &JobId) {
+        if let Some(job) = self.jobs.get_mut(job_id) {
+            job.in_progress = false;
+        }
+    }
+
     pub fn cancel_job(&mut self, job_id: &JobId) {
         self.jobs.remove(&job_id);
     }
