@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
-    entity::{BaseEntity, EntityId, Faction, goblin::GOBLIN_FACTION},
+    entity::{EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{Event, EventManager, JobId, raid::RaidManager, snow::SnowManager},
     game::{GameCtx, Tick},
-    grid::{Grid, PathOutcome, Pos, stocks_remove},
+    grid::{Grid, path::PathOutcome, Pos, stocks_remove},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
@@ -288,11 +288,11 @@ pub fn job_default_search(_pos: Pos, tile: &Tile, events: &EventManager) -> Opti
     None
 }
 
-pub fn job_haul_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
     if !tile.block_flags().contains(BlockInfoFlags::STORAGE)
         && tile.has_job() == false
         && tile.has_items() == true
-        && entity.items.len() < item::ITEM_CARRY_MAX
+    // && entity.items.len() < item::ITEM_CARRY_MAX
     {
         Some(Job::haul(pos))
     } else {
@@ -300,9 +300,9 @@ pub fn job_haul_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job
     }
 }
 
-pub fn job_drop_serach(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
+pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::STORAGE)
-        && entity.items.len() > 0
+        // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
     {
         log::info!("Creating drop-off job");
@@ -311,20 +311,16 @@ pub fn job_drop_serach(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job
     None
 }
 
-pub fn job_eat_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
-    if entity.is_hungry()
-        && tile.has_items() == true
-        && tile.item_flags().contains(ItemInfoFlags::FOOD)
-    {
+pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    if tile.has_items() == true && tile.item_flags().contains(ItemInfoFlags::FOOD) {
         Some(Job::eat(pos))
     } else {
         None
     }
 }
 
-pub fn job_sleep_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Job> {
-    if entity.is_tired()
-        && tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
+pub fn job_sleep_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    if tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
         && !tile.has_job()
         && !tile.has_entity()
     {
@@ -334,7 +330,7 @@ pub fn job_sleep_search(pos: Pos, tile: &Tile, entity: &BaseEntity) -> Option<Jo
     }
 }
 
-pub fn job_fight_search(pos: Pos, tile: &Tile, _entity: &BaseEntity) -> Option<Job> {
+pub fn job_fight_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
     tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
         .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
 }

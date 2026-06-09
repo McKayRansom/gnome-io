@@ -4,7 +4,7 @@ use crate::{
         gnome::{GNOME_FACTION, GNOME_SPEED},
     },
     game::time::hours,
-    grid::{PathOutcome, Pos},
+    grid::{path::PathOutcome, Pos},
     tile::Content,
 };
 

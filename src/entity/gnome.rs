@@ -4,9 +4,9 @@
 use crate::{
     entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
     game::{GameCtx, Tick},
-    grid::{Grid, Pos},
-    item::ItemInfoFlags,
-    job::{Busy, Job, JobActor, JobStatus},
+    grid::{Grid, Pos, path::JobSearchFn},
+    item::{self, ItemInfoFlags},
+    job::{Busy, Job, JobActor, JobStatus, job_default_search, job_drop_search, job_eat_search, job_fight_search, job_haul_search, job_sleep_search},
     tile::{Content, ContentItem},
 };
 
@@ -37,13 +37,13 @@ use crate::{
  */
 
 // #[derive(Serialize, Deserialize, Default, Debug)]
-#[derive(Debug, serde::Serialize, serde::Deserialize)]
+#[derive(Default, Debug, serde::Serialize, serde::Deserialize)]
 pub struct Gnome {
     pub base: BaseEntity,
 
     job: Option<Job>,
     path: Vec<Pos>,
-    // items: Vec<ItemId>,
+    profession: GnomeProfession,
 
     // for animation purposes only...
     #[serde(default)]
@@ -52,6 +52,17 @@ pub struct Gnome {
     // cache during update only
     #[serde(skip_serializing, skip_deserializing)]
     delayed_action: Option<EntityAction>,
+}
+
+#[derive(Debug, Default, Clone, Copy, serde::Serialize, serde::Deserialize)]
+pub enum GnomeProfession {
+    #[default]
+    NONE,
+    CRAFTING,
+    BUILDING,
+    MINING,
+    FARMING,
+    FIGHTING,
 }
 
 #[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
@@ -78,10 +89,7 @@ impl Gnome {
                 pos,
                 ..Default::default()
             },
-            job: None,
-            path: Vec::new(),
-            status: GnomeStatus::NONE,
-            delayed_action: None,
+            ..Default::default()
         }
     }
 
@@ -96,6 +104,24 @@ impl Gnome {
             JobStatus::Failed => {}
         }
         self.delayed_action.take()
+    }
+
+    fn find_job(&self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<Job> {
+        let mut searches: Vec<JobSearchFn> = vec![job_default_search, job_fight_search];
+        if self.base.is_tired() {
+            searches.push(job_sleep_search);
+        }
+        if self.base.is_hungry() {
+            searches.push(job_eat_search);
+        }
+        if self.base.items.len() > 0 {
+            searches.push(job_drop_search);
+        }
+        if self.base.items.len() < item::ITEM_CARRY_MAX {
+            searches.push(job_haul_search);
+        }
+
+        grid.find_job(&self.base, &mut game_ctx.events, &searches)
     }
 }
 
@@ -206,7 +232,7 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let Some(job) = grid.find_job(&self.base, &mut game_ctx.events) {
+            if let Some(job) = self.find_job(grid, game_ctx) {
                 self.job = Some(job);
             }
         }
