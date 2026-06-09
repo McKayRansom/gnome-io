@@ -6,7 +6,7 @@ use crate::{
     game::{GameCtx, Tick},
     grid::{Grid, Pos, path::JobSearchFn},
     item::{self, ItemInfoFlags},
-    job::{Busy, Job, JobActor, JobStatus, job_default_search, job_drop_search, job_eat_search, job_fight_search, job_haul_search, job_sleep_search},
+    job::{self, Busy, Job, JobActor, JobStatus},
     tile::{Content, ContentItem},
 };
 
@@ -107,19 +107,28 @@ impl Gnome {
     }
 
     fn find_job(&self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<Job> {
-        let mut searches: Vec<JobSearchFn> = vec![job_default_search, job_fight_search];
+        let mut searches: Vec<JobSearchFn> = Vec::new();
         if self.base.is_tired() {
-            searches.push(job_sleep_search);
+            searches.push(job::job_sleep_search);
         }
         if self.base.is_hungry() {
-            searches.push(job_eat_search);
+            searches.push(job::job_eat_search);
         }
         if self.base.items.len() > 0 {
-            searches.push(job_drop_search);
+            searches.push(job::job_drop_search);
         }
         if self.base.items.len() < item::ITEM_CARRY_MAX {
-            searches.push(job_haul_search);
+            searches.push(job::job_haul_search);
         }
+
+        searches.push(match self.profession {
+            GnomeProfession::NONE => job::job_any_search,
+            GnomeProfession::CRAFTING => job::job_craft_search,
+            GnomeProfession::BUILDING => job::job_build_search,
+            GnomeProfession::MINING => job::job_mine_search,
+            GnomeProfession::FARMING => job::job_farm_search,
+            GnomeProfession::FIGHTING => job::job_fight_search,
+        });
 
         grid.find_job(&self.base, &mut game_ctx.events, &searches)
     }

@@ -7,7 +7,7 @@ use crate::{
     entity::{EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{Event, EventManager, JobId, raid::RaidManager, snow::SnowManager},
     game::{GameCtx, Tick},
-    grid::{Grid, path::PathOutcome, Pos, stocks_remove},
+    grid::{Grid, Pos, path::PathOutcome, stocks_remove},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
@@ -230,13 +230,23 @@ impl Step {
 // TEMP: In order of priority for now
 #[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
 pub enum JobType {
+    // created on-the-fly
     FIGHT,
+    // created on-the-fly
     SLEEP,
+    // created on-the-fly
     EAT,
+    // managed by craft.rs
     CRAFT,
+    // managed by farm.rs
+    FARM,
+    // stored in grid from player
     BUILD,
+    // stored in grid from player
     MINE,
+    // created on-the-fly
     HAUL,
+    // created on-the-fly
     DROP,
     NONE,
 }
@@ -278,14 +288,35 @@ impl Default for Job {
 
 // look for jobs that are just there...
 // OPTIMIZE: Cache job.in_progress and/or job prio to tile
-pub fn job_default_search(_pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+fn job_default_search(
+    _pos: Pos,
+    tile: &Tile,
+    events: &EventManager,
+    job_type: Option<JobType>,
+) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
         let job = events.job_get(&job_id).expect("LEAKED JOB");
-        if !job.in_progress {
+        if !job.in_progress && job_type.is_none_or(|job_type| job.category == job_type) {
             return Some(job.clone());
         }
     }
     None
+}
+
+pub fn job_any_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, None)
+}
+pub fn job_mine_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, Some(JobType::MINE))
+}
+pub fn job_build_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, Some(JobType::BUILD))
+}
+pub fn job_craft_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, Some(JobType::CRAFT))
+}
+pub fn job_farm_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, Some(JobType::FARM))
 }
 
 pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
