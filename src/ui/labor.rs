@@ -112,7 +112,7 @@ impl Labor {
                 if let Entity::Gnome(gnome) = game.entities.get(*enttiy).unwrap() {
                     if gnome.get_profession() == proffesion {
                         ctx.tileset
-                            .draw_tile("labor_full", &col_rect, colors::WHITE);
+                            .draw_tile(if gnome.has_job() {"labor_full"} else {"labor_empty"}, &col_rect, colors::WHITE);
                         if ctx
                             .mouse_pos
                             .is_some_and(|mouse_pos| col_rect.contains(mouse_pos))

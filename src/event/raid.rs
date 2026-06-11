@@ -11,7 +11,7 @@ pub struct RaidManager {}
 
 impl RaidManager {
     pub fn update(game_ctx: &mut GameCtx, grid: &mut Grid, entities: &mut Entities) {
-        if game_ctx.time.season_start(Season::Spring) {
+        if game_ctx.time.season_start(Season::Winter) {
             log::info!("Spawning RAID");
             // I have no idea how to pick this for real, let's just try 2?
             let goblin_count = entities.population(GNOME_FACTION) / 2;

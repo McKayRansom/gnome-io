@@ -41,7 +41,7 @@ impl SnowManager {
                     // Season::Spring => todo!(),
                     // Season::Summer => todo!(),
                     // Season::Fall => todo!(),
-                    Season::Spring => {
+                    Season::Winter => {
                         let next_pos = *pos + (0, 1).into();
                         if grid.get_tile(next_pos).is_none_or(Tile::has_block) {
                             // TODO

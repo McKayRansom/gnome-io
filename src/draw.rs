@@ -96,7 +96,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
 
                     // jank
                     ctx.tileset.draw_tile(
-                        &if non_solid_dirs.len() == 0 {
+                        &if non_solid_dirs.len() == 0 && !game_ctx.debug.draw_hidden {
                             "stone_floor"
                         } else {
                             &block.sprite
@@ -227,7 +227,7 @@ fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
             //     ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
             //     ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
             // } else {
-                draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
+            draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
             // }
         }
         entity::gnome::GnomeStatus::SLEEPING => {
@@ -285,6 +285,10 @@ fn draw_managers(manager: &JobManager, _game_ctx: &GameCtx, ctx: &Context) {
         ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
     }
     // NOTE: We could switch to drawing furnace_active here...
+    for pos in manager.craft_manager.workshop_pos.iter() {
+        let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
+        ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
+    }
 }
 
 fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {

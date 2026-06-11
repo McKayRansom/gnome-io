@@ -3,7 +3,8 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::BlockId,
     event::{
-        CRAFT_EVENT_ID, Event, Events::{self, CraftFinishedEvent}
+        CRAFT_EVENT_ID, Event,
+        Events::{self, CraftFinishedEvent},
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
@@ -60,11 +61,10 @@ pub fn craft(
     None
 }
 
-
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftManager {
     // TODO:HASHMAP
-    workshop_pos: Vec<Pos>,
+    pub workshop_pos: Vec<Pos>,
     standing_orders: Vec<(ItemId, usize)>,
     #[serde(skip_deserializing, skip_serializing)]
     workshop_block_ids: Vec<BlockId>,
@@ -128,9 +128,11 @@ impl CraftManager {
                 Events::BlockUpdateEvent(_old, new) => {
                     log::info!("Craft update event at {:?}", event.pos);
 
-                    if self.workshop_block_ids.contains(&new) {
+                    if self.workshop_block_ids.contains(&new)
+                        && !self.workshop_pos.contains(&event.pos)
+                    {
                         self.workshop_pos.push(event.pos);
-                    } else {
+                    } else if self.workshop_block_ids.contains(&_old) {
                         self.workshop_pos.retain(|pos| pos != &event.pos);
 
                         if grid
@@ -146,6 +148,7 @@ impl CraftManager {
                     }
                 }
                 Events::CraftFinishedEvent(block_id, item_id) => {
+                    // this will trigger it again???
                     grid.place_block(event.pos, block_id, game_ctx);
 
                     grid.create(

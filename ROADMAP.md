@@ -66,13 +66,13 @@ Key Decisions to make:
     - [x] Make enemy entities unpathable (for fights and for doors...)
     - [ ] Create flee job when it makes sense to do so
     - [x] Add grave blocks
-- [ ] Create parrenting logic
+- [x] Create parrenting logic
 - [ ] Professions/labor allocations
-  - [ ] Add proffesions
-    - [ ] Auto-assign gnomes for debugging
-  - [ ] Create proffesions UI
-    - [ ] Draw status
-    - [ ] Allocate gnomes
+  - [x] Add proffesions
+    - [x] Auto-assign gnomes for debugging
+  - [x] Create proffesions UI
+    - [x] Draw status
+    - [x] Allocate gnomes
     - [ ] Show open jobs
     - [ ] Fix stocks UI while we're there
 - [ ] Create tools OR some other way to allocate resources to enhance one profession (forces more choices...)
@@ -88,6 +88,37 @@ Key Decisions to make:
   - [x] Use to detect the baddies attacking
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
+
+Thoughts:
+- Fix farms over none? Would be nice to queue
+  - Add job queue system, and adjacent jobs completing could add back to the queue
+- Would be nice to prioritize a specific job...
+  - Could be time to finally add a job priority u8, only issue is UI
+- Slow down plant growth
+  - Def not really a challenge to get everything planted in spring like I was intending...
+  - Should make it so you have to plant in spring to be harvestable by winter?
+  - Farms would need to not replant outside of spring, and trigger mass replanting spring 1st
+- fix FARM jobs!! (need to change jobtype to not be build...)
+- change build to queued if nothing in stock? (could fire event for item existing now...)
+- make all jobs take slightly longer?
+  - Really like the all-hands-on-deck to finish planting/harvest in time
+- increase starting pop?
+  - If we're expected to actually use jobs initially then yeah
+- some info on standing orders and if grain or coal is too low...
+  - Will need Crafting UI (Item orders, mins, status)
+  - could be top left with items or click on craft at top or bot left (click on icons to change instead)
+- need a way to fight more effectively... (lock the doors and gather the gnomes???)
+  - We need bell to wake everyone up
+  - Ignore other jobs when fighting
+  - For the love of god don't go sleep!
+- holy f we need so much coal!
+  - A: Add more coal
+  - B: Add trees/wood
+  - C: 2/1 or 3/1 grain/coal
+  - D: Don't need coal to eat...
+- Reward for defeating the goblins???
+- mining is too slow and far away???
+- Some kind of darkness is needed, doesn't feel like underground
 
 We need a way to store block metadata:
 - Is there a farm here
@@ -134,7 +165,7 @@ Planned items, unplanned go in ICEBOX.md. Roughly in priority order:
 - Itch-io: Polising and testing for itch.io release!
 
 ## Explore future direction
-- Gnome skill exploration/gnome details
+- Gnome skill exploration/gnome details/actual childing/nursing
 - faction exploration
 - multiplayer exploration
 - mod exploration

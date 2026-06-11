@@ -101,6 +101,10 @@ impl Gnome {
         self.profession
     }
 
+    pub(crate) fn has_job(&self) -> bool {
+        self.job.is_some()
+    }
+
     pub fn set_profession(&mut self, profession: GnomeProfession, events: &mut EventManager) {
         self.profession = profession;
         // cancel job???
@@ -169,6 +173,7 @@ impl Gnome {
 
         grid.find_job(&self.base, &mut game_ctx.events, &searches)
     }
+
 }
 
 impl JobActor for Gnome {
