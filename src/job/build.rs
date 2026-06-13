@@ -32,7 +32,7 @@ pub fn build(grid: &mut Grid, pos: Pos, block_name: &str, game_ctx: &mut GameCtx
     JobManager::create_job(
         grid,
         &mut game_ctx.events,
-        Job::build(pos, BUILD_TIME, (id, block_info.flags), requires),
+        Job::build(pos, BUILD_TIME, (id, block_info.flags), requires, super::JobType::BUILD),
     );
 
     None

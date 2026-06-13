@@ -119,6 +119,7 @@ impl FarmManager {
                 TILL_TIME,
                 (farm_block_id, farm_block_info.flags),
                 requires,
+                super::JobType::FARM,
             ))
         } else {
             // log::info!("Block is something weird: {}", block);

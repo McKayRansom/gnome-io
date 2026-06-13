@@ -462,10 +462,16 @@ impl Job {
         }
     }
 
-    pub fn build(pos: Pos, time: Tick, block: ContentBlock, requires: Vec<ContentItem>) -> Self {
+    pub fn build(
+        pos: Pos,
+        time: Tick,
+        block: ContentBlock,
+        requires: Vec<ContentItem>,
+        job_type: JobType,
+    ) -> Self {
         Job {
             pos,
-            category: JobType::BUILD,
+            category: job_type,
             steps: vec![
                 Step::Acquire(requires.clone()),
                 Step::Goto(pos),
