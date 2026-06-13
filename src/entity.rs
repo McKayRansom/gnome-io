@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     entity::{
-        gnome::{GNOME_SPEED, Gnome},
+        gnome::Gnome,
         goblin::{GOBLIN_FACTION, Goblin},
     },
     event::{Event, Events, FACTION_EXIST_EVENT},
@@ -95,6 +95,14 @@ pub struct BaseEntity {
     pub items: Vec<ContentItem>,
 }
 
+// move times
+pub const DEFAULT_SPEED: Tick = 20;
+pub const IDLE_SPEED: Tick = 40;
+
+pub const TILE_SLOWED_SPEED_ADD: Tick = 10;
+pub const EXAUSTED_SPEED_ADD: Tick = 10;
+pub const INJURED_SPEED_ADD: Tick = 10;
+
 // food values
 // TO FIX gnomes always running out of food:
 // - We will eat way before we need to
@@ -110,7 +118,7 @@ const FOOD_EAT_TIME: Tick = hours(1);
 // to fix gnomes always passing out on the spot:
 // - sleep way before we need to
 pub const BASE_TIRED: Tick = days(2);
-// const SLOW_TIRED: u16 = hours(2);
+pub const EXAUSTED_TIRED: Tick = days(1) / 2;
 pub const SLEEP_TIRED: Tick = days(1);
 pub const SLEEP_RESTORED: Tick = days(1);
 
@@ -121,6 +129,7 @@ const SLEEP_TIME: Tick = hours(4);
 // health
 pub type Health = u8;
 const BASE_HEALTH: Health = 10;
+const INJURED_HEALTH: Health = 5;
 
 // fight
 const FIGHT_TIME: Tick = hours(1);
@@ -172,10 +181,19 @@ impl BaseEntity {
     }
 
     fn move_to(&mut self, pos: Pos, speed: Tick, grid: &mut Grid) -> bool {
-        if let Some(pos) = grid.entity_move((self.faction, self.id), self.pos, pos) {
+        if let Some((pos, is_slow)) = grid.entity_move((self.faction, self.id), self.pos, pos) {
             self.dir = self.pos - pos;
             self.pos = pos;
             self.timer = speed;
+            if is_slow {
+                self.timer += TILE_SLOWED_SPEED_ADD;
+            }
+            if self.is_injured() {
+                self.timer += INJURED_SPEED_ADD;
+            }
+            if self.is_exausted() {
+                self.timer += EXAUSTED_SPEED_ADD;
+            }
             self.lag = self.timer;
             true
         } else {
@@ -184,10 +202,9 @@ impl BaseEntity {
     }
 
     fn move_random(&mut self, grid: &mut Grid) {
-        // move slower since we have no destination
         self.move_to(
             self.pos + dirs::ALL[rand() as usize % dirs::ALL.len()],
-            GNOME_SPEED * 2,
+            IDLE_SPEED,
             grid,
         );
     }
@@ -198,6 +215,14 @@ impl BaseEntity {
 
     pub(crate) fn is_hungry(&self) -> bool {
         self.food < FOOD_EAT
+    }
+
+    fn is_exausted(&self) -> bool {
+        self.tired < EXAUSTED_TIRED
+    }
+
+    pub fn is_injured(&self) -> bool {
+        self.health < INJURED_HEALTH
     }
 }
 
@@ -240,7 +265,7 @@ impl Entities {
                 }
                 EntityAction::Birth((_faction, pos)) => {
                     self.spawn_gnome(pos, grid);
-                },
+                }
                 EntityAction::Attack(id) => {
                     if let Some(entity) = self.entities.get_mut(&id) {
                         entity.attacked();

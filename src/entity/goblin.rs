@@ -1,10 +1,10 @@
 use crate::{
     entity::{
-        BaseEntity, EntityBehaviour, EntityId, Faction, HIDDEN_FACTION,
-        gnome::{GNOME_FACTION, GNOME_SPEED},
+        BaseEntity, DEFAULT_SPEED, EntityBehaviour, EntityId, Faction, HIDDEN_FACTION,
+        gnome::GNOME_FACTION,
     },
     game::time::hours,
-    grid::{path::PathOutcome, Pos},
+    grid::{Pos, path::PathOutcome},
     tile::Content,
 };
 
@@ -68,7 +68,7 @@ impl EntityBehaviour for Goblin {
                     self.base.faction = HIDDEN_FACTION;
                 }
 
-                self.base.move_to(path[0], GNOME_SPEED, grid);
+                self.base.move_to(path[0], DEFAULT_SPEED, grid);
                 None
             }
             PathOutcome::Reached(attack_pos) => {

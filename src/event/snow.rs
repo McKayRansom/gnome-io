@@ -3,9 +3,10 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
+    block::BlockId,
+    event::FARM_EVENT_ID,
     game::{GameCtx, Tick, time::Season},
     grid::{Grid, Pos},
-    tile::Tile,
 };
 
 #[derive(Debug, Default, Serialize, Deserialize)]
@@ -16,6 +17,8 @@ pub struct SnowManager {
 
 // const SNOW_SPAWN_PER_256_TILES: usize = 1;
 const SNOW_FALL_TIME: Tick = 50;
+
+const SNOW_BLOCK_ID: BlockId = 103;
 
 impl SnowManager {
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
@@ -38,15 +41,25 @@ impl SnowManager {
                 to_remove.push(*pos);
                 // do something now
                 match game_ctx.time.season {
-                    // Season::Spring => todo!(),
-                    // Season::Summer => todo!(),
-                    // Season::Fall => todo!(),
                     Season::Winter => {
                         let next_pos = *pos + (0, 1).into();
-                        if grid.get_tile(next_pos).is_none_or(Tile::has_block) {
-                            // TODO
-                        } else {
-                            to_insert.push((next_pos, SNOW_FALL_TIME));
+                        if let Some(tile) = grid.get_tile(next_pos) {
+                            if let Some(block) = tile.get_block() {
+                                if let Some(block_info) = game_ctx.blocks.get_info(&block) {
+                                    if block_info
+                                        .mine_event
+                                        .is_some_and(|event| event == FARM_EVENT_ID)
+                                    {
+                                        // remove without dropping...
+                                        grid.destroy_block(next_pos, game_ctx);
+                                    } else if block != SNOW_BLOCK_ID {
+                                        // 
+                                        grid.place_block(*pos, SNOW_BLOCK_ID, game_ctx);
+                                    }
+                                }
+                            } else {
+                                to_insert.push((next_pos, SNOW_FALL_TIME));
+                            }
                         }
                     }
                     _ => {}

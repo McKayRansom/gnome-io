@@ -35,6 +35,8 @@ bitflags! {
         const SLEEPABLE = 1 << 4;
         // for doors
         const DOOR = 1 << 5;
+        // for snow
+        const SLOW = 1 << 6;
     }
 }
 

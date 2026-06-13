@@ -102,3 +102,12 @@ Professions:
 # Pillbug:
   - Move around psudeo-random
   - Invulnerable OR Curl into ball
+
+
+## LOTR-inspired
+- Dragons that go after gold
+- Spiders in evil forests
+- Balrogs hidden deep down
+
+## Graphics
+- Steal shaders (CRT + Lighting) from that one itch.io game...

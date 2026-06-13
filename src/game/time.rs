@@ -1,5 +1,7 @@
 // use super::Tick;
 
+use std::str::FromStr;
+
 use serde::{Deserialize, Serialize};
 
 use super::Tick;
@@ -34,6 +36,23 @@ impl Season {
             Season::Summer => Season::Fall,
             Season::Fall => Season::Winter,
             Season::Winter => Season::Spring,
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct ParseSeasonError;
+
+impl FromStr for Season {
+    type Err = ParseSeasonError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s {
+            "spring" => Ok(Season::Spring),
+            "summer" => Ok(Season::Summer),
+            "fall" => Ok(Season::Fall),
+            "winter" => Ok(Season::Winter),
+            _ => Err(ParseSeasonError),
         }
     }
 }

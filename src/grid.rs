@@ -7,8 +7,8 @@ use crate::{
     tile::{Content, ContentItem, Tile},
 };
 
-pub mod pos;
 pub mod path;
+pub mod pos;
 use macroquad::rand;
 pub use pos::Pos;
 use rustc_hash::FxHashMap;
@@ -170,6 +170,28 @@ impl Grid {
         }
     }
 
+    pub fn destroy_block(&mut self, pos: Pos, game_ctx: &mut GameCtx) {
+        let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
+            log::warn!("Tried to place block in invalid pos: {:?}", pos);
+            return;
+        };
+        let old_block_id = tile.get_block().unwrap_or(BLOCK_NONE);
+        if let Some(old_block_info) = game_ctx.blocks.get_info(&old_block_id) {
+            tile.remove(&Content::Block((old_block_id, old_block_info.flags)));
+
+            game_ctx
+                .events
+                .block_remove(pos, old_block_id, BLOCK_NONE, old_block_info);
+        }
+
+        //update is_walkable for pos and adjacents
+        self.update_walkable(pos);
+        for dir in WALKABLE_DIRS {
+            // update anyone who could depend on us
+            self.update_walkable(pos - dir);
+        }
+    }
+
     pub fn entity_enter(&mut self, pos: Pos, id: (Faction, EntityId)) {
         Self::cell_get_tile_mut(&mut self.cells, pos)
             .unwrap()
@@ -182,13 +204,15 @@ impl Grid {
             .remove(&Content::Entity(id));
     }
 
-    pub fn entity_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<Pos> {
-        if !self.get_tile(end)?.is_passable(id.0) {
+    pub fn entity_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<(Pos, bool)> {
+        let tile = self.get_tile(end)?;
+        if !tile.is_passable(id.0) {
             return None;
         }
+        let is_slow = tile.block_flags().contains(BlockInfoFlags::SLOW);
         self.entity_exit(start, id);
         self.entity_enter(end, id);
-        Some(end)
+        Some((end, is_slow))
     }
 
     // assumes content didn't exist before (for stock purposes)
@@ -213,7 +237,6 @@ impl Grid {
             self.cells[pos.y as usize][pos.x as usize] = tile;
         }
     }
-
 
     pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
@@ -327,7 +350,8 @@ pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
     for key in stocks.keys() {
         if !new_stocks.contains_key(key) {
             log::error!(
-                "Stock mismatch: stock: {} actual: 0",
+                "Stock mismatch for '{}': stock: {} actual: 0",
+                key,
                 stocks.get(key).unwrap()
             );
         }

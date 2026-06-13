@@ -18,42 +18,51 @@
         flags: ("SOLID"),
         drops: [(1.0, "coal_item")],
     ),
+    "snow_block": (
+        id: 103,
+        flags: ("SLOW"),
+        growth: Some((days: 1, into: "NONE")),
+        mine_event: Some("farm"),
+    ),
 
     // plants
-
+    // we want wheat planted in spring to mature in fall (2 months = 10 days)
+    // the growth is currently calculated in event.rs as delay + rand(0, delay/2)
+    // so the average delay for days: 2 will actually be 2.5, so days: 2
     "wheat_0": (
         id: 201,
         // TODO: Change farm to require what's listed here...
         requires: ["grain"],
-        growth: Some((days: 1, into: "wheat_1")),
+        growth: Some((days: 2, into: "wheat_1")),
         drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_1": (
         id: 202,
-        growth: Some((days: 1, into: "wheat_2")),
+        growth: Some((days: 2, into: "wheat_2")),
         drops: [(1.0, "grain")],
         mine_event: Some("farm"),
     ),
     "wheat_2": (
         id: 203,
-        growth: Some((days: 1, into: "wheat_3")),
+        growth: Some((days: 2, into: "wheat_3")),
         drops: [(1.0, "grain")],
         mine_event: Some("farm"),
-        // sprite: "snow",
     ),
     "wheat_3": (
         id: 204,
-        growth: Some((days: 1, into: "wheat_4")),
+        growth: Some((days: 2, into: "wheat_4")),
         drops: [(1.0, "grain")],
-        // sprite: "snow",
         mine_event: Some("farm"),
     ),
     "wheat_4": (
         id: 205,
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
+        // so that we die in winter...
+        growth: Some((days: 2, into: "wheat_4")),
         mine_event: Some("farm"),
     ),
+    // "wheat_dead"
 
     "tree_0": (
         id: 206,

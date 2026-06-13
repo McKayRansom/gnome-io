@@ -2,11 +2,11 @@ use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    block::{BlockId, BlockInfoFlags},
+    block::{BLOCK_NONE, BlockId, BlockInfoFlags},
     event::{Events, FARM_EVENT_ID, GROWTH_EVENT},
     game::{
         GameCtx, Tick,
-        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR},
+        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR, hours},
     },
     grid::{Grid, Pos, pos::dirs},
 };
@@ -15,8 +15,8 @@ use super::{Job, JobManager};
 
 const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
-const TILL_TIME: Tick = 20;
-const HARVEST_TIME: Tick = 20;
+const TILL_TIME: Tick = hours(2);
+const HARVEST_TIME: Tick = hours(2);
 
 // Farm module: Handles farming and growth
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -34,7 +34,17 @@ impl FarmManager {
 
         while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
             if let Some(farm_block) = self.farm_pos.get(&event.pos) {
-                if let Some(job) = self.tile_changed(game_ctx, grid, &event.pos, *farm_block) {
+                if let Some(job) = Self::tile_changed(game_ctx, grid, &event.pos, *farm_block) {
+                    JobManager::create_job(grid, &mut game_ctx.events, job);
+                }
+            }
+        }
+
+        // check start of spring
+        if game_ctx.time.season_start(Season::Spring) {
+            // replant all
+            for (pos, farm_block) in self.farm_pos.iter() {
+                if let Some(job) = Self::tile_changed(game_ctx, grid, pos, *farm_block) {
                     JobManager::create_job(grid, &mut game_ctx.events, job);
                 }
             }
@@ -42,17 +52,15 @@ impl FarmManager {
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
-        // TODO: Don't do this in winter...
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
             let Events::BlockUpdateEvent(_old, new) = event.value else {
                 log::warn!("Invalid event pushed to GROWTH_EVENT queue");
                 continue;
             };
             log::debug!("Growth {} -> {}", _old, new);
-            // delay this growth event (for now?)
             if game_ctx.time.season == Season::Winter {
-                // TODO: Plants die in winter??
-                game_ctx.events.push_timer(GROWTH_SEASON_DELAY_TIME, event);
+                // plant dies for now...
+                grid.destroy_block(event.pos, game_ctx);
             } else {
                 // NOTE: This may start new timers/trigger new events if nescesary
                 // Including the farm update event
@@ -65,7 +73,7 @@ impl FarmManager {
         // TEMP: For now, always assume wheat
         let wheat_0_id = game_ctx.blocks.get_id("wheat_0").unwrap();
         self.farm_pos.insert(pos, wheat_0_id);
-        if let Some(job) = self.tile_changed(game_ctx, grid, &pos, wheat_0_id) {
+        if let Some(job) = Self::tile_changed(game_ctx, grid, &pos, wheat_0_id) {
             JobManager::create_job(grid, &mut game_ctx.events, job);
         }
     }
@@ -75,7 +83,7 @@ impl FarmManager {
     }
 
     fn tile_changed(
-        &mut self,
+        // &mut self,
         game_ctx: &mut GameCtx,
         grid: &Grid,
         pos: &Pos,
@@ -101,13 +109,12 @@ impl FarmManager {
         let block = tile.get_block().unwrap_or(0);
         let block_info = game_ctx.blocks.get_info(&block);
 
-        if block_info.is_some_and(|info| info.growth.is_none()) {
+        if block_info.is_some_and(|info| info.growth.is_none_or(|growth| growth.1 == BLOCK_NONE)) {
             // harvest
             Some(Job::mine(*pos, HARVEST_TIME))
 
         // till
-        // TODO: don't till in fall/winter...
-        } else if block_info.is_none() {
+        } else if block_info.is_none() && game_ctx.time.season == Season::Spring {
             let requires = farm_block_info
                 .requires
                 .iter()

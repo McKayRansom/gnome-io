@@ -79,7 +79,6 @@ pub enum GnomeStatus {
     // add mining/etc... when animations
 }
 
-pub const GNOME_SPEED: Tick = 20;
 pub const GNOME_FACTION: Faction = 1;
 
 impl Gnome {
@@ -161,19 +160,27 @@ impl Gnome {
             searches.push(job::job_haul_search);
         }
 
-        searches.push(match self.profession {
-            GnomeProfession::NONE => job::job_any_search,
-            GnomeProfession::CRAFTING => job::job_craft_search,
-            GnomeProfession::BUILDING => job::job_build_search,
-            GnomeProfession::MINING => job::job_mine_search,
-            GnomeProfession::FARMING => job::job_farm_search,
-            GnomeProfession::FIGHTING => job::job_fight_search,
-            GnomeProfession::CHILDING => job::job_child_search,
-        });
+        let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX
+            && match self.profession {
+                // fighting needs special stuff IDK
+                GnomeProfession::FIGHTING => false,
+                _ => true,
+            };
+
+        if !skip_search {
+            searches.push(match self.profession {
+                GnomeProfession::NONE => job::job_any_search,
+                GnomeProfession::CRAFTING => job::job_craft_search,
+                GnomeProfession::BUILDING => job::job_build_search,
+                GnomeProfession::MINING => job::job_mine_search,
+                GnomeProfession::FARMING => job::job_farm_search,
+                GnomeProfession::FIGHTING => job::job_fight_search,
+                GnomeProfession::CHILDING => job::job_child_search,
+            });
+        }
 
         grid.find_job(&self.base, &mut game_ctx.events, &searches)
     }
-
 }
 
 impl JobActor for Gnome {
@@ -253,12 +260,8 @@ impl EntityBehaviour for Gnome {
         self.status = GnomeStatus::NONE;
 
         if !self.path.is_empty() {
-            //if self.tired < SLOW_TIRED {
-            // GNOME_SPEED * 2
-            // } else {
-            // GNOME_SPEED;
-            // };
-            self.base.move_to(self.path.remove(0), GNOME_SPEED, grid);
+            self.base
+                .move_to(self.path.remove(0), super::DEFAULT_SPEED, grid);
             // impassable terrain
             // if !grid.get_tile().is_passable() {
             // HACK: Always clear our path so we re-path correctly to enimies

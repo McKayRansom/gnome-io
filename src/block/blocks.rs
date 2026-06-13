@@ -200,6 +200,9 @@ impl Blocks {
         let blocks_save: BlocksSave =
             ron::de::from_bytes(bytes).expect("Failed to deserialize blocks!");
 
+        // Add ID for NONE so growth, etc can reference, but NOT block_info
+        self.ids.insert("NONE".into(), BLOCK_NONE);
+
         for (block_name, block_info_save) in blocks_save.blocks.iter() {
             let id = block_info_save.id;
             if let Some(old_id) = self.ids.insert(block_name.clone(), id) {

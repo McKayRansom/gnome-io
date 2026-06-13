@@ -55,12 +55,13 @@ Key Decisions to make:
   - [x] Fix indicators
     - [x] Need some kind of indicator that a tile is farmed...
     - [x] Better job indicators
+    - [ ] Make farm/craft indicator less obnoxious...
   - [x] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
     - [x] WINTER IS COMING!
   - [x] Fix bread/crafting?
   - [x] Add snow/winter for real
-    - [ ] kill plants
-    - [ ] Moves slow?
+    - [x] kill plants
+    - [x] Moves slow?
 - [ ] Create attack/flee logic
     - [x] Create attack job and fix many, many bugs
     - [x] Make enemy entities unpathable (for fights and for doors...)
@@ -84,8 +85,17 @@ Key Decisions to make:
 - [ ] Add sunlight to tiles
   - [ ] use this to drive plant growth
   - [ ] use for drawing tile color
+  - [ ] Make underground dark and spookey
 - [x] Add sight
   - [x] Use to detect the baddies attacking
+- [x] Fix FARM proffesion
+- [x] Make spring planting window important, slow plant growth, make take longer, etc...
+- [ ] Fix combat
+  - [ ] Don't sleep during combat
+  - [ ] Soldier muster
+- [ ] Fix coal chokepoint...
+- [ ] Fix job dependencies??
+- [ ] Make jobs longer
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 
