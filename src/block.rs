@@ -37,6 +37,8 @@ bitflags! {
         const DOOR = 1 << 5;
         // for snow
         const SLOW = 1 << 6;
+        // for table
+        const TABLE = 1 << 7;
     }
 }
 

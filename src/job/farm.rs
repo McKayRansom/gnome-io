@@ -6,14 +6,14 @@ use crate::{
     event::{Events, FARM_EVENT_ID, GROWTH_EVENT},
     game::{
         GameCtx, Tick,
-        time::{HOURS_PER_DAY, Season, TICKS_PER_HOUR, hours},
+        time::{Season, hours},
     },
     grid::{Grid, Pos, pos::dirs},
 };
 
 use super::{Job, JobManager};
 
-const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
+// const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
 const TILL_TIME: Tick = hours(2);
 const HARVEST_TIME: Tick = hours(2);
@@ -60,7 +60,7 @@ impl FarmManager {
             log::debug!("Growth {} -> {}", _old, new);
             if game_ctx.time.season == Season::Winter {
                 // plant dies for now...
-                grid.destroy_block(event.pos, game_ctx);
+                // grid.destroy_block(event.pos, game_ctx);
             } else {
                 // NOTE: This may start new timers/trigger new events if nescesary
                 // Including the farm update event
@@ -111,7 +111,7 @@ impl FarmManager {
 
         if block_info.is_some_and(|info| info.growth.is_none_or(|growth| growth.1 == BLOCK_NONE)) {
             // harvest
-            Some(Job::mine(*pos, HARVEST_TIME))
+            Some(Job::mine(*pos, HARVEST_TIME, super::JobType::FARM))
 
         // till
         } else if block_info.is_none() && game_ctx.time.season == Season::Spring {

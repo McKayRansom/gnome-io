@@ -90,7 +90,7 @@ impl Grid {
         // we will continue past the first job we find, to see if we find a better one...
         // TOOD: this probably needs to be much large and dynamic?
         // Or we may starve important jobs that are far away
-        let mut continue_past: usize = 16;
+        // let mut continue_past: usize = 16;
 
         for pos in pathfinding::prelude::bfs_reach(entity.pos, |pos| {
             // check adjacent walls
@@ -122,12 +122,12 @@ impl Grid {
                     }
                 }
 
-                if found_job.is_some() {
-                    continue_past -= 1;
-                }
-                if continue_past == 0 {
-                    break;
-                }
+                // if found_job.is_some() {
+                //     continue_past -= 1;
+                // }
+                // if continue_past == 0 {
+                //     break;
+                // }
             }
         }
         if let Some(job) = &mut found_job {

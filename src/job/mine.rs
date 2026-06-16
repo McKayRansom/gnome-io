@@ -15,7 +15,7 @@ pub fn mine(grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) -> Option<()> {
 
     // we could take longer to mine based on block hardness here...
 
-    JobManager::create_job(grid, &mut game_ctx.events, Job::mine(pos, MINE_TIME));
+    JobManager::create_job(grid, &mut game_ctx.events, Job::mine(pos, MINE_TIME, super::JobType::MINE));
 
     Some(())
 }

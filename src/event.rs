@@ -185,6 +185,13 @@ impl EventManager {
             .pop_front()
     }
 
+    fn peek_event(&self, id: EventId) -> Option<&Event> {
+        self.events
+            .get(&id)
+            .expect("Unkown event ID")
+            .front()
+    }
+
     pub fn push_timer(&mut self, time: Tick, event: Event) {
         self.timers.insert(
             event.pos,
@@ -258,6 +265,7 @@ impl EventManager {
         }
     }
 
+    
     // pub fn update(&mut self, grid: &Grid) {
     //     while let Some(event) = self.events.pop_front() {
     //         let Some(handler) = self.handlers.get_mut(&event.id) else {

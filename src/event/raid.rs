@@ -1,9 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::{Entities, gnome::GNOME_FACTION},
-    game::{GameCtx, time::Season},
-    grid::Grid,
+    entity::{Entities, Entity, gnome::GNOME_FACTION, goblin::GOBLIN_FACTION}, event::{Events, FACTION_EXIST_EVENT}, game::{GameCtx, time::Season}, grid::Grid
 };
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -17,6 +15,19 @@ impl RaidManager {
             let goblin_count = entities.population(GNOME_FACTION) / 2;
             for _ in 0..goblin_count {
                 entities.spawn_goblin((0, 0).into(), grid);
+            }
+        }
+
+        // muster here for now???
+        if let Some(event) = game_ctx.events.peek_event(FACTION_EXIST_EVENT) {
+            if let Events::FactionExistsEvent(faction, exists) = event.value {
+                if faction == GOBLIN_FACTION {
+                    for entity in entities.values_mut() {
+                        if let Entity::Gnome(gnome) = entity {
+                            gnome.set_muster(exists, grid, game_ctx);
+                        }
+                    }
+                }
             }
         }
     }

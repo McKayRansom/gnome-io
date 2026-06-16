@@ -109,6 +109,7 @@ impl Gameplay {
                     ToolbarItem::new("chest", "Chest", '2', "chest".into()),
                     ToolbarItem::new("stairs", "Stairs", '3', "stairs".into()),
                     ToolbarItem::new("door", "Door", '4', "door".into()),
+                    ToolbarItem::new("table", "table", '4', "table".into()),
                     // ToolbarItem::new("craft_table", "Crafting table", '3', "craft_table".into()),
                     ToolbarItem::new("furnace", "Furnace", '5', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '6', "bed".into()),
@@ -396,7 +397,7 @@ impl Gameplay {
                 //             }
                 //         }
                 //     }
-                // } else {
+                // } else {pos
                 for content in tile.iter_content() {
                     ui.label(
                         None,

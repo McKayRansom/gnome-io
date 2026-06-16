@@ -59,7 +59,7 @@
         id: 205,
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
         // so that we die in winter...
-        growth: Some((days: 2, into: "wheat_4")),
+        growth: Some((days: 2, into: "NONE")),
         mine_event: Some("farm"),
     ),
     // "wheat_dead"
@@ -142,6 +142,11 @@
         growth: Some((days: 0, into: "furnace")),
         // mine_event: Some("craft"),
         drops: [(1.0, "stone")],
+    ),
+    "table": (
+        id: 308,
+        flags: ("TABLE"),
+        requires: ["stone"],
     ),
  
 }

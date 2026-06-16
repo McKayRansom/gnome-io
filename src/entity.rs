@@ -344,4 +344,8 @@ impl Entities {
     pub(crate) fn get_mut(&mut self, id: EntityId) -> Option<&mut Entity> {
         self.entities.get_mut(&id)
     }
+
+    pub(crate) fn values_mut(&mut self) -> std::collections::hash_map::ValuesMut<'_, u32, Entity> {
+        self.entities.values_mut()
+    }
 }

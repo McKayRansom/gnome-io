@@ -91,7 +91,7 @@ Key Decisions to make:
 - [x] Fix FARM proffesion
 - [x] Make spring planting window important, slow plant growth, make take longer, etc...
 - [ ] Fix combat
-  - [ ] Don't sleep during combat
+  - [x] Don't sleep during combat
   - [ ] Soldier muster
 - [ ] Fix coal chokepoint...
 - [ ] Fix job dependencies??

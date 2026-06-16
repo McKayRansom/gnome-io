@@ -6,7 +6,10 @@ use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
     entity::{EntityId, Faction, goblin::GOBLIN_FACTION},
     event::{Event, EventManager, JobId, raid::RaidManager, snow::SnowManager},
-    game::{GameCtx, Tick, time::days},
+    game::{
+        GameCtx, Tick,
+        time::{days, hours},
+    },
     grid::{Grid, Pos, path::PathOutcome, stocks_remove},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
@@ -255,6 +258,19 @@ pub enum JobType {
     NONE,
 }
 
+impl JobType {
+    // created on-the-fly jobs should not be reset, just cancel them!
+    pub fn should_reset(&self) -> bool {
+        match self {
+            JobType::CRAFT => true,
+            JobType::FARM => true,
+            JobType::BUILD => true,
+            JobType::MINE => true,
+            _ => false,
+        }
+    }
+}
+
 pub enum Busy {
     Wait,
     Eat,
@@ -348,7 +364,9 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
 }
 
 pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    // do we do table or nah...
     if tile.has_items() == true && tile.item_flags().contains(ItemInfoFlags::FOOD) {
+        // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
         Some(Job::eat(pos))
     } else {
         None
@@ -361,6 +379,14 @@ pub fn job_sleep_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option
         && !tile.has_entity()
     {
         Some(Job::sleep(pos))
+    } else {
+        None
+    }
+}
+
+pub fn job_idle_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
+        Some(Job::idle(pos))
     } else {
         None
     }
@@ -424,6 +450,15 @@ impl Job {
         }
     }
 
+    pub fn idle(pos: Pos) -> Self {
+        Job {
+            pos,
+            category: JobType::NONE,
+            steps: vec![Step::Goto(pos), Step::Work(hours(2))],
+            ..Default::default()
+        }
+    }
+
     // NOTE: The eat job will not change highlighted position if the food there is consumed and we have to find a new food...
     pub fn eat(pos: Pos) -> Self {
         Job {
@@ -431,6 +466,7 @@ impl Job {
             category: JobType::EAT,
             steps: vec![
                 Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
+                // Step::Goto(pos),
                 Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
                 Step::Eat,
             ],
@@ -483,10 +519,10 @@ impl Job {
         }
     }
 
-    pub fn mine(pos: Pos, time: u16) -> Self {
+    pub fn mine(pos: Pos, time: u16, job_type: JobType) -> Self {
         Job {
             pos,
-            category: JobType::MINE,
+            category: job_type,
             steps: vec![
                 Step::Goto(pos),
                 Step::Work(time),
@@ -609,5 +645,19 @@ impl JobManager {
     pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
         self.farm_manager.cancel_farm(pos);
         grid.cancel_job(pos, &mut game_ctx.events);
+    }
+
+    pub fn reset_job(grid: &mut Grid, events: &mut EventManager, job: &Job) {
+        if job.category.should_reset() {
+            events.reset_job(&job.id);
+        } else {
+            if grid.take(job.pos, Content::Job(job.id)).is_none() {
+                log::warn!(
+                    "Failed to reset job, was it removed from grid? job: {:?}",
+                    job
+                );
+            }
+            events.cancel_job(&job.id);
+        }
     }
 }

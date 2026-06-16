@@ -7,7 +7,7 @@ use crate::{
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, path::JobSearchFn},
     item::{self, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobStatus},
+    job::{self, Busy, Job, JobActor, JobManager, JobStatus, JobType},
     tile::{Content, ContentItem},
 };
 
@@ -46,6 +46,9 @@ pub struct Gnome {
     path: Vec<Pos>,
     profession: GnomeProfession,
 
+    #[serde(default)]
+    mustered: bool,
+
     // for animation purposes only...
     #[serde(default)]
     pub status: GnomeStatus,
@@ -69,7 +72,7 @@ pub enum GnomeProfession {
     CHILDING,
 }
 
-#[derive(Debug, Default, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Default, serde::Serialize, serde::Deserialize, PartialEq, Eq)]
 pub enum GnomeStatus {
     #[default]
     NONE,
@@ -104,7 +107,12 @@ impl Gnome {
         self.job.is_some()
     }
 
-    pub fn set_profession(&mut self, profession: GnomeProfession, events: &mut EventManager) {
+    pub fn set_profession(
+        &mut self,
+        profession: GnomeProfession,
+        grid: &mut Grid,
+        events: &mut EventManager,
+    ) {
         self.profession = profession;
         // cancel job???
         if let Some(job) = &self.job {
@@ -112,24 +120,43 @@ impl Gnome {
                 && match job.category {
                     // this seems like a bad idea but I guess we'll allow it
                     job::JobType::FIGHT => profession != GnomeProfession::FIGHTING,
-                    // don't cancel basic needs
-                    job::JobType::SLEEP => false,
-                    job::JobType::EAT => false,
+                    // don't cancel basic needs, unless fighting
+                    job::JobType::SLEEP => profession == GnomeProfession::FIGHTING,
+                    job::JobType::EAT => profession == GnomeProfession::FIGHTING,
+                    // cancel if don't match
                     job::JobType::CRAFT => profession != GnomeProfession::CRAFTING,
                     job::JobType::FARM => profession != GnomeProfession::FARMING,
                     job::JobType::BUILD => profession != GnomeProfession::BUILDING,
                     job::JobType::MINE => profession != GnomeProfession::MINING,
                     job::JobType::CHILD => profession != GnomeProfession::CHILDING,
+                    // always cancel, see if we can find a higher priority job...
                     job::JobType::HAUL => true,
                     job::JobType::DROP => true,
                     job::JobType::NONE => true,
                 };
             if should_cancel {
-                log::info!("Canceling job {:?}", profession);
-                events.reset_job(&job.id);
+                log::info!("Canceling job {:?}", job.category);
+                JobManager::reset_job(grid, events, job);
                 self.job = None;
             }
         }
+    }
+
+    pub(crate) fn set_muster(&mut self, exists: bool, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        // cancel job
+        if let Some(job) = &self.job {
+            if job.category != JobType::FIGHT {
+                log::info!("Canceling job {:?}", job.category);
+                JobManager::reset_job(grid, &mut game_ctx.events, job);
+                self.job = None;
+            }
+        }
+        // wake from sleep
+        if self.status != GnomeStatus::NONE {
+            self.base.timer = 0;
+        }
+
+        self.mustered = exists
     }
 
     fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
@@ -147,36 +174,42 @@ impl Gnome {
 
     fn find_job(&self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<Job> {
         let mut searches: Vec<JobSearchFn> = Vec::new();
-        if self.base.is_tired() {
-            searches.push(job::job_sleep_search);
-        }
-        if self.base.is_hungry() {
-            searches.push(job::job_eat_search);
-        }
-        if self.base.items.len() > 0 {
-            searches.push(job::job_drop_search);
-        }
-        if self.base.items.len() < item::ITEM_CARRY_MAX {
-            searches.push(job::job_haul_search);
-        }
+        searches.push(job::job_idle_search);
+        if !self.mustered {
+            if self.base.is_tired() {
+                searches.push(job::job_sleep_search);
+            }
+            if self.base.is_hungry() {
+                searches.push(job::job_eat_search);
+            }
+            if self.base.items.len() > 0 {
+                searches.push(job::job_drop_search);
+            }
+            if self.base.items.len() < item::ITEM_CARRY_MAX {
+                searches.push(job::job_haul_search);
+            }
 
-        let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX
-            && match self.profession {
-                // fighting needs special stuff IDK
-                GnomeProfession::FIGHTING => false,
-                _ => true,
-            };
+            let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
 
-        if !skip_search {
-            searches.push(match self.profession {
-                GnomeProfession::NONE => job::job_any_search,
-                GnomeProfession::CRAFTING => job::job_craft_search,
-                GnomeProfession::BUILDING => job::job_build_search,
-                GnomeProfession::MINING => job::job_mine_search,
-                GnomeProfession::FARMING => job::job_farm_search,
-                GnomeProfession::FIGHTING => job::job_fight_search,
-                GnomeProfession::CHILDING => job::job_child_search,
-            });
+            if !skip_search {
+                searches.push(match self.profession {
+                    GnomeProfession::NONE => job::job_any_search,
+                    GnomeProfession::CRAFTING => job::job_craft_search,
+                    GnomeProfession::BUILDING => job::job_build_search,
+                    GnomeProfession::MINING => job::job_mine_search,
+                    GnomeProfession::FARMING => job::job_farm_search,
+                    GnomeProfession::FIGHTING => job::job_fight_search,
+                    GnomeProfession::CHILDING => job::job_child_search,
+                });
+            }
+        } else {
+            // mustered jobs
+            if self.profession == GnomeProfession::FIGHTING {
+                searches.push(
+                    job::job_fight_search, // } else {
+                                           // job::job_idle_search
+                );
+            }
         }
 
         grid.find_job(&self.base, &mut game_ctx.events, &searches)
@@ -272,7 +305,8 @@ impl EntityBehaviour for Gnome {
             return None;
         }
 
-        if self.base.tired == 0 {
+        // just don't pass out if we're fighting for now I guess...
+        if self.base.tired == 0 && self.profession != GnomeProfession::FIGHTING {
             // pass out on the spot
             // TODO: Some kind of indicator to the player that this is happening and bad...
             self.base.tired += super::SLEEP_RESTORED;
