@@ -82,6 +82,10 @@ impl Items {
         self.get_content(&self.get_id(name)?)
     }
 
+    pub fn iter(&self) -> std::collections::hash_map::Iter<'_, u32, ItemInfo> {
+        self.infos.iter()
+    }
+
     pub async fn load(&mut self) {
         // load new stuff
         let ron_str = macroquad::file::load_file("assets/data/items.ron")

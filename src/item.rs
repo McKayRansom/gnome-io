@@ -11,11 +11,13 @@ pub const ITEM_NONE: ItemId = 0;
 pub const ITEM_CARRY_MAX: usize = 4;
 pub const ITEM_STORE_MAX: usize = 16;
 
+pub type Recipe = (String, Vec<ItemId>);
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct ItemInfo {
     pub name: String,
     pub sprite: String,
-    pub recipe: Option<(String, Vec<ItemId>)>,
+    pub recipe: Option<Recipe>,
     pub flags: ItemInfoFlags,
 }
 

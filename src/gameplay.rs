@@ -33,6 +33,7 @@ pub enum GameAction {
     Mine,
     Build,
     Farm,
+    Craft,
     Cancel,
 }
 
@@ -63,6 +64,7 @@ pub struct Gameplay {
     pause_menu: Menu<PauseMenuSelect>,
     console: DebugConsole,
     labor: Labor,
+    craft_menu: bool,
 }
 
 pub enum GameEvent {
@@ -99,7 +101,8 @@ impl Gameplay {
                     ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', "mine".into()),
                     ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
                     ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
-                    ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '4', "cancel".into()),
+                    ToolbarItem::new(GameAction::Craft, "Craft stuff", '4', "craft_table".into()),
+                    ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '5', "cancel".into()),
                 ],
             ),
             build_toolbar: Toolbar::new(
@@ -141,6 +144,7 @@ impl Gameplay {
             ]),
             console: DebugConsole::new(),
             labor: Labor::default(),
+            craft_menu: false,
         }
     }
 
@@ -368,36 +372,6 @@ impl Gameplay {
             .ui(&mut root_ui(), |ui| {
                 let tile = self.game.grid.get_tile(draw_details_pos).unwrap();
 
-                // remove workshop menu for now...
-                // let workshops: Vec<BlockId> = vec![CRAFT_TABLE_ID, FURNACE_ID];
-                // if tile
-                //     .get_block()
-                //     .is_some_and(|block| workshops.contains(&block))
-                // {
-                //     let workshop_block = tile.get_block().unwrap();
-                //     // show recipes instead
-                //     for (item_id, item) in self.game.game_ctx.items.iter_items() {
-                //         if item
-                //             .recipe
-                //             .as_ref()
-                //             .is_some_and(|recipe| recipe.0 == workshop_block)
-                //         {
-                //             if ui.button(None, format!("{:?}", item.name).as_str()) {
-                //                 // make this recipe!
-                //                 JobManager::create_job(
-                //                     &mut self.game.grid,
-                //                     &mut self.game.game_ctx.events,
-                //                     Job::new(
-                //                         draw_details_pos,
-                //                         CRAFTING_TIME,
-                //                         Some(Content::Item(*item_id)),
-                //                         item.recipe.as_ref().unwrap().1.clone(),
-                //                     ),
-                //                 );
-                //             }
-                //         }
-                //     }
-                // } else {pos
                 for content in tile.iter_content() {
                     ui.label(
                         None,
@@ -441,6 +415,27 @@ impl Gameplay {
             }
         }
 
+        if self.craft_menu {
+            let size = Vec2::new(200., 200.);
+            Window::new(hash!(), size, size)
+                .titlebar(false)
+                .movable(false)
+                .ui(&mut root_ui(), |ui| {
+                    // show recipes instead
+                    for (item_id, item) in self.game.game_ctx.items.iter() {
+                        if let Some(recipe) = &item.recipe {
+                            if ui.button(None, format!("{:?}", item.name).as_str()) {
+                                self.game.job_manager.craft_manager.order(
+                                    *item_id,
+                                    recipe,
+                                    &self.game.game_ctx,
+                                );
+                            }
+                        }
+                    }
+                });
+        }
+
         // draw this first so mouseover works
         self.labor.draw_labor(&mut self.game, ctx);
 
@@ -468,6 +463,7 @@ impl Gameplay {
                                     }
                                 }
                                 GameAction::Farm => self.game.farm(pos),
+                                GameAction::Craft => self.craft_menu = !self.craft_menu,
                                 GameAction::Cancel => self.game.cancel(pos),
                             }
                         } else {

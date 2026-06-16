@@ -22,7 +22,7 @@
         "chest",
     ],
     [
-        "",
+        "picaxe",
         "stone_floor",
         "wood",
         "tree_0",
@@ -56,7 +56,7 @@
         "fight",
         "stone_item",
         "ore_item",
-        "_solider",
+        "sword",
         "goblin",
         "metal",
         "grain",

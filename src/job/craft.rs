@@ -8,7 +8,7 @@ use crate::{
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
-    item::ItemId,
+    item::{ItemId, Recipe},
     job::JobType,
     tile::Content,
 };
@@ -62,66 +62,116 @@ pub fn craft(
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
+pub struct CraftOrder {
+    item: ItemId,
+    count: usize,
+    // TODO: in-progress...
+    standing: bool,
+}
+
+enum CraftOrderUpdate {
+    CRAFT,
+    NONE,
+    FINISHED,
+}
+
+impl CraftOrder {
+    fn update(&self, grid: &Grid) -> CraftOrderUpdate {
+        if self.standing {
+            if grid
+                .stocks
+                .get(&self.item)
+                .is_none_or(|stock| *stock < self.count)
+            {
+                CraftOrderUpdate::CRAFT
+            } else {
+                CraftOrderUpdate::NONE
+            }
+        } else if self.count > 0 {
+            CraftOrderUpdate::CRAFT
+        } else {
+            CraftOrderUpdate::FINISHED
+        }
+    }
+}
+
+#[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftManager {
-    // TODO:HASHMAP
+    // TODO:HASHMAP??
     pub workshop_pos: Vec<Pos>,
-    standing_orders: Vec<(ItemId, usize)>,
+    #[serde(skip_deserializing, skip_serializing)]
+    orders: Vec<CraftOrder>,
     #[serde(skip_deserializing, skip_serializing)]
     workshop_block_ids: Vec<BlockId>,
 }
 
 impl CraftManager {
-    pub(crate) fn load_ctx(&mut self, game_ctx: &mut GameCtx) {
+    pub(crate) fn load_ctx(&mut self, game_ctx: &GameCtx) {
         // game_ctx.events.add_event_class("craft");
-        if self.standing_orders.is_empty() {
+        if self.orders.is_empty() {
             // default standing orders
-            self.standing_orders
-                .push((game_ctx.items.get_id("bread").unwrap(), 16));
+            self.orders.push(CraftOrder {
+                item: game_ctx.items.get_id("bread").unwrap(),
+                count: 16,
+                standing: true,
+            });
         }
         self.workshop_block_ids
             .push(game_ctx.blocks.get_id("furnace").unwrap())
     }
 
+    pub fn order(&mut self, item: ItemId, _recipe: &Recipe, _game_ctx: &GameCtx) {
+        self.orders.insert(
+            0,
+            CraftOrder {
+                item: item,
+                count: 1,
+                standing: false,
+            },
+        );
+    }
+
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         // spawn at the first one for now...
-        for (item_id, quantity) in &self.standing_orders {
-            if grid
-                .stocks
-                .get(item_id)
-                .is_none_or(|stock| *stock < *quantity)
-            {
-                // lookup recipe
-                let (workshop, requires) = game_ctx
-                    .items
-                    .get_info(item_id)
-                    .expect("Standing order for unknown item")
-                    .recipe
-                    .as_ref()
-                    .expect("Standing order for uncraftable item");
+        self.orders.retain(|order| {
+            match order.update(grid) {
+                CraftOrderUpdate::CRAFT => {
+                    // lookup recipe
+                    let (workshop, requires) = game_ctx
+                        .items
+                        .get_info(&order.item)
+                        .expect("Standing order for unknown item")
+                        .recipe
+                        .as_ref()
+                        .expect("Standing order for uncraftable item");
 
-                let workshop_block_id = game_ctx
-                    .blocks
-                    .get_id(workshop)
-                    .expect("Recipe has invalid workshop name!");
+                    let workshop_block_id = game_ctx
+                        .blocks
+                        .get_id(workshop)
+                        .expect("Recipe has invalid workshop name!");
 
-                // for now, until we implement minimums don't take all there is
-                if requires.iter().any(|item| {
-                    grid.stocks
-                        .get(item)
-                        .is_none_or(|stock| *stock < *quantity / 2)
-                }) {
-                    // wish we could log here...
-                    continue;
-                }
-
-                // TODO: Only search for workshops with our ID
-                if let Some(pos) = self.workshop_pos.first() {
-                    if grid.get_tile(*pos).unwrap().get_job().is_none() {
-                        craft(grid, *pos, workshop_block_id, *item_id, game_ctx);
+                    // for now, until we implement minimums don't take all there is
+                    if requires.iter().any(|item| {
+                        grid.stocks
+                            .get(item)
+                            .is_none_or(|stock| *stock < order.count / 2)
+                    }) {
+                        // wish we could log here...
+                        return false;
                     }
+
+                    // TODO: Only search for workshops with our ID
+                    if let Some(pos) = self.workshop_pos.first() {
+                        if grid.get_tile(*pos).unwrap().get_job().is_none() {
+                            craft(grid, *pos, workshop_block_id, order.item, game_ctx);
+                        }
+                    }
+                    true
                 }
+                CraftOrderUpdate::FINISHED => false,
+                CraftOrderUpdate::NONE => true,
             }
-        }
+        });
 
         while let Some(event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             match event.value {

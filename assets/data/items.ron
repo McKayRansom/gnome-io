@@ -30,6 +30,14 @@
         // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
         recipe: Some(("furnace", ["grain", "coal_item"])),
     ),
+    "sword": (
+        id: 301,
+        recipe: Some(("furnace", ["ore_item", "coal_item"])),
+    ),
+    "picaxe": (
+        id: 302,
+        recipe: Some(("furnace", ["ore_item", "coal_item"])),
+    ),
 
     // other
     "dead_gnome": (

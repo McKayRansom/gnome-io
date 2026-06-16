@@ -92,7 +92,7 @@ Key Decisions to make:
 - [x] Make spring planting window important, slow plant growth, make take longer, etc...
 - [ ] Fix combat
   - [x] Don't sleep during combat
-  - [ ] Soldier muster
+  - [x] Soldier muster
 - [ ] Fix coal chokepoint...
 - [ ] Fix job dependencies??
 - [ ] Make jobs longer
