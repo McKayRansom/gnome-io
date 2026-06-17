@@ -249,7 +249,7 @@ impl Gameplay {
 
         // debug console commands typed into stdin
         while let Some(cmd) = self.console.poll() {
-            if let Some(e) = self.game.run_debug_command(&cmd) {
+            if let Some(e) = self.game.run_debug_command(&cmd, self.draw_details_pos) {
                 event = Some(e);
             }
         }

@@ -110,11 +110,11 @@ impl CraftManager {
         // game_ctx.events.add_event_class("craft");
         if self.orders.is_empty() {
             // default standing orders
-            self.orders.push(CraftOrder {
-                item: game_ctx.items.get_id("bread").unwrap(),
-                count: 16,
-                standing: true,
-            });
+            // self.orders.push(CraftOrder {
+            //     item: game_ctx.items.get_id("bread").unwrap(),
+            //     count: 16,
+            //     standing: true,
+            // });
         }
         self.workshop_block_ids
             .push(game_ctx.blocks.get_id("furnace").unwrap())

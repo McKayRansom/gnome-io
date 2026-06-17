@@ -216,6 +216,7 @@ fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
         entity::gnome::GnomeStatus::FIGHTING => "gnome",
     };
     ctx.tileset.draw_tile_ex(sprite, colors::WHITE, &dest, flip);
+    draw_items(game_ctx, ctx, &gnome.base.equipment, &dest, 0.0);
 
     match gnome.status {
         entity::gnome::GnomeStatus::NONE => {

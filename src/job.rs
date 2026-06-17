@@ -63,6 +63,7 @@ pub struct Job {
     pub category: JobType,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
 enum Flow {
     // Run next step immediatly
     Next,
@@ -80,21 +81,20 @@ enum Flow {
 pub enum Step {
     // Find content and get it into inventory
     Acquire(Vec<ContentItem>),
+    // Find equipment if possible
+    Equip(Vec<ContentItem>),
     // Go to position or as close as possible
     Goto(Pos),
     /// Functions like a Goto, but for entities that can move, so we will dynamically adjust the job position
     Approach(ContentEntity),
     // Generic Delay
-    Work(Tick),
+    Work(Busy, Tick),
     // Consume content (assumes it is already there, should follow Acquire)
     Consume(Vec<ContentItem>),
     // PlaceBlock/ClearBlock/Spawn item at job pos
     Produce(Content),
     TakeItems,
     StoreCarried,
-    Eat,
-    Sleep,
-    Birth,
     Attack(ContentEntity),
     PushTime((Tick, Event)),
 }
@@ -137,6 +137,34 @@ impl Step {
                 }
                 Flow::Next
             }
+            Step::Equip(required_item) => {
+                for item in required_item {
+                    if actor.equipment().contains(item) {
+                        continue;
+                    }
+                    match grid.find_content(actor.pos(), Content::Item(*item), actor.faction()) {
+                        PathOutcome::Reached(pos) => {
+                            if let Some(item) = grid.take(pos, Content::Item(*item)) {
+                                let Content::Item(item) = item else { panic!() };
+                                actor.equipment().push(item);
+                                log::info!("Take item {:?} from tile", item);
+                            } else {
+                                log::warn!("find_content bug, didn't find content!");
+                            }
+                        }
+                        PathOutcome::Path(path) => {
+                            // log::info!("Acquire seaching for {:?}", item);
+                            return Flow::Walk(path);
+                        }
+                        PathOutcome::NoPath => {
+                            // log::warn!("Unable to find {:?} for job", item);
+                            return Flow::Next;
+                        }
+                    }
+                }
+                Flow::Next
+            }
+
             Step::Goto(pos) => match grid.find_path(actor.pos(), *pos, actor.faction()) {
                 PathOutcome::Reached(reached_pos) => {
                     assert_eq!(reached_pos, *pos);
@@ -170,7 +198,7 @@ impl Step {
                 }
             }
 
-            Step::Work(time) => Flow::Busy(Busy::Wait, *time),
+            Step::Work(busy, time) => Flow::Busy(*busy, *time),
             Step::Consume(requires) => {
                 let inventory = actor.inventory();
                 // could also just make mut, but this is safer
@@ -206,9 +234,6 @@ impl Step {
                 grid.store_items(job_pos, actor.inventory());
                 Flow::Next
             }
-            Step::Eat => Flow::Busy(Busy::Eat, 0),
-            Step::Sleep => Flow::Busy(Busy::Sleep, 0),
-            Step::Birth => Flow::Busy(Busy::Birth, 0),
             Step::Attack(target) => {
                 // we have already verified we are close enough
                 // if we are attacking a faction we need to lookup the exact entity
@@ -241,6 +266,8 @@ pub enum JobType {
     SLEEP,
     // created on-the-fly
     EAT,
+    // haul but if we're full it's higher priority
+    HAULFULL,
     // managed by craft.rs
     CRAFT,
     // managed by farm.rs
@@ -271,12 +298,14 @@ impl JobType {
     }
 }
 
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Busy {
     Wait,
     Eat,
     Sleep,
     Birth,
     Fight,
+    Mine,
 }
 
 pub enum JobStatus {
@@ -289,6 +318,7 @@ pub trait JobActor {
     fn pos(&self) -> Pos;
     fn faction(&self) -> Faction;
     fn inventory(&mut self) -> &mut Vec<ContentItem>;
+    fn equipment(&mut self) -> &mut Vec<ContentItem>;
     fn walk(&mut self, path: Vec<Pos>);
     fn busy(&mut self, kind: Busy, time: Tick);
     fn attack(&mut self, target: EntityId);
@@ -352,13 +382,24 @@ pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     }
 }
 
+pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+    if tile.block_flags().contains(BlockInfoFlags::STORAGE)
+        // && entity.items.len() > 0
+        && tile.item_count() < item::ITEM_STORE_MAX
+    {
+        log::info!("Creating drop-off job");
+        return Some(Job::drop(pos, JobType::HAULFULL));
+    }
+    None
+}
+
 pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::STORAGE)
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
     {
         log::info!("Creating drop-off job");
-        return Some(Job::drop(pos));
+        return Some(Job::drop(pos, JobType::HAUL));
     }
     None
 }
@@ -418,12 +459,12 @@ impl Job {
                 // eat so we have lots of food
                 Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
                 Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
-                Step::Eat,
+                Step::Work(Busy::Eat, 0),
                 // go to bed
                 Step::Goto(pos),
                 // wait (not sleep) (if we pass out it's fine I guess)
-                Step::Work(days(3)),
-                Step::Birth,
+                Step::Work(Busy::Wait, days(3)),
+                Step::Work(Busy::Birth, days(1)),
             ],
             ..Default::default()
         }
@@ -433,7 +474,7 @@ impl Job {
             pos,
             category: JobType::FIGHT,
             steps: vec![
-                // TODO!
+                Step::Equip(vec![(item::ITEM_SWORD, ItemInfoFlags::default())]),
                 Step::Approach(entity),
                 Step::Attack(entity),
             ],
@@ -445,7 +486,7 @@ impl Job {
         Job {
             pos,
             category: JobType::SLEEP,
-            steps: vec![Step::Goto(pos), Step::Sleep],
+            steps: vec![Step::Goto(pos), Step::Work(Busy::Sleep, 0)],
             ..Default::default()
         }
     }
@@ -454,7 +495,7 @@ impl Job {
         Job {
             pos,
             category: JobType::NONE,
-            steps: vec![Step::Goto(pos), Step::Work(hours(2))],
+            steps: vec![Step::Goto(pos), Step::Work(Busy::Wait, hours(2))],
             ..Default::default()
         }
     }
@@ -468,7 +509,7 @@ impl Job {
                 Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
                 // Step::Goto(pos),
                 Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
-                Step::Eat,
+                Step::Work(Busy::Eat, 0),
             ],
             ..Default::default()
         }
@@ -488,7 +529,7 @@ impl Job {
             steps: vec![
                 Step::Acquire(requires.clone()),
                 Step::Goto(pos),
-                Step::Work(time),
+                Step::Work(Busy::Wait, time),
                 Step::Consume(requires),
                 Step::Produce(Content::Block(active_block)),
                 Step::PushTime((delay_time, event)),
@@ -511,7 +552,7 @@ impl Job {
             steps: vec![
                 Step::Acquire(requires.clone()),
                 Step::Goto(pos),
-                Step::Work(time),
+                Step::Work(Busy::Wait, time),
                 Step::Consume(requires),
                 Step::Produce(Content::Block(block)),
             ],
@@ -524,8 +565,9 @@ impl Job {
             pos,
             category: job_type,
             steps: vec![
+                Step::Equip(vec![(item::ITEM_PICAXE, ItemInfoFlags::default())]),
                 Step::Goto(pos),
-                Step::Work(time),
+                Step::Work(Busy::Mine, time),
                 Step::Produce(Content::Block((BLOCK_NONE, BlockInfoFlags::default()))),
                 Step::TakeItems,
             ],
@@ -542,10 +584,10 @@ impl Job {
         }
     }
 
-    pub fn drop(pos: Pos) -> Self {
+    pub fn drop(pos: Pos, category: JobType) -> Self {
         Self {
             pos,
-            category: JobType::DROP,
+            category,
             steps: vec![Step::Goto(pos), Step::StoreCarried],
             ..Default::default()
         }

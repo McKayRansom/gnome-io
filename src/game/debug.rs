@@ -6,6 +6,7 @@ use crate::{
     },
     gameplay::GameEvent,
     grid::Pos,
+    tile::Content,
 };
 
 #[derive(Default)]
@@ -17,7 +18,7 @@ pub struct DebugVars {
 impl Game {
     /// Handle a single debug command line from the console. Returns a
     /// `GameEvent` if the command produces one. Add new commands here.
-    pub fn run_debug_command(&mut self, line: &str) -> Option<GameEvent> {
+    pub fn run_debug_command(&mut self, line: &str, mouse_pos: Option<Pos>) -> Option<GameEvent> {
         let mut parts = line.split_whitespace();
         let cmd = parts.next()?;
         match cmd {
@@ -52,6 +53,25 @@ impl Game {
                     day,
                     season,
                     year,
+                }
+            }
+            "spawn" => {
+                let Some(pos) = mouse_pos else {
+                    log::warn!("No mouse pos to spawn");
+                    return None;
+                };
+                let which = parts.next().unwrap_or("");
+
+                match which {
+                    "item" => {
+                        let item = parts.next().unwrap_or("");
+                        let Some(item) = self.game_ctx.items.get_content_name(item) else {
+                            log::warn!("No item '{}' to spawn", item);
+                            return None;
+                        };
+                        self.grid.create(pos, Content::Item(item));
+                    }
+                    _ => {}
                 }
             }
             // "events" => {

@@ -113,7 +113,11 @@ impl Gnome {
         grid: &mut Grid,
         events: &mut EventManager,
     ) {
+        if self.profession == profession {
+            return;
+        }
         self.profession = profession;
+        grid.dump_items(self.base.pos, &mut self.base.equipment);
         // cancel job???
         if let Some(job) = &self.job {
             let should_cancel = profession != GnomeProfession::NONE
@@ -131,6 +135,7 @@ impl Gnome {
                     job::JobType::CHILD => profession != GnomeProfession::CHILDING,
                     // always cancel, see if we can find a higher priority job...
                     job::JobType::HAUL => true,
+                    job::JobType::HAULFULL => true,
                     job::JobType::DROP => true,
                     job::JobType::NONE => true,
                 };
@@ -182,26 +187,28 @@ impl Gnome {
             if self.base.is_hungry() {
                 searches.push(job::job_eat_search);
             }
-            if self.base.items.len() > 0 {
+            if self.base.items.len() >= item::ITEM_CARRY_MAX {
+                searches.push(job::job_drop_full_search);
+            } else if self.base.items.len() > 0 {
                 searches.push(job::job_drop_search);
             }
             if self.base.items.len() < item::ITEM_CARRY_MAX {
                 searches.push(job::job_haul_search);
             }
 
-            let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
+            // let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
 
-            if !skip_search {
-                searches.push(match self.profession {
-                    GnomeProfession::NONE => job::job_any_search,
-                    GnomeProfession::CRAFTING => job::job_craft_search,
-                    GnomeProfession::BUILDING => job::job_build_search,
-                    GnomeProfession::MINING => job::job_mine_search,
-                    GnomeProfession::FARMING => job::job_farm_search,
-                    GnomeProfession::FIGHTING => job::job_fight_search,
-                    GnomeProfession::CHILDING => job::job_child_search,
-                });
-            }
+            // if !skip_search {
+            searches.push(match self.profession {
+                GnomeProfession::NONE => job::job_any_search,
+                GnomeProfession::CRAFTING => job::job_craft_search,
+                GnomeProfession::BUILDING => job::job_build_search,
+                GnomeProfession::MINING => job::job_mine_search,
+                GnomeProfession::FARMING => job::job_farm_search,
+                GnomeProfession::FIGHTING => job::job_fight_search,
+                GnomeProfession::CHILDING => job::job_child_search,
+            });
+            // }
         } else {
             // mustered jobs
             if self.profession == GnomeProfession::FIGHTING {
@@ -225,6 +232,9 @@ impl JobActor for Gnome {
     }
     fn inventory(&mut self) -> &mut Vec<ContentItem> {
         &mut self.base.items
+    }
+    fn equipment(&mut self) -> &mut Vec<ContentItem> {
+        &mut self.base.equipment
     }
     fn walk(&mut self, path: Vec<Pos>) {
         self.path = path;
@@ -254,7 +264,26 @@ impl JobActor for Gnome {
             }
             Busy::Fight => {
                 self.status = GnomeStatus::FIGHTING;
-                self.base.timer = super::FIGHT_TIME;
+                if self
+                    .base
+                    .equipment
+                    .contains(&(item::ITEM_SWORD, ItemInfoFlags::default()))
+                {
+                    self.base.timer = super::FIGHT_TIME_SWORD;
+                } else {
+                    self.base.timer = super::FIGHT_TIME;
+                }
+            }
+            Busy::Mine => {
+                if self
+                    .base
+                    .equipment
+                    .contains(&(item::ITEM_PICAXE, ItemInfoFlags::default()))
+                {
+                    self.base.timer = time / 2;
+                } else {
+                    self.base.timer = time;
+                }
             }
         }
     }

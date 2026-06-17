@@ -93,6 +93,8 @@ pub struct BaseEntity {
 
     pub timer: Tick,
     pub items: Vec<ContentItem>,
+    #[serde(default)]
+    pub equipment: Vec<ContentItem>,
 }
 
 // move times
@@ -133,6 +135,7 @@ const INJURED_HEALTH: Health = 5;
 
 // fight
 const FIGHT_TIME: Tick = hours(1);
+const FIGHT_TIME_SWORD: Tick = hours(1) / 2;
 
 impl Default for BaseEntity {
     fn default() -> Self {
@@ -148,6 +151,7 @@ impl Default for BaseEntity {
             health: BASE_HEALTH,
             timer: 0,
             items: Vec::new(),
+            equipment: Vec::new(),
         }
     }
 }
@@ -156,7 +160,8 @@ impl BaseEntity {
     pub fn die(&mut self, grid: &mut Grid) {
         grid.entity_exit(self.pos, (self.faction, self.id));
         // MUST drop items to not screw up stocks
-        grid.store_items(self.pos, &mut self.items);
+        grid.dump_items(self.pos, &mut self.items);
+        grid.dump_items(self.pos, &mut self.equipment);
     }
 
     pub fn attacked(&mut self) {

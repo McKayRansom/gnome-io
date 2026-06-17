@@ -204,7 +204,12 @@ impl Grid {
             .remove(&Content::Entity(id));
     }
 
-    pub fn entity_move(&mut self, id: (Faction, EntityId), start: Pos, end: Pos) -> Option<(Pos, bool)> {
+    pub fn entity_move(
+        &mut self,
+        id: (Faction, EntityId),
+        start: Pos,
+        end: Pos,
+    ) -> Option<(Pos, bool)> {
         let tile = self.get_tile(end)?;
         if !tile.is_passable(id.0) {
             return None;
@@ -271,6 +276,18 @@ impl Grid {
                     true
                 }
             });
+            tile.modified();
+        }
+    }
+
+    // NOTE: Unsafe, directly modifies tile, and bypasses stocks
+    pub fn dump_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
+        if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
+            for item in items.iter() {
+                tile.contents.push(Content::Item(*item));
+                log::info!("Dumping {:?}", item);
+            }
+            items.clear();
             tile.modified();
         }
     }

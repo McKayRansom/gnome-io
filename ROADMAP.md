@@ -46,7 +46,7 @@ Key Decisions to make:
   - I really want something visual, and I don't want spreadsheets
   - Can we please avoid creating own professions? Base ones could somehow be good enough?
 
-- [ ] Re-enable stakes
+- [x] Re-enable stakes
   - [x] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
     -[x] Fix eating wacking out
   - [x] Fix plants/farming ([grid.rs:349](src/grid.rs#L349))
@@ -55,17 +55,17 @@ Key Decisions to make:
   - [x] Fix indicators
     - [x] Need some kind of indicator that a tile is farmed...
     - [x] Better job indicators
-    - [ ] Make farm/craft indicator less obnoxious...
+    - [x] Make farm/craft indicator less obnoxious...
   - [x] Wire goblins back into generation + combat into the gnome update loop, as periodic raids.
     - [x] WINTER IS COMING!
   - [x] Fix bread/crafting?
   - [x] Add snow/winter for real
     - [x] kill plants
     - [x] Moves slow?
-- [ ] Create attack/flee logic
+- [x] Create attack/flee logic
     - [x] Create attack job and fix many, many bugs
     - [x] Make enemy entities unpathable (for fights and for doors...)
-    - [ ] Create flee job when it makes sense to do so
+    - [x] Create flee job when it makes sense to do so
     - [x] Add grave blocks
 - [x] Create parrenting logic
 - [ ] Professions/labor allocations
@@ -77,7 +77,7 @@ Key Decisions to make:
     - [ ] Show open jobs
     - [ ] Fix stocks UI while we're there
 - [ ] Create tools OR some other way to allocate resources to enhance one profession (forces more choices...)
-  - [ ] Fix ore-gen and add ore/metal blocks/items/recipes
+  - [x] Fix ore-gen and add ore/metal blocks/items/recipes
   - [ ] Add equipment item enum/attribute
   - [ ] Add sprites/drawing
   - [ ] Make required for profession and/or jobs
@@ -93,6 +93,7 @@ Key Decisions to make:
 - [ ] Fix combat
   - [x] Don't sleep during combat
   - [x] Soldier muster
+  - [ ] Add soldier orders: Defend/Attack for now...
 - [ ] Fix coal chokepoint...
 - [ ] Fix job dependencies??
 - [ ] Make jobs longer

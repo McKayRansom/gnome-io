@@ -78,8 +78,15 @@ pub struct Tile {
 // We don't want flags to be serialized, they should be modifyable...
 #[derive(Serialize, Deserialize)]
 struct TileRepr {
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
     contents: Vec<TileReprContents>,
+    #[serde(default, skip_serializing_if = "is_default")]
     biome: TileBiome,
+}
+
+// helper function to find default value
+fn is_default<T: Default + PartialEq>(value: &T) -> bool {
+    value == &T::default()
 }
 
 #[derive(Serialize, Deserialize)]

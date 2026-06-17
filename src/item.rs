@@ -8,6 +8,9 @@ pub type ItemId = u32;
 
 pub const ITEM_NONE: ItemId = 0;
 
+pub const ITEM_SWORD: ItemId = 301;
+pub const ITEM_PICAXE: ItemId = 302;
+
 pub const ITEM_CARRY_MAX: usize = 4;
 pub const ITEM_STORE_MAX: usize = 16;
 
