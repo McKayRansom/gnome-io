@@ -2,12 +2,12 @@
 // use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::{BaseEntity, EntityAction, EntityBehaviour, EntityId, Faction},
+    entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
     event::EventManager,
     game::{GameCtx, Tick, time::hours},
     grid::{Grid, Pos, path::JobSearchFn},
     item::{self, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobManager, JobStatus, JobType},
+    job::{self, Busy, Job, JobActor, JobManager, JobStatus},
     tile::{Content, ContentItem},
 };
 
@@ -140,28 +140,37 @@ impl Gnome {
                     job::JobType::NONE => true,
                 };
             if should_cancel {
-                log::info!("Canceling job {:?}", job.category);
-                JobManager::reset_job(grid, events, job);
-                self.job = None;
+                self.cancel_job(grid, events);
+            }
+        }
+    }
+
+    fn cancel_job(&mut self, grid: &mut Grid, events: &mut EventManager) {
+        if let Some(job) = &self.job {
+            log::info!("Canceling job {:?}", job.category);
+            JobManager::reset_job(grid, events, job);
+            self.job = None;
+            // wake from sleep and cancel most jobs...
+            if !self.base.moving() {
+                self.base.timer = self.base.timer % DEFAULT_SPEED;
             }
         }
     }
 
     pub(crate) fn set_muster(&mut self, exists: bool, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        // cancel job
-        if let Some(job) = &self.job {
-            if job.category != JobType::FIGHT {
-                log::info!("Canceling job {:?}", job.category);
-                JobManager::reset_job(grid, &mut game_ctx.events, job);
-                self.job = None;
-            }
-        }
-        // wake from sleep
-        if self.status != GnomeStatus::NONE {
-            self.base.timer = 0;
-        }
+        self.cancel_job(grid, &mut game_ctx.events);
 
         self.mustered = exists
+    }
+
+    // for military gnomes only (for now)
+    pub fn order(&mut self, mut job: Job, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if self.profession != GnomeProfession::FIGHTING {
+            return;
+        }
+        self.cancel_job(grid, &mut game_ctx.events);
+        JobManager::accept_job(grid, &mut game_ctx.events, &mut job);
+        self.job = Some(job);
     }
 
     fn job_update(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<EntityAction> {
@@ -255,6 +264,7 @@ impl JobActor for Gnome {
                 self.base.timer = super::FOOD_EAT_TIME;
             }
             Busy::Sleep => {
+                // TODO: Restore sleep after wake to avoid abuse...
                 self.status = GnomeStatus::SLEEPING;
                 self.base.tired += super::SLEEP_RESTORED;
                 self.base.timer = super::SLEEP_TIME;
@@ -356,7 +366,8 @@ impl EntityBehaviour for Gnome {
 
         // find a new job before we update job
         if self.job.is_none() {
-            if let Some(job) = self.find_job(grid, game_ctx) {
+            if let Some(mut job) = self.find_job(grid, game_ctx) {
+                JobManager::accept_job(grid, &mut game_ctx.events, &mut job);
                 self.job = Some(job);
             }
         }

@@ -6,7 +6,7 @@ use crate::{
     event::{EventManager, raid::RaidManager},
     grid::{Grid, Pos, stocks_verify},
     item::Items,
-    job::{JobManager, build, mine::mine},
+    job::{JobManager, build, fight, mine::mine},
     tile::Content,
 };
 
@@ -163,6 +163,10 @@ impl Game {
 
     pub fn build(&mut self, pos: Pos, block_name: &str) {
         build::build(&mut self.grid, pos, block_name, &mut self.game_ctx);
+    }
+
+    pub fn fight(&mut self, pos: Pos, fight_action: crate::job::fight::FightAction) {
+        fight::fight(&mut self.grid, pos, fight_action, &mut self.game_ctx, &mut self.entities);
     }
 
     pub fn cancel(&mut self, pos: Pos) {

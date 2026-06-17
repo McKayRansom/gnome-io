@@ -10,23 +10,15 @@ use macroquad::{
 };
 
 use crate::{
-    context::Context,
-    debug_console::DebugConsole,
-    draw::{draw_game, draw_tile_outline},
-    entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION},
-    event::{
+    context::Context, debug_console::DebugConsole, draw::{draw_game, draw_tile_outline}, entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION}, event::{
         Events::{self},
         FACTION_EXIST_EVENT, GAME_TIME_EVENT, GAMEPLAY_EVENT,
-    },
-    game::{Game, GameSpeed, time::GameTimeEvent},
-    grid::{Pos, pos::GRID_CELL_SIZE},
-    tile::Content,
-    ui::{
+    }, game::{Game, GameSpeed, time::GameTimeEvent}, grid::{Pos, pos::GRID_CELL_SIZE}, job::fight::FightAction, tile::Content, ui::{
         labor::Labor,
         menu::{Menu, MenuItem},
         popup::{Popup, PopupResult},
         toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
-    },
+    }
 };
 
 pub enum GameAction {
@@ -34,6 +26,7 @@ pub enum GameAction {
     Build,
     Farm,
     Craft,
+    Fight,
     Cancel,
 }
 
@@ -59,6 +52,7 @@ pub struct Gameplay {
     draw_details_pos: Option<Pos>,
     action_toolbar: Toolbar<GameAction>,
     build_toolbar: Toolbar<&'static str>,
+    fight_toolbar: Toolbar<FightAction>,
     time_select: Toolbar<TimeSelect>,
     popup: Option<Popup>,
     pause_menu: Menu<PauseMenuSelect>,
@@ -102,6 +96,7 @@ impl Gameplay {
                     ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
                     ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
                     ToolbarItem::new(GameAction::Craft, "Craft stuff", '4', "craft_table".into()),
+                    ToolbarItem::new(GameAction::Fight, "Fight stuff", '4', "fight".into()),
                     ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '5', "cancel".into()),
                 ],
             ),
@@ -117,6 +112,14 @@ impl Gameplay {
                     ToolbarItem::new("furnace", "Furnace", '5', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '6', "bed".into()),
                     ToolbarItem::new("gravestone", "grave", '7', "gravestone".into()),
+                ],
+            ),
+            fight_toolbar: Toolbar::new(
+                crate::ui::toolbar::ToolbarType::Horizontal,
+                vec![
+                    ToolbarItem::new(FightAction::Attack, "Attack", '1', "fight".into()),
+                    ToolbarItem::new(FightAction::Defend, "Defend", '2', "stone_wall".into()),
+                    ToolbarItem::new(FightAction::Watch, "Watch", '3', "bed".into()),
                 ],
             ),
             time_select: Toolbar::new(
@@ -299,13 +302,25 @@ impl Gameplay {
             ctx.screen_size.y - TOOLBAR_SPACE,
         );
 
-        if matches!(self.action_toolbar.get_selected(), Some(GameAction::Build)) {
-            ctx.key_pressed = game_action_key;
-            self.build_toolbar.draw(
-                ctx,
-                ctx.screen_size.x / 2.0,
-                ctx.screen_size.y - TOOLBAR_SPACE * 2.,
-            );
+        // if matches!(self.action_toolbar.get_selected(), Some(GameAction::Build)) {
+        match self.action_toolbar.get_selected() {
+            Some(GameAction::Build) => {
+                ctx.key_pressed = game_action_key;
+                self.build_toolbar.draw(
+                    ctx,
+                    ctx.screen_size.x / 2.0,
+                    ctx.screen_size.y - TOOLBAR_SPACE * 2.,
+                );
+            }
+            Some(GameAction::Fight) => {
+                ctx.key_pressed = game_action_key;
+                self.fight_toolbar.draw(
+                    ctx,
+                    ctx.screen_size.x / 2.0,
+                    ctx.screen_size.y - TOOLBAR_SPACE * 2.,
+                );
+            }
+            _ => {}
         }
 
         self.time_select
@@ -464,6 +479,9 @@ impl Gameplay {
                                 }
                                 GameAction::Farm => self.game.farm(pos),
                                 GameAction::Craft => self.craft_menu = !self.craft_menu,
+                                GameAction::Fight => if let Some(fight_action) = self.fight_toolbar.get_selected() {
+                                    self.game.fight(pos, *fight_action)
+                                }
                                 GameAction::Cancel => self.game.cancel(pos),
                             }
                         } else {

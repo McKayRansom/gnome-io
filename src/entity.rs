@@ -185,6 +185,10 @@ impl BaseEntity {
         None
     }
 
+    fn moving(&self) -> bool {
+        self.lag > 0 && self.timer > 0
+    }
+
     fn move_to(&mut self, pos: Pos, speed: Tick, grid: &mut Grid) -> bool {
         if let Some((pos, is_slow)) = grid.entity_move((self.faction, self.id), self.pos, pos) {
             self.dir = self.pos - pos;

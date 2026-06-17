@@ -1,4 +1,10 @@
-use crate::{entity::{BaseEntity, Faction}, event::EventManager, grid::{Grid, Pos}, job::Job, tile::{Content, Tile}};
+use crate::{
+    entity::{BaseEntity, Faction},
+    event::EventManager,
+    grid::{Grid, Pos},
+    job::Job,
+    tile::{Content, Tile},
+};
 
 pub enum PathOutcome {
     Reached(Pos),
@@ -81,9 +87,9 @@ impl Grid {
     }
 
     pub fn find_job(
-        &mut self,
+        &self,
         entity: &BaseEntity,
-        events: &mut EventManager,
+        events: &EventManager,
         searches: &[JobSearchFn],
     ) -> Option<Job> {
         let mut found_job: Option<Job> = None;
@@ -130,14 +136,7 @@ impl Grid {
                 // }
             }
         }
-        if let Some(job) = &mut found_job {
-            job.in_progress = true;
-            if job.id == 0 {
-                job.id = events.add_job(job.clone());
-                self.create(job.pos, Content::Job(job.id));
-            }
-            events.job_in_progress(job);
-        }
+
         found_job
     }
 }

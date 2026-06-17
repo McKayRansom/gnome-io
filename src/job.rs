@@ -18,6 +18,7 @@ use crate::{
 pub mod build;
 pub mod craft;
 pub mod farm;
+pub mod fight;
 pub mod mine;
 pub mod store;
 
@@ -433,9 +434,11 @@ pub fn job_idle_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     }
 }
 
-pub fn job_fight_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
-    tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
-        .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
+pub fn job_fight_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_default_search(pos, tile, events, Some(JobType::FIGHT)).or_else(|| {
+        tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
+            .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
+    })
 }
 
 pub fn job_child_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
@@ -477,6 +480,30 @@ impl Job {
                 Step::Equip(vec![(item::ITEM_SWORD, ItemInfoFlags::default())]),
                 Step::Approach(entity),
                 Step::Attack(entity),
+            ],
+            ..Default::default()
+        }
+    }
+    fn watch(pos: Pos) -> Job {
+        Job {
+            pos,
+            category: JobType::FIGHT,
+            steps: vec![
+                Step::Equip(vec![(item::ITEM_SWORD, ItemInfoFlags::default())]),
+                Step::Goto(pos),
+                Step::Work(Busy::Wait, days(1) / 2),
+            ],
+            ..Default::default()
+        }
+    }
+    fn defend(pos: Pos) -> Job {
+        Job {
+            pos,
+            category: JobType::FIGHT,
+            steps: vec![
+                Step::Equip(vec![(item::ITEM_SWORD, ItemInfoFlags::default())]),
+                Step::Goto(pos),
+                Step::Work(Busy::Wait, days(1) / 2),
             ],
             ..Default::default()
         }
@@ -682,6 +709,15 @@ impl JobManager {
         let pos = job.pos;
         let id = events.add_job(job);
         grid.create(pos, Content::Job(id));
+    }
+
+    pub fn accept_job(grid: &mut Grid, events: &mut EventManager, job: &mut Job) {
+        job.in_progress = true;
+        if job.id == 0 {
+            job.id = events.add_job(job.clone());
+            grid.create(job.pos, Content::Job(job.id));
+        }
+        events.job_in_progress(job);
     }
 
     pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
