@@ -21,7 +21,7 @@ use crate::{
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.entities);
-    draw_managers(&game.job_manager, &game.game_ctx, ctx);
+    draw_managers(&game.job_manager, &game.grid, &game.game_ctx, ctx);
     draw_stocks(&game.grid, &game.game_ctx, ctx);
     draw_status(game, ctx);
 }
@@ -275,7 +275,7 @@ pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     // }
 }
 
-fn draw_managers(manager: &JobManager, _game_ctx: &GameCtx, ctx: &Context) {
+fn draw_managers(manager: &JobManager, grid: &Grid, _game_ctx: &GameCtx, ctx: &Context) {
     for (pos, _) in manager.snow_manager.snow.iter() {
         // could also interpolate
         let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
@@ -283,7 +283,17 @@ fn draw_managers(manager: &JobManager, _game_ctx: &GameCtx, ctx: &Context) {
     }
     for (pos, _) in manager.farm_manager.farm_pos.iter() {
         let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
-        ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
+        // ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
+        let non_farm_dirs: Vec<&Pos> = dirs::ALL
+            .iter()
+            .filter(|dir| !manager.farm_manager.farm_pos.contains_key(&(*pos + **dir)))
+            .collect();
+
+        for dir in non_farm_dirs {
+            ctx.tileset
+                .draw_tile_rot("farm_pos", colors::WHITE, &rect, dirs::to_radians(*dir));
+        }
+        // }
     }
     // NOTE: We could switch to drawing furnace_active here...
     for pos in manager.craft_manager.workshop_pos.iter() {

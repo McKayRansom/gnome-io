@@ -22,15 +22,15 @@ const SNOW_BLOCK_ID: BlockId = 103;
 
 impl SnowManager {
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
-        // if game_time.season == Season::Winter {
-        // spawn some snow
-        // for _ in 0..((SNOW_SPAWN_PER_256_TILES * grid.size.x as usize) / 256) {
-        let pos: Pos = (rand::gen_range(0, grid.size.x * 8), 0).into();
-        if pos.x < grid.size.x {
-            self.snow.insert(pos, SNOW_FALL_TIME);
+        if game_ctx.time.season == Season::Winter {
+            // spawn some snow
+            // for _ in 0..((SNOW_SPAWN_PER_256_TILES * grid.size.x as usize) / 256) {
+            let pos: Pos = (rand::gen_range(0, grid.size.x * 8), 0).into();
+            if pos.x < grid.size.x {
+                self.snow.insert(pos, SNOW_FALL_TIME);
+            }
+            // }
         }
-        // }
-        // }
 
         // update the snow
         let mut to_remove: Vec<Pos> = Vec::new();
@@ -53,7 +53,7 @@ impl SnowManager {
                                         // remove without dropping...
                                         grid.destroy_block(next_pos, game_ctx);
                                     } else if block != SNOW_BLOCK_ID {
-                                        // 
+                                        //
                                         grid.place_block(*pos, SNOW_BLOCK_ID, game_ctx);
                                     }
                                 }

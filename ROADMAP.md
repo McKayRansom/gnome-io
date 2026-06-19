@@ -74,14 +74,12 @@ Key Decisions to make:
   - [x] Create proffesions UI
     - [x] Draw status
     - [x] Allocate gnomes
-    - [ ] Show open jobs
-    - [ ] Fix stocks UI while we're there
-- [ ] Create tools OR some other way to allocate resources to enhance one profession (forces more choices...)
+- [x] Create tools OR some other way to allocate resources to enhance one profession (forces more choices...)
   - [x] Fix ore-gen and add ore/metal blocks/items/recipes
-  - [ ] Add equipment item enum/attribute
-  - [ ] Add sprites/drawing
-  - [ ] Make required for profession and/or jobs
-  - [ ] Picaxe/hoe/armor/etc...
+  - [x] Add equipment item enum/attribute
+  - [x] Add sprites/drawing
+  - [x] Make required for profession and/or jobs
+  - [x] Picaxe/hoe/armor/etc...
 - [ ] Add sunlight to tiles
   - [ ] use this to drive plant growth
   - [ ] use for drawing tile color
@@ -93,10 +91,10 @@ Key Decisions to make:
 - [ ] Fix combat
   - [x] Don't sleep during combat
   - [x] Soldier muster
-  - [ ] Add soldier orders: Defend/Attack for now...
-- [ ] Fix coal chokepoint...
+  - [x] Add soldier orders: Defend/Attack for now...
+- [x] Fix coal chokepoint...
 - [ ] Fix job dependencies??
-- [ ] Make jobs longer
+- [x] Make jobs longer
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 
@@ -130,6 +128,37 @@ Thoughts:
 - Reward for defeating the goblins???
 - mining is too slow and far away???
 - Some kind of darkness is needed, doesn't feel like underground
+
+Thoughts2:
+- Fix duplicate eat jobs on the same tile
+- Will need to revisit prioritizing local jobs, that does make some sense...
+- Add bread back in? It's hard to grow enough crops...
+- Fix crafting...
+  - add minimums
+  - fix craft job actually finishing
+  - add standing orders to UI
+  - Fix UI activation method
+  - Fix UI in general
+- Goblins drop something... (Goblin stew!!)
+- Fix log spam
+- Add more things to do in winter...
+- Show days until starvation
+- Job queue system
+- Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
+- Add food value, so bread/stew can be worth it
+- Fix fighting:
+  - Add armor
+  - Add running when injured (add injury in general)
+  - Make goblins slightly harder
+  - Fix watches
+  - (Later) add squads
+  - Add goblin path through walls
+- Cancel vs de-designate
+- Add designations (great hall, etc...)
+- Increase scroll speed, fix scrolling to cursor...
+  - Is this already implemented for diff game???
+- (later) add more enimies
+- Fix starvation??? Add indication??
 
 We need a way to store block metadata:
 - Is there a farm here

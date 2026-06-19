@@ -4,6 +4,7 @@ extern crate noise;
 use noise::*;
 
 use crate::{
+    entity::gnome::GNOME_FACTION,
     game::Game,
     grid::{Pos, stocks_verify},
     tile::{Tile, TileBiome},
@@ -117,7 +118,7 @@ impl Game {
         let tree_noise = MyNoise {
             size,
             perlin: noise::Perlin::new(5432),
-            zoom: 150.0,
+            zoom: 40.0,
             max: 1.0,
             min: 0.0,
         };
@@ -125,16 +126,19 @@ impl Game {
 
         // trees
         for x in 0..size.x {
-            let mut pos = Pos::new(x, 0);
-            while grid
-                .get_tile(pos)
-                .is_some_and(|tile| tile.get_block().is_none())
-            {
-                pos.y += 1;
-            }
-            pos.y -= 1;
-            if tree_noise.get(pos) > 0.5 && pos.y as f64 > size.y as f64 * TREE_LINE {
-                grid.place_block(pos, tree_id, &mut self.game_ctx);
+            for y in 0..size.y {
+                let pos = Pos::new(x, y);
+                // while grid
+                //     .get_tile(pos)
+                //     .is_some_and(|tile| tile.get_block().is_none())
+                // {
+                //     pos.y += 1;
+                // }
+                // pos.y -= 1;
+                if grid.get_tile(pos).is_some_and(|tile| !tile.has_block()) && tree_noise.get(pos) > 0.7{
+                    //} && pos.y as f64 > size.y as f64 * TREE_LINE {
+                    grid.place_block(pos, tree_id, &mut self.game_ctx);
+                }
             }
         }
 
@@ -149,10 +153,11 @@ impl Game {
         while self
             .grid
             .get_tile(start_pos)
-            .is_some_and(|tile| !tile.walkable())
+            .is_some_and(|tile| tile.is_passable(GNOME_FACTION))
         {
             start_pos.y += 1;
         }
+        start_pos.y -= 5;
 
         // place chest
         self.gen_block(start_pos, "chest");

@@ -8,7 +8,7 @@ use crate::{
         GameCtx, Tick,
         time::{Season, hours},
     },
-    grid::{Grid, Pos, pos::dirs},
+    grid::{Grid, Pos},
 };
 
 use super::{Job, JobManager};
@@ -90,14 +90,14 @@ impl FarmManager {
         farm_block_id: BlockId,
     ) -> Option<Job> {
         // must be non-solid and have solid beneath (for now)
-        if grid
-            .get_tile(*pos + dirs::DOWN)
-            .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
-        {
-            log::warn!("Farm not supported by something!");
-            // TODO: Remove plants when they are not supported?
-            return None;
-        }
+        // if grid
+        //     .get_tile(*pos + dirs::DOWN)
+        //     .is_none_or(|tile| !tile.block_flags().contains(BlockInfoFlags::SOLID))
+        // {
+        //     log::warn!("Farm not supported by something!");
+        //     // TODO: Remove plants when they are not supported?
+        //     return None;
+        // }
         let tile = grid.get_tile(*pos)?;
         if tile.block_flags().contains(BlockInfoFlags::SOLID) {
             log::warn!("Farm occupied!");

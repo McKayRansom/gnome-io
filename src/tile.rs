@@ -170,7 +170,8 @@ impl Tile {
     }
 
     pub fn walkable(&self) -> bool {
-        self.tile_flags.contains(TileFlags::WALKABLE)
+        // self.tile_flags.contains(TileFlags::WALKABLE)
+        !self.block_flags.contains(BlockInfoFlags::SOLID)
     }
 
     pub fn has_items(&self) -> bool {
