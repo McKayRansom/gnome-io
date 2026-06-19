@@ -2,6 +2,14 @@
 
 # Current epic
 
+# EPIC4: Fortress
+Focus on base-building: Things for the player to do after they survive year 1
+Reasons to build your base:
+- Workshops: to craft things, need significant space (2x2)
+- Rooms: 
+- Trees: 2nd farm chain + wood
+- Defenses: Fix goblin attack + gaurd duties + run away when low
+
 # MVP3: Kingdom
 
 Focus on survival: The player has to allocate resources to:
@@ -9,42 +17,6 @@ Focus on survival: The player has to allocate resources to:
 - military: need enough soldiers/weapons to survive goblin raids (also could be difficult)
 - building: beds/storage/walls/etc...
 - future growth: have kids (more resources but also more manpower?)
-
-So the proffesions would be:
-- farmer: 
-  - 1st harvest fruit
-  - 2nd plant trees
-  - 3rd bake bread ???
-- soldier:
-  - 1st fight enimies
-  - 2nd Stand watch
-- builder
-  - 1st build
-  - 2nd haul
-- parent
-  - 1st tend kids
-  - 2nd have kids
-- miner
-  - 1st mine
-  - 2nd haul?
-- crafter???
-  - 1st bake bread
-  - 2nd craft weapons
-  - 3rd smelt ore
-
-Key Decisions to make:
- - Do gnomes level up? This would shape a lot of the decisions around allocation and personel
-  - If yes: 
-    - Exactly which gnomes are assigned to which task REALLY matters
-    - Need insight into each gnomes' stats
-    - Have to make difficult decisions about highly skilled gnomes
-  - If no:
-    - managment is MUCH easier and more about short-term
-    - no loss in throwing everyone into farming or fighting...
-    - could be good starting ground, and add or experiment with level-up later
- - How are gnomes assigned to professions?
-  - I really want something visual, and I don't want spreadsheets
-  - Can we please avoid creating own professions? Base ones could somehow be good enough?
 
 - [x] Re-enable stakes
   - [x] Fix starvation ([gnome.rs:184-189](src/entity/gnome.rs#L184-L189))
@@ -68,7 +40,7 @@ Key Decisions to make:
     - [x] Create flee job when it makes sense to do so
     - [x] Add grave blocks
 - [x] Create parrenting logic
-- [ ] Professions/labor allocations
+- [x] Professions/labor allocations
   - [x] Add proffesions
     - [x] Auto-assign gnomes for debugging
   - [x] Create proffesions UI
@@ -80,15 +52,12 @@ Key Decisions to make:
   - [x] Add sprites/drawing
   - [x] Make required for profession and/or jobs
   - [x] Picaxe/hoe/armor/etc...
-- [ ] Add sunlight to tiles
-  - [ ] use this to drive plant growth
-  - [ ] use for drawing tile color
-  - [ ] Make underground dark and spookey
+
 - [x] Add sight
   - [x] Use to detect the baddies attacking
 - [x] Fix FARM proffesion
 - [x] Make spring planting window important, slow plant growth, make take longer, etc...
-- [ ] Fix combat
+- [x] Fix combat
   - [x] Don't sleep during combat
   - [x] Soldier muster
   - [x] Add soldier orders: Defend/Attack for now...
@@ -160,36 +129,8 @@ Thoughts2:
 - (later) add more enimies
 - Fix starvation??? Add indication??
 
-We need a way to store block metadata:
-- Is there a farm here
-- Is this furnace WIP, and what does it grow into
-- Is this plant growing and what does it grow into
-
-We can continue to store it in events for now but is this really the best place? 
-Eventually I think there will be static block info that should go somewhere else...
-
-Profession assignment:
-- Columns: Free, farm, soldier, mine, etc...
-  - Shows: 
-    - Available slots for miner/soldier that require armor (so you can't dump every-one into fight/mine/etc... could add option with penalty)
-    - Green for working, Blue for idle, purple # of jobs outstanding (or below?)
-    - left-click to allocate from free pool (forces decisions!)
-    - right-click to move to free pool (deallocate from specicifc task)
-
-Once the colony gets huge, We could switch to 5s of gnomes or a %-based view
-  
-Examples:
-- I look at board, notice that I have 100 outstanding farm jobs, so I move some crafters over to help with the harvest
-  - This is only possible because I have allocated metal to hoes, instead of weapons, giving more food but less military (tradeoffs!)
-- I look at the board and see there are no mining/building jobs outstanding so I go create some
-- I look at the board and see there are no farming jobs and it is till ealy spring, so I add gnomes to that
-- A large goblin attack is incoming, I allocate all the soliders I have and check some sort of box to have gnomes fight unarmed
-  - This has a higher risk of getting gnomes killed, but surviving the attack
-- A single monster attacks, I allocate only a few gnomes to deal with it in heavy armor
-- I decide we can afford to allocate a few gnomes to have children, then are "locked-in" to this role until their kids are raised
-  - This is a semi-permanant decision OR once they are born we could re-alloc?
-
 # Future Epics
+
 Planned items, unplanned go in ICEBOX.md. Roughly in priority order:
 
 ## Polish for first release

@@ -59,6 +59,51 @@ Attack/defend priorities?
 
 Allocate people FTL-style with bars?
 
+Key Decisions to make:
+ - Do gnomes level up? This would shape a lot of the decisions around allocation and personel
+  - If yes: 
+    - Exactly which gnomes are assigned to which task REALLY matters
+    - Need insight into each gnomes' stats
+    - Have to make difficult decisions about highly skilled gnomes
+  - If no:
+    - managment is MUCH easier and more about short-term
+    - no loss in throwing everyone into farming or fighting...
+    - could be good starting ground, and add or experiment with level-up later
+ - How are gnomes assigned to professions?
+  - I really want something visual, and I don't want spreadsheets
+  - Can we please avoid creating own professions? Base ones could somehow be good enough?
+
+We need a way to store block metadata:
+- Is there a farm here
+- Is this furnace WIP, and what does it grow into
+- Is this plant growing and what does it grow into
+
+We can continue to store it in events for now but is this really the best place? 
+Eventually I think there will be static block info that should go somewhere else...
+
+Profession assignment:
+- Columns: Free, farm, soldier, mine, etc...
+  - Shows: 
+    - Available slots for miner/soldier that require armor (so you can't dump every-one into fight/mine/etc... could add option with penalty)
+    - Green for working, Blue for idle, purple # of jobs outstanding (or below?)
+    - left-click to allocate from free pool (forces decisions!)
+    - right-click to move to free pool (deallocate from specicifc task)
+
+Once the colony gets huge, We could switch to 5s of gnomes or a %-based view
+  
+Examples:
+- I look at board, notice that I have 100 outstanding farm jobs, so I move some crafters over to help with the harvest
+  - This is only possible because I have allocated metal to hoes, instead of weapons, giving more food but less military (tradeoffs!)
+- I look at the board and see there are no mining/building jobs outstanding so I go create some
+- I look at the board and see there are no farming jobs and it is till ealy spring, so I add gnomes to that
+- A large goblin attack is incoming, I allocate all the soliders I have and check some sort of box to have gnomes fight unarmed
+  - This has a higher risk of getting gnomes killed, but surviving the attack
+- A single monster attacks, I allocate only a few gnomes to deal with it in heavy armor
+- I decide we can afford to allocate a few gnomes to have children, then are "locked-in" to this role until their kids are raised
+  - This is a semi-permanant decision OR once they are born we could re-alloc?
+
+
+
 ### Decision history
  - Realistic Pixel (Gnomoria) vs Minimalistic Pixel (Gnorp) graphics
   - Decided on Gnorp graphics b/c it looks cuter, is more someting I can do, and goes with the minimalistic theme
