@@ -3,7 +3,8 @@ use crate::{
     entity::{EntityId, Faction},
     event::EventManager,
     game::GameCtx,
-    item::{self, ItemId},
+    grid::stocks::Stocks,
+    item::{self},
     tile::{Content, ContentItem, Tile},
 };
 
@@ -12,14 +13,12 @@ pub mod pos;
 pub mod stocks;
 use macroquad::rand;
 pub use pos::Pos;
-use rustc_hash::FxHashMap;
-
-type Stocks = FxHashMap<ItemId, usize>;
 
 #[derive(serde::Serialize, serde::Deserialize)]
 pub struct Grid {
     pub size: Pos,
     pub cells: Vec<Vec<Tile>>,
+    #[serde(skip_deserializing, skip_serializing)]
     pub stocks: Stocks,
 }
 
@@ -39,7 +38,7 @@ impl Grid {
         Grid {
             size,
             cells,
-            stocks: FxHashMap::default(),
+            stocks: Stocks::default(),
         }
     }
 
@@ -144,7 +143,7 @@ impl Grid {
                                 .expect("Tried to drop invalid item"),
                         ));
                         // Fixup stocks because we are bypassing grid.create()
-                        stocks::stocks_add(&mut self.stocks, *item_id);
+                        self.stocks.add(*item_id);
                     }
                 }
             }
@@ -229,7 +228,7 @@ impl Grid {
         };
         tile.add(content);
         if let Content::Item(item) = content {
-            stocks::stocks_add(&mut self.stocks, item.0);
+            self.stocks.add(item.0);
         }
     }
 

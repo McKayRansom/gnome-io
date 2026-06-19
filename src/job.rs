@@ -10,7 +10,7 @@ use crate::{
         GameCtx, Tick,
         time::{days, hours},
     },
-    grid::{self, Grid, Pos, path::PathOutcome},
+    grid::{Grid, Pos, path::PathOutcome},
     item::{self, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
@@ -210,7 +210,7 @@ impl Step {
                     }) {
                         requires.swap_remove(idx);
                         // make sure we remove the inventory item, as the required item may just be ItemInfoFlags
-                        grid::stocks::stocks_remove(&mut grid.stocks, inventory_item.0);
+                        grid.stocks.remove(inventory_item.0);
                         false
                     } else {
                         true
