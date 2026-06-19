@@ -200,7 +200,7 @@ impl Game {
         let start_pos = self.generate_start_area();
 
         // for debugging purposes, let's make sure of this!
-        stocks_verify(&self.grid.stocks, &self.grid, &self.entities);
+        stocks_verify(&mut self.grid, &self.entities);
 
         start_pos
     }

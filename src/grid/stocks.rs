@@ -1,8 +1,6 @@
 use rustc_hash::FxHashMap;
 
-use crate::{
-    entity::Entities, grid::{Grid}, item::ItemId, tile::Content
-};
+use crate::{entity::Entities, grid::Grid, item::ItemId, tile::Content};
 
 #[derive(Default)]
 pub struct Stocks {
@@ -33,7 +31,8 @@ impl Stocks {
     }
 }
 
-pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
+pub fn stocks_verify(grid: &mut Grid, entities: &Entities) {
+    let stocks = &grid.stocks;
     let mut new_stocks: Stocks = Stocks::default();
     for y in 0..grid.size.y {
         for x in 0..grid.size.x {
@@ -50,28 +49,33 @@ pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
         }
     }
 
-    // check against old
-    for (item, new_value) in new_stocks.stocks.iter() {
-        if stocks
-            .stocks
-            .get(item)
-            .is_none_or(|old_value| old_value != new_value)
-        {
-            log::error!(
-                "Stock mismatch: stock: {} actual: {}",
-                stocks.stocks.get(item).unwrap_or(&0),
-                new_value
-            );
+    if stocks.stocks.len() > 0 {
+        // check against old
+        for (item, new_value) in new_stocks.stocks.iter() {
+            if stocks
+                .stocks
+                .get(item)
+                .is_none_or(|old_value| old_value != new_value)
+            {
+                log::error!(
+                    "Stock mismatch: stock: {} actual: {}",
+                    stocks.stocks.get(item).unwrap_or(&0),
+                    new_value
+                );
+            }
         }
-    }
-    // check for any not in new
-    for key in stocks.stocks.keys() {
-        if !new_stocks.stocks.contains_key(key) && stocks.stocks[key] > 0 {
-            log::error!(
-                "Stock mismatch for '{}': stock: {} actual: 0",
-                key,
-                stocks.stocks.get(key).unwrap()
-            );
+        // check for any not in new
+        for key in stocks.stocks.keys() {
+            if !new_stocks.stocks.contains_key(key) && stocks.stocks[key] > 0 {
+                log::error!(
+                    "Stock mismatch for '{}': stock: {} actual: 0",
+                    key,
+                    stocks.stocks.get(key).unwrap()
+                );
+            }
         }
+    } else {
+        // new stocks, set it up
+        grid.stocks = new_stocks;
     }
 }

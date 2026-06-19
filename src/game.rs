@@ -96,7 +96,7 @@ impl Game {
 
         game.grid.fixup(&game.game_ctx);
 
-        stocks_verify(&game.grid.stocks, &game.grid, &game.entities);
+        stocks_verify(&mut game.grid, &game.entities);
 
         Ok(game)
     }
