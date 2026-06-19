@@ -52,7 +52,7 @@
         "stone_item",
         "ore_item",
         "sword",
-        "goblin",
+        "_",
         "metal",
         "grain",
     ],
@@ -87,5 +87,10 @@
         "gravestone",
         "",
         "_gnorp",
+    ],
+    // enemies
+    [
+        "goblin",
+        "goblin_dead",
     ],
 ])

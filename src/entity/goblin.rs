@@ -2,10 +2,7 @@ use crate::{
     entity::{
         BaseEntity, DEFAULT_SPEED, EntityBehaviour, EntityId, Faction, HIDDEN_FACTION,
         gnome::GNOME_FACTION,
-    },
-    game::time::hours,
-    grid::{Pos, path::PathOutcome},
-    tile::Content,
+    }, game::time::hours, grid::{Pos, path::PathOutcome}, item::ItemInfoFlags, tile::Content
 };
 
 #[derive(Debug, serde::Serialize, serde::Deserialize)]
@@ -95,7 +92,14 @@ impl EntityBehaviour for Goblin {
         }
     }
 
-    fn die(&mut self, grid: &mut crate::grid::Grid, _ctx: &mut crate::game::GameCtx) {
+    fn die(&mut self, grid: &mut crate::grid::Grid, game_ctx: &mut crate::game::GameCtx) {
+        grid.create(
+            self.base.pos,
+            Content::Item((
+                game_ctx.items.get_id("goblin_dead").unwrap(),
+                ItemInfoFlags::default(),
+            )),
+        );
         self.base.die(grid);
     }
 

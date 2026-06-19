@@ -126,9 +126,8 @@ Thoughts2:
 - Add designations (great hall, etc...)
 - Increase scroll speed, fix scrolling to cursor...
   - Is this already implemented for diff game???
-- (later) add more enimies
-- Fix starvation (gnomes heal at night...) 
-- [ ] Add indication of starving
+- [x] Fix starvation (gnomes heal at night...) 
+- [x] Add indication of starving
 
 # Future Epics
 

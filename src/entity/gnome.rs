@@ -310,7 +310,7 @@ impl EntityBehaviour for Gnome {
         grid.create(
             self.base.pos,
             Content::Item((
-                game_ctx.items.get_id("dead_gnome").unwrap(),
+                game_ctx.items.get_id("gnome_dead").unwrap(),
                 ItemInfoFlags::default(),
             )),
         );
