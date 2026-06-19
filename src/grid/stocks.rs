@@ -31,7 +31,7 @@ impl Stocks {
     }
 }
 
-pub fn stocks_verify(grid: &mut Grid, entities: &Entities) {
+pub fn stocks_verify(grid: &mut Grid, _entities: &Entities) {
     let stocks = &grid.stocks;
     let mut new_stocks: Stocks = Stocks::default();
     for y in 0..grid.size.y {
@@ -43,11 +43,11 @@ pub fn stocks_verify(grid: &mut Grid, entities: &Entities) {
             }
         }
     }
-    for entity in entities.values() {
-        for item in entity.base().items.iter() {
-            new_stocks.add(item.0);
-        }
-    }
+    // for entity in entities.values() {
+    //     for item in entity.base().items.iter() {
+    //         new_stocks.add(item.0);
+    //     }
+    // }
 
     if stocks.stocks.len() > 0 {
         // check against old

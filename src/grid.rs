@@ -234,7 +234,11 @@ impl Grid {
 
     // assumes content will be used again for stock purposes
     pub fn take(&mut self, pos: Pos, content: Content) -> Option<Content> {
-        Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content)
+        let content = Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content);
+        if let Some(Content::Item(item)) = content {
+            self.stocks.remove(item.0);
+        }
+        return content;
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {
@@ -268,6 +272,7 @@ impl Grid {
                     if items.len() < item::ITEM_CARRY_MAX {
                         items.push(*item);
                         log::debug!("taking {:?}", item);
+                        self.stocks.remove(item.0);
                         false
                     } else {
                         true
@@ -281,11 +286,13 @@ impl Grid {
     }
 
     // NOTE: Unsafe, directly modifies tile, and bypasses stocks
+    // This version will always dump items
     pub fn dump_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             for item in items.iter() {
                 tile.contents.push(Content::Item(*item));
                 log::debug!("Dumping {:?}", item);
+                self.stocks.add(item.0);
             }
             items.clear();
             tile.modified();
@@ -293,6 +300,7 @@ impl Grid {
     }
 
     // NOTE: Unsafe, directly modifies tile, and bypasses stocks
+    // this version will only store items if there is room
     pub fn store_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
         if items.is_empty() {
             return;
@@ -308,6 +316,7 @@ impl Grid {
                     chest_space += 1;
                     tile.contents.push(Content::Item(*item));
                     log::debug!("Storing {:?}", item);
+                    self.stocks.add(item.0);
                     false
                 } else {
                     true

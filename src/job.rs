@@ -139,6 +139,7 @@ impl Step {
                 Flow::Next
             }
             Step::Equip(required_item) => {
+                // TODO: Merge with above???
                 for item in required_item {
                     if actor.equipment().contains(item) {
                         continue;
@@ -208,9 +209,8 @@ impl Step {
                     if let Some(idx) = requires.iter().position(|required_item| {
                         Content::Item(*inventory_item) == Content::Item(*required_item)
                     }) {
-                        requires.swap_remove(idx);
                         // make sure we remove the inventory item, as the required item may just be ItemInfoFlags
-                        grid.stocks.remove(inventory_item.0);
+                        requires.swap_remove(idx);
                         false
                     } else {
                         true
