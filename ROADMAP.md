@@ -127,7 +127,8 @@ Thoughts2:
 - Increase scroll speed, fix scrolling to cursor...
   - Is this already implemented for diff game???
 - (later) add more enimies
-- Fix starvation??? Add indication??
+- Fix starvation (gnomes heal at night...) 
+- [ ] Add indication of starving
 
 # Future Epics
 

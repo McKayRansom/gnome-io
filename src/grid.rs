@@ -365,7 +365,7 @@ pub fn stocks_verify(stocks: &Stocks, grid: &Grid, entities: &Entities) {
     }
     // check for any not in new
     for key in stocks.keys() {
-        if !new_stocks.contains_key(key) {
+        if !new_stocks.contains_key(key) && stocks[key] > 0 {
             log::error!(
                 "Stock mismatch for '{}': stock: {} actual: 0",
                 key,

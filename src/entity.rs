@@ -111,6 +111,7 @@ pub const INJURED_SPEED_ADD: Tick = 10;
 // - Only restore a certain amount of food
 const BASE_FOOD: Tick = days(4);
 pub const FOOD_EAT: Tick = days(3);
+const FOOD_STARVING: Tick = days(1);
 pub const FOOD_RESTORED: Tick = days(1);
 
 // eat time
@@ -200,7 +201,7 @@ impl BaseEntity {
             if self.is_injured() {
                 self.timer += INJURED_SPEED_ADD;
             }
-            if self.is_exausted() {
+            if self.is_exhausted() {
                 self.timer += EXAUSTED_SPEED_ADD;
             }
             self.lag = self.timer;
@@ -226,12 +227,16 @@ impl BaseEntity {
         self.food < FOOD_EAT
     }
 
-    fn is_exausted(&self) -> bool {
+    pub fn is_exhausted(&self) -> bool {
         self.tired < EXAUSTED_TIRED
     }
 
     pub fn is_injured(&self) -> bool {
         self.health < INJURED_HEALTH
+    }
+    
+    pub(crate) fn is_starving(&self) -> bool {
+        self.food < FOOD_STARVING
     }
 }
 

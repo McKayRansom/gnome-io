@@ -44,12 +44,7 @@
     [
         "mark",
         "labor_empty",
-        "_gnorp",
-        "gnome_eat",
-        "gnome_sleep",
-        "gnome",
-        "gravestone",
-        "gnome_dead"
+
     ],
     [
         "unknown",
@@ -80,5 +75,17 @@
         "coal",
         "ore",
         "bread",
+    ],
+    // gnomes
+    [
+        "gnome",
+        "gnome_sleep",
+        "gnome_dead",
+        "gnome_hurt",
+        "gnome_baby",
+        "",
+        "gravestone",
+        "",
+        "_gnorp",
     ],
 ])

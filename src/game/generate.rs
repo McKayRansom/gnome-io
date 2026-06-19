@@ -38,7 +38,7 @@ impl MyNoise {
 const MIN_SURFACE: f64 = 0.3;
 const MAX_SURFACE: f64 = 0.9;
 // inverted for some reason??
-const TREE_LINE: f64 = 0.3;
+// const TREE_LINE: f64 = 0.3;
 
 impl Game {
     fn generate_terrain(&mut self) {
@@ -135,7 +135,9 @@ impl Game {
                 //     pos.y += 1;
                 // }
                 // pos.y -= 1;
-                if grid.get_tile(pos).is_some_and(|tile| !tile.has_block()) && tree_noise.get(pos) > 0.7{
+                if grid.get_tile(pos).is_some_and(|tile| !tile.has_block())
+                    && tree_noise.get(pos) > 0.7
+                {
                     //} && pos.y as f64 > size.y as f64 * TREE_LINE {
                     grid.place_block(pos, tree_id, &mut self.game_ctx);
                 }

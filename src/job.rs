@@ -407,6 +407,7 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
 
 pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
     // do we do table or nah...
+    // TODO: how deal with duplicate eat jobs (e.g. starvation...)
     if tile.has_items() == true && tile.item_flags().contains(ItemInfoFlags::FOOD) {
         // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
         Some(Job::eat(pos))

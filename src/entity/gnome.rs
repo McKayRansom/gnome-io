@@ -268,7 +268,7 @@ impl JobActor for Gnome {
                 self.status = GnomeStatus::SLEEPING;
                 self.base.tired += super::SLEEP_RESTORED;
                 self.base.timer = super::SLEEP_TIME;
-                if self.base.health < super::BASE_HEALTH {
+                if self.base.health < super::BASE_HEALTH && self.base.food > super::FOOD_STARVING {
                     self.base.health += 1;
                 }
             }

@@ -8,7 +8,11 @@ use macroquad::{
 use crate::{
     block::BlockInfoFlags,
     context::Context,
-    entity::{self, BaseEntity, Entities, Entity, HIDDEN_FACTION, gnome::Gnome, goblin::Goblin},
+    entity::{
+        self, BaseEntity, Entities, Entity, HIDDEN_FACTION,
+        gnome::{Gnome, GnomeStatus},
+        goblin::Goblin,
+    },
     game::{Game, GameCtx},
     grid::{
         Grid, Pos,
@@ -209,27 +213,27 @@ fn draw_gnome(game_ctx: &GameCtx, ctx: &Context, gnome: &Gnome) {
     let mut item_start = dest.clone();
     item_start.y -= PIXEL_SIZE * ITEM_Y_DIFF * ctx.camera.zoom;
 
-    let sprite = match gnome.status {
-        entity::gnome::GnomeStatus::NONE => "gnome",
-        entity::gnome::GnomeStatus::SLEEPING => "gnome_sleep",
-        entity::gnome::GnomeStatus::EATING => "gnome_eat",
-        entity::gnome::GnomeStatus::FIGHTING => "gnome",
+    let sprite = if gnome.status == GnomeStatus::SLEEPING {
+        "gnome_sleep"
+    } else if gnome.base.is_injured() {
+        "gnome_hurt"
+    } else {
+        "gnome"
     };
     ctx.tileset.draw_tile_ex(sprite, colors::WHITE, &dest, flip);
     draw_items(game_ctx, ctx, &gnome.base.equipment, &dest, 0.0);
 
     match gnome.status {
         entity::gnome::GnomeStatus::NONE => {
-            // I know I implemented all of this, but I actually don't like it, it's a bunch of extra noise
-            // if gnome.base.is_tired() {
-            //     ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-            //     ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
-            // } else if gnome.base.is_hungry() {
-            //     ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
-            //     ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
-            // } else {
-            draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
-            // }
+            if gnome.base.is_exhausted() {
+                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+                ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE);
+            } else if gnome.base.is_starving() {
+                ctx.tileset.draw_tile("think", &item_start, colors::WHITE);
+                ctx.tileset.draw_tile("bread", &item_start, colors::WHITE);
+            } else {
+                draw_items(game_ctx, ctx, &gnome.base.items, &item_start, 0.5);
+            }
         }
         entity::gnome::GnomeStatus::SLEEPING => {
             ctx.tileset.draw_tile("sleep", &item_start, colors::WHITE)
@@ -275,7 +279,7 @@ pub fn draw_tile_outline(_grid: &Grid, pos: &Pos, color: Color, ctx: &Context) {
     // }
 }
 
-fn draw_managers(manager: &JobManager, grid: &Grid, _game_ctx: &GameCtx, ctx: &Context) {
+fn draw_managers(manager: &JobManager, _grid: &Grid, _game_ctx: &GameCtx, ctx: &Context) {
     for (pos, _) in manager.snow_manager.snow.iter() {
         // could also interpolate
         let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();

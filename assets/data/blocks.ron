@@ -66,7 +66,7 @@
 
     "tree_0": (
         id: 206,
-        requires: ["seed"],
+        // requires: ["seed"],
         growth: Some((days: 4, into: "tree_1")),
         mine_event: Some("farm"),
         // drops: [(1.0, "seed")],
@@ -91,9 +91,8 @@
     ),
     "tree_4": (
         id: 209,
-        growth: Some((days: 4, into: "tree_5")),
         mine_event: Some("farm"),
-        drops: [(1.0, "seed")],
+        // drops: [(1.0, "seed")],
     ),
 
 

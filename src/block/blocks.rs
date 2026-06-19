@@ -232,7 +232,7 @@ impl Blocks {
 
         // verify no missing
         for (name, id) in self.ids.iter() {
-            if !self.infos.contains_key(id) {
+            if !self.infos.contains_key(id) && name != "NONE" {
                 log::error!("No block info for block '{}' (id: {})", name, id);
             }
         }
