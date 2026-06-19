@@ -6,7 +6,7 @@ use noise::*;
 use crate::{
     entity::gnome::GNOME_FACTION,
     game::Game,
-    grid::{Pos, stocks_verify},
+    grid::{Pos, stocks::stocks_verify},
     tile::{Tile, TileBiome},
 };
 

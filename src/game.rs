@@ -4,7 +4,7 @@ use crate::{
     block::Blocks,
     entity::Entities,
     event::{EventManager, raid::RaidManager},
-    grid::{Grid, Pos, stocks_verify},
+    grid::{Grid, Pos, stocks::stocks_verify},
     item::Items,
     job::{JobManager, build, fight, mine::mine},
     tile::Content,
