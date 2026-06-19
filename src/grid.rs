@@ -160,7 +160,7 @@ impl Grid {
                 log::error!("Tried to place invalid block_id: {}", block_id);
             }
         }
-        log::info!("Setting {:?} to {:?}", tile, block_id);
+        log::debug!("Setting {:?} to {:?}", tile, block_id);
 
         //update is_walkable for pos and adjacents
         self.update_walkable(pos);
@@ -267,7 +267,7 @@ impl Grid {
                 if let Content::Item(item) = content {
                     if items.len() < item::ITEM_CARRY_MAX {
                         items.push(*item);
-                        log::info!("taking {:?}", item);
+                        log::debug!("taking {:?}", item);
                         false
                     } else {
                         true
@@ -285,7 +285,7 @@ impl Grid {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             for item in items.iter() {
                 tile.contents.push(Content::Item(*item));
-                log::info!("Dumping {:?}", item);
+                log::debug!("Dumping {:?}", item);
             }
             items.clear();
             tile.modified();
@@ -307,7 +307,7 @@ impl Grid {
                 if chest_space < item::ITEM_STORE_MAX {
                     chest_space += 1;
                     tile.contents.push(Content::Item(*item));
-                    log::info!("Storing {:?}", item);
+                    log::debug!("Storing {:?}", item);
                     false
                 } else {
                     true

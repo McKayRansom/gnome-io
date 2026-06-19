@@ -99,33 +99,36 @@ Thoughts:
 - Some kind of darkness is needed, doesn't feel like underground
 
 Thoughts2:
-- Fix duplicate eat jobs on the same tile
 - Will need to revisit prioritizing local jobs, that does make some sense...
-- Add bread back in? It's hard to grow enough crops...
 - Fix crafting...
   - add minimums
   - fix craft job actually finishing
   - add standing orders to UI
   - Fix UI activation method
-  - Fix UI in general
-- Goblins drop something... (Goblin stew!!)
-- Fix log spam
+  - Fix crafting UI in general
 - Add more things to do in winter...
-- Show days until starvation
-- Job queue system
-- Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
-- Add food value, so bread/stew can be worth it
-- Fix fighting:
+  - Job queue system
+  - Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
+- Food:
+  - Fix duplicate eat jobs on the same tile
+  - Add bread back in? It's hard to grow enough crops... (make cheaper in terms of coal?)
+  - Show days until starvation
+  - Add food value, so bread/stew can be worth it
+  - (Goblin stew!!)
+- fighting:
   - Add armor
   - Add running when injured (add injury in general)
   - Make goblins slightly harder
   - Fix watches
   - (Later) add squads
   - Add goblin path through walls
-- Cancel vs de-designate
-- Add designations (great hall, etc...)
+- Add designations??
+  - Cancel vs de-designate
+  - great hall, rooms, hospital, etc...
 - Increase scroll speed, fix scrolling to cursor...
   - Is this already implemented for diff game???
+- [x] Fix log spam
+- [x] Goblins drop something... 
 - [x] Fix starvation (gnomes heal at night...) 
 - [x] Add indication of starving
 

@@ -109,7 +109,7 @@ impl Game {
                 };
             }
         }
-        println!("noise: {} to {}", min, max);
+        log::debug!("noise: {} to {}", min, max);
     }
 
     fn generate_plants(&mut self) {

@@ -176,7 +176,7 @@ impl CraftManager {
         while let Some(event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             match event.value {
                 Events::BlockUpdateEvent(_old, new) => {
-                    log::info!("Craft update event at {:?}", event.pos);
+                    log::debug!("Craft update event at {:?}", event.pos);
 
                     if self.workshop_block_ids.contains(&new)
                         && !self.workshop_pos.contains(&event.pos)

@@ -120,13 +120,13 @@ impl Step {
                             if let Some(item) = grid.take(pos, Content::Item(*item)) {
                                 let Content::Item(item) = item else { panic!() };
                                 actor.inventory().push(item);
-                                log::info!("Take item {:?} from tile", item);
+                                log::debug!("Take item {:?} from tile", item);
                             } else {
                                 log::warn!("find_content bug, didn't find content!");
                             }
                         }
                         PathOutcome::Path(path) => {
-                            log::info!("Acquire seaching for {:?}", item);
+                            log::debug!("Acquire seaching for {:?}", item);
 
                             return Flow::Walk(path);
                         }
@@ -148,7 +148,7 @@ impl Step {
                             if let Some(item) = grid.take(pos, Content::Item(*item)) {
                                 let Content::Item(item) = item else { panic!() };
                                 actor.equipment().push(item);
-                                log::info!("Take item {:?} from tile", item);
+                                log::debug!("Take item {:?} from tile", item);
                             } else {
                                 log::warn!("find_content bug, didn't find content!");
                             }
@@ -388,7 +388,7 @@ pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Op
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
     {
-        log::info!("Creating drop-off job");
+        log::debug!("Creating drop-off job");
         return Some(Job::drop(pos, JobType::HAULFULL));
     }
     None
@@ -399,7 +399,7 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
     {
-        log::info!("Creating drop-off job");
+        log::debug!("Creating drop-off job");
         return Some(Job::drop(pos, JobType::HAUL));
     }
     None
@@ -706,7 +706,7 @@ impl JobManager {
     }
 
     pub fn create_job(grid: &mut Grid, events: &mut EventManager, job: Job) {
-        log::info!("Creating new job at {:?}", job);
+        log::debug!("Creating new job at {:?}", job);
         let pos = job.pos;
         let id = events.add_job(job);
         grid.create(pos, Content::Job(id));

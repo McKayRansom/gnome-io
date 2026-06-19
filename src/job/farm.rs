@@ -129,7 +129,6 @@ impl FarmManager {
                 super::JobType::FARM,
             ))
         } else {
-            // log::info!("Block is something weird: {}", block);
             None
         }
     }
