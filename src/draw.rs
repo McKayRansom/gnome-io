@@ -321,7 +321,12 @@ fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
     for (item, stock) in grid.stocks.iter() {
         draw_text(
             ctx,
-            format!("{}: {}", game_ctx.items.get_info(item).unwrap().name, stock).as_str(),
+            format!(
+                "{}: {}",
+                game_ctx.items.get_info(item).unwrap().name,
+                stock.total()
+            )
+            .as_str(),
             pos.x,
             pos.y,
             crate::text::Size::Small,

@@ -78,7 +78,7 @@ enum CraftOrderUpdate {
 impl CraftOrder {
     fn update(&self, grid: &Grid) -> CraftOrderUpdate {
         if self.standing {
-            if grid.stocks.get(self.item) < self.count {
+            if grid.stocks.available(self.item) < self.count {
                 CraftOrderUpdate::CRAFT
             } else {
                 CraftOrderUpdate::NONE
@@ -149,7 +149,7 @@ impl CraftManager {
                     // for now, until we implement minimums don't take all there is
                     if requires
                         .iter()
-                        .any(|item| grid.stocks.get(*item) < order.count / 2)
+                        .any(|item| grid.stocks.available(*item) < order.count / 2)
                     {
                         // wish we could log here...
                         return false;
