@@ -61,17 +61,22 @@ impl Game {
                     return None;
                 };
                 let which = parts.next().unwrap_or("");
+                let item = parts.next().unwrap_or("");
+                let amount = parts.next().and_then(|s| s.parse().ok()).unwrap_or(1);
 
                 match which {
                     "item" => {
-                        let item = parts.next().unwrap_or("");
                         let Some(item) = self.game_ctx.items.get_content_name(item) else {
                             log::warn!("No item '{}' to spawn", item);
                             return None;
                         };
-                        self.grid.create(pos, Content::Item(item));
+                        for _ in 0..amount {
+                            self.grid.create(pos, Content::Item(item));
+                        }
                     }
-                    _ => {}
+                    _ => {
+                        log::warn!("unimplemented spawn: '{}'", which);
+                    }
                 }
             }
             // "events" => {
