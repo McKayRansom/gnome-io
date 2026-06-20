@@ -27,6 +27,8 @@ pub type ContentJob = JobId;
 pub enum Content {
     // ItemId = 0 means match flags
     Item(ContentItem),
+    // Here to fool the player and for consistency...
+    ReservedItem(ContentItem),
     // EntityId = 0 means match faction
     Entity(ContentEntity),
     Block(ContentBlock),
@@ -47,6 +49,7 @@ impl PartialEq for Content {
             }
             (Self::Block(left), Self::Block(right)) => left == right,
             (Self::Job(left), Self::Job(right)) => left == right,
+            (Self::ReservedItem(left), Self::ReservedItem(right)) => left == right,
             _ => false,
         }
     }
@@ -92,6 +95,7 @@ fn is_default<T: Default + PartialEq>(value: &T) -> bool {
 #[derive(Serialize, Deserialize)]
 enum TileReprContents {
     Item(ItemId),
+    ReservedItem(ItemId),
     Entity(ContentEntity),
     Block(BlockId),
     Job(ContentJob),
@@ -101,6 +105,7 @@ impl From<TileReprContents> for Content {
     fn from(value: TileReprContents) -> Self {
         match value {
             TileReprContents::Item(item) => Content::Item((item, ItemInfoFlags::default())),
+            TileReprContents::ReservedItem(item) => Content::ReservedItem((item, ItemInfoFlags::default())),
             TileReprContents::Entity(entity) => Content::Entity(entity),
             TileReprContents::Block(block) => Content::Block((block, BlockInfoFlags::default())),
             TileReprContents::Job(job) => Content::Job(job),
@@ -112,6 +117,7 @@ impl From<Content> for TileReprContents {
     fn from(value: Content) -> Self {
         match value {
             Content::Item((item_id, _)) => TileReprContents::Item(item_id),
+            Content::ReservedItem((item_id, _)) => TileReprContents::ReservedItem(item_id),
             Content::Entity(entity) => TileReprContents::Entity(entity),
             Content::Block((block_id, _)) => TileReprContents::Block(block_id),
             Content::Job(job) => TileReprContents::Job(job),
@@ -324,6 +330,7 @@ impl Tile {
                     self.tile_flags.insert(TileFlags::HAS_ITEMS);
                     self.item_flags.insert(*flags)
                 }
+                Content::ReservedItem(_) => {}
                 Content::Entity(_) => self.tile_flags.insert(TileFlags::HAS_ENTITY),
                 Content::Block((_id, flags)) => {
                     self.tile_flags.insert(TileFlags::HAS_BLOCK);
@@ -340,7 +347,7 @@ impl Tile {
     pub fn fixup(&mut self, game_ctx: &GameCtx) {
         for content in self.contents.iter_mut() {
             match content {
-                Content::Item(item) => {
+                Content::Item(item) | Content::ReservedItem(item)=> {
                     *item = game_ctx
                         .items
                         .get_content(&item.0)

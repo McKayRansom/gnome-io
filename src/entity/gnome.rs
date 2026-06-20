@@ -5,8 +5,11 @@ use crate::{
     entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
     event::EventManager,
     game::{GameCtx, Tick, time::hours},
-    grid::{Grid, Pos, path::JobSearchFn},
-    item::{self, ItemInfoFlags},
+    grid::{
+        Grid, Pos,
+        path::{JobSearchFn, PathOutcome},
+    },
+    item::{self, ItemId, ItemInfoFlags},
     job::{self, Busy, Job, JobActor, JobManager, JobStatus},
     tile::{Content, ContentItem},
 };
@@ -56,6 +59,8 @@ pub struct Gnome {
     // cache during update only
     #[serde(skip_serializing, skip_deserializing)]
     delayed_action: Option<EntityAction>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    reserved_item: Option<(Pos, ContentItem)>,
 }
 
 #[derive(
@@ -194,7 +199,11 @@ impl Gnome {
                 searches.push(job::job_sleep_search);
             }
             if self.base.is_hungry() {
-                searches.push(job::job_eat_search);
+                if grid.stocks.available(300) > 0 {
+                    searches.push(job::job_eat_search_bread);
+                } else if grid.stocks.available(201) > 0 {
+                    searches.push(job::job_eat_search_grain);
+                }
             }
             if self.base.items.len() >= item::ITEM_CARRY_MAX {
                 searches.push(job::job_drop_full_search);
@@ -300,6 +309,51 @@ impl JobActor for Gnome {
     fn attack(&mut self, target: EntityId) {
         self.delayed_action = Some(EntityAction::Attack(target));
     }
+
+    fn aquire(&mut self, grid: &mut Grid, item: ContentItem) -> job::AquireOutcome {
+        match grid.find_content(self.base.pos, Content::Item(item), self.base.faction) {
+            PathOutcome::Reached(pos) => {
+                if let Some(item) = grid.take(pos, Content::Item(item)) {
+                    let Content::Item(item) = item else { panic!() };
+                    log::debug!("Take item {:?} from tile", item);
+                    job::AquireOutcome::Found(item)
+                } else {
+                    log::warn!("find_content bug, didn't find content!");
+                    job::AquireOutcome::NotFound
+                }
+            }
+            PathOutcome::Path(path) => {
+                log::debug!("Acquire seaching for {:?}", item);
+
+                assert!(self.reserved_item.is_none());
+                assert!(item.0 > 0, "Not implemented!");
+                let reserve_pos = path.last().unwrap();
+                let reserve_content = grid
+                    .swap(
+                        *reserve_pos,
+                        Content::Item(item),
+                        Content::ReservedItem(item),
+                    )
+                    .unwrap();
+                let Content::Item(item) = reserve_content else {
+                    log::error!("Failed to reserve content, find_content bug? ");
+                    return job::AquireOutcome::NotFound;
+                };
+                self.reserved_item = Some((*reserve_pos, item));
+                self.path = path;
+
+                job::AquireOutcome::Pathing
+            }
+            PathOutcome::NoPath => {
+                log::warn!("Unable to find {:?} for job", item);
+                job::AquireOutcome::NotFound
+            }
+        }
+    }
+    // fn reserve(&mut self, grid: &mut Grid, item: item::ItemId) {
+    //     grid.stocks.reserve(item);
+    //     self.reserved_item = Some(item);
+    // }
 }
 
 impl EntityBehaviour for Gnome {
@@ -314,6 +368,9 @@ impl EntityBehaviour for Gnome {
                 ItemInfoFlags::default(),
             )),
         );
+        if let Some((pos, item)) = self.reserved_item.take() {
+            grid.swap(pos, Content::ReservedItem(item), Content::Item(item));
+        }
         self.base.die(grid);
     }
 
@@ -330,7 +387,6 @@ impl EntityBehaviour for Gnome {
         }
 
         self.status = GnomeStatus::NONE;
-
         if !self.path.is_empty() {
             self.base
                 .move_to(self.path.remove(0), super::DEFAULT_SPEED, grid);
@@ -339,6 +395,7 @@ impl EntityBehaviour for Gnome {
             // HACK: Always clear our path so we re-path correctly to enimies
             // It can work okay to just re-path when we get stuck, except when attacking is involved...
             // TODO: How do we decide to redo our path???
+            // TODO: If you change this, we will need to change item reservations amoung other things...
             self.path.clear();
             // }
             return None;
@@ -362,6 +419,10 @@ impl EntityBehaviour for Gnome {
             if self.base.health == 0 {
                 return None;
             }
+        }
+
+        if let Some((pos, item)) = self.reserved_item.take() {
+            grid.swap(pos, Content::ReservedItem(item), Content::Item(item));
         }
 
         // find a new job before we update job

@@ -11,7 +11,7 @@ use crate::{
         time::{days, hours},
     },
     grid::{Grid, Pos, path::PathOutcome},
-    item::{self, ItemInfoFlags},
+    item::{self, ItemId, ItemInfoFlags},
     tile::{Content, ContentBlock, ContentEntity, ContentItem, Tile},
 };
 
@@ -76,6 +76,8 @@ enum Flow {
     Busy(Busy, Tick),
     // Signal the job to abort immediatly, job cannot be completed
     Fail,
+    // repeat the same step
+    Repeat,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -115,53 +117,23 @@ impl Step {
                     if actor.inventory().contains(item) {
                         continue;
                     }
-                    match grid.find_content(actor.pos(), Content::Item(*item), actor.faction()) {
-                        PathOutcome::Reached(pos) => {
-                            if let Some(item) = grid.take(pos, Content::Item(*item)) {
-                                let Content::Item(item) = item else { panic!() };
-                                actor.inventory().push(item);
-                                log::debug!("Take item {:?} from tile", item);
-                            } else {
-                                log::warn!("find_content bug, didn't find content!");
-                            }
-                        }
-                        PathOutcome::Path(path) => {
-                            log::debug!("Acquire seaching for {:?}", item);
-
-                            return Flow::Walk(path);
-                        }
-                        PathOutcome::NoPath => {
-                            log::warn!("Unable to find {:?} for job", item);
-                            return Flow::Fail;
-                        }
+                    match actor.aquire(grid, *item) {
+                        AquireOutcome::Found(item) => actor.inventory().push(item),
+                        AquireOutcome::Pathing => return Flow::Repeat,
+                        AquireOutcome::NotFound => return Flow::Fail,
                     }
                 }
                 Flow::Next
             }
             Step::Equip(required_item) => {
-                // TODO: Merge with above???
                 for item in required_item {
                     if actor.equipment().contains(item) {
                         continue;
                     }
-                    match grid.find_content(actor.pos(), Content::Item(*item), actor.faction()) {
-                        PathOutcome::Reached(pos) => {
-                            if let Some(item) = grid.take(pos, Content::Item(*item)) {
-                                let Content::Item(item) = item else { panic!() };
-                                actor.equipment().push(item);
-                                log::debug!("Take item {:?} from tile", item);
-                            } else {
-                                log::warn!("find_content bug, didn't find content!");
-                            }
-                        }
-                        PathOutcome::Path(path) => {
-                            // log::info!("Acquire seaching for {:?}", item);
-                            return Flow::Walk(path);
-                        }
-                        PathOutcome::NoPath => {
-                            // log::warn!("Unable to find {:?} for job", item);
-                            return Flow::Next;
-                        }
+                    match actor.aquire(grid, *item) {
+                        AquireOutcome::Found(item) => actor.equipment().push(item),
+                        AquireOutcome::Pathing => return Flow::Repeat,
+                        AquireOutcome::NotFound => { /* Equipment is optional! */ }
                     }
                 }
                 Flow::Next
@@ -222,8 +194,7 @@ impl Step {
                 match content {
                     Content::Item(item) => grid.create(job_pos, Content::Item(*item)),
                     Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
-                    Content::Entity(_entity) => log::warn!("Produce entity not implemented!"),
-                    Content::Job(_) => log::warn!("Produce job not implemented!"),
+                    _ => log::warn!("Produce {:?} not implemented!", content),
                 };
                 Flow::Next
             }
@@ -315,9 +286,16 @@ pub enum JobStatus {
     Failed,
 }
 
+pub enum AquireOutcome {
+    Found(ContentItem),
+    NotFound,
+    Pathing,
+}
+
 pub trait JobActor {
     fn pos(&self) -> Pos;
     fn faction(&self) -> Faction;
+    fn aquire(&mut self, grid: &mut Grid, item: ContentItem) -> AquireOutcome;
     fn inventory(&mut self) -> &mut Vec<ContentItem>;
     fn equipment(&mut self) -> &mut Vec<ContentItem>;
     fn walk(&mut self, path: Vec<Pos>);
@@ -405,12 +383,19 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     None
 }
 
-pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_eat_search_grain(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_eat_search(pos, tile, events, 201)
+}
+
+pub fn job_eat_search_bread(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+    job_eat_search(pos, tile, events, 300)
+}
+
+pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager, item: ItemId) -> Option<Job> {
     // do we do table or nah...
-    // TODO: how deal with duplicate eat jobs (e.g. starvation...)
-    if tile.has_items() == true && tile.item_flags().contains(ItemInfoFlags::FOOD) {
+    if tile.contains(&Content::Item((item, ItemInfoFlags::default()))) {
         // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
-        Some(Job::eat(pos))
+        Some(Job::eat(pos, item))
     } else {
         None
     }
@@ -529,14 +514,14 @@ impl Job {
     }
 
     // NOTE: The eat job will not change highlighted position if the food there is consumed and we have to find a new food...
-    pub fn eat(pos: Pos) -> Self {
+    pub fn eat(pos: Pos, item: ItemId) -> Self {
         Job {
             pos,
             category: JobType::EAT,
             steps: vec![
-                Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Acquire(vec![(item, ItemInfoFlags::FOOD)]),
                 // Step::Goto(pos),
-                Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
+                Step::Consume(vec![(item, ItemInfoFlags::FOOD)]),
                 Step::Work(Busy::Eat, 0),
             ],
             ..Default::default()
@@ -642,6 +627,7 @@ impl Job {
             };
             match step.run(self.pos, actor, grid, game_ctx) {
                 Flow::Next => self.cursor += 1,
+                Flow::Repeat => return JobStatus::Active,
                 Flow::Walk(path) => {
                     actor.walk(path);
                     return JobStatus::Active;

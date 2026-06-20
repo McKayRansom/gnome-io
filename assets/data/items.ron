@@ -41,9 +41,13 @@
     ),
 
     // other
-    "dead_gnome": (
+    "gnome_dead": (
         id: 400,
         sprite: "gnome_dead",
+    ),
+    "goblin_dead": (
+        id: 401,
+        sprite: "goblin_dead",
     ),
     
 },

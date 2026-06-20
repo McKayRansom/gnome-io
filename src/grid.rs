@@ -220,7 +220,6 @@ impl Grid {
         Some((end, is_slow))
     }
 
-    // assumes content didn't exist before (for stock purposes)
     pub fn create(&mut self, pos: Pos, content: Content) {
         let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
             log::warn!("Tried to add content at invalid pos: {:?}", pos);
@@ -232,13 +231,38 @@ impl Grid {
         }
     }
 
-    // assumes content will be used again for stock purposes
     pub fn take(&mut self, pos: Pos, content: Content) -> Option<Content> {
         let content = Self::cell_get_tile_mut(&mut self.cells, pos)?.remove(&content);
         if let Some(Content::Item(item)) = content {
             self.stocks.remove(item.0);
         }
         return content;
+    }
+
+    pub fn swap(
+        &mut self,
+        pos: Pos,
+        old_content: Content,
+        new_content: Content,
+    ) -> Option<Content> {
+        for content in Self::cell_get_tile_mut(&mut self.cells, pos)?
+            .contents
+            .iter_mut()
+        {
+            if *content == old_content {
+                if let Content::Item(item) = content {
+                    self.stocks.remove(item.0);
+                }
+                if let Content::Item(item) = new_content {
+                    self.stocks.add(item.0);
+                }
+                let old_actual = *content;
+                *content = new_content;
+
+                return Some(old_actual);
+            }
+        }
+        None
     }
 
     pub fn set_tile(&mut self, pos: Pos, tile: Tile) {

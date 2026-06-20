@@ -10,15 +10,24 @@ use macroquad::{
 };
 
 use crate::{
-    context::Context, debug_console::DebugConsole, draw::{draw_game, draw_tile_outline}, entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION}, event::{
+    context::Context,
+    debug_console::DebugConsole,
+    draw::{draw_game, draw_tile_outline},
+    entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION},
+    event::{
         Events::{self},
         FACTION_EXIST_EVENT, GAME_TIME_EVENT, GAMEPLAY_EVENT,
-    }, game::{Game, GameSpeed, time::GameTimeEvent}, grid::{Pos, pos::GRID_CELL_SIZE}, job::fight::FightAction, tile::Content, ui::{
+    },
+    game::{Game, GameSpeed, time::GameTimeEvent},
+    grid::{Pos, pos::GRID_CELL_SIZE},
+    job::fight::FightAction,
+    tile::Content,
+    ui::{
         labor::Labor,
         menu::{Menu, MenuItem},
         popup::{Popup, PopupResult},
         toolbar::{TOOLBAR_SPACE, Toolbar, ToolbarItem},
-    }
+    },
 };
 
 pub enum GameAction {
@@ -391,7 +400,7 @@ impl Gameplay {
                     ui.label(
                         None,
                         match content {
-                            Content::Item(item) => format!(
+                            Content::Item(item) | Content::ReservedItem(item) => format!(
                                 "Item {:?}",
                                 self.game
                                     .game_ctx
@@ -479,8 +488,10 @@ impl Gameplay {
                                 }
                                 GameAction::Farm => self.game.farm(pos),
                                 GameAction::Craft => self.craft_menu = !self.craft_menu,
-                                GameAction::Fight => if let Some(fight_action) = self.fight_toolbar.get_selected() {
-                                    self.game.fight(pos, *fight_action)
+                                GameAction::Fight => {
+                                    if let Some(fight_action) = self.fight_toolbar.get_selected() {
+                                        self.game.fight(pos, *fight_action)
+                                    }
                                 }
                                 GameAction::Cancel => self.game.cancel(pos),
                             }

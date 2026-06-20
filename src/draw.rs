@@ -126,7 +126,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
             let items: Vec<ContentItem> = tile
                 .iter_content()
                 .filter_map(|content| {
-                    if let Content::Item(item) = content {
+                    if let Content::Item(item) | Content::ReservedItem(item) = content {
                         Some(*item)
                     } else {
                         None
