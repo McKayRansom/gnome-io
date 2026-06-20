@@ -186,10 +186,7 @@ impl EventManager {
     }
 
     fn peek_event(&self, id: EventId) -> Option<&Event> {
-        self.events
-            .get(&id)
-            .expect("Unkown event ID")
-            .front()
+        self.events.get(&id).expect("Unkown event ID").front()
     }
 
     pub fn push_timer(&mut self, time: Tick, event: Event) {
@@ -218,11 +215,6 @@ impl EventManager {
         });
     }
 
-    pub fn job_in_progress(&mut self, job: &mut Job) {
-        self.jobs.get_mut(&job.id).unwrap().in_progress = true;
-        job.in_progress = true;
-    }
-
     pub fn add_job(&mut self, mut job: Job) -> JobId {
         job.id = self.job_id;
         self.jobs.insert(self.job_id, job);
@@ -231,13 +223,12 @@ impl EventManager {
         id
     }
 
-    pub fn update_job(&mut self, job: Job) -> Option<Job> {
-        self.jobs.insert(job.id, job)
-    }
-
-    pub fn reset_job(&mut self, job_id: &JobId) {
-        if let Some(job) = self.jobs.get_mut(job_id) {
-            job.in_progress = false;
+    pub fn update_job(&mut self, new_job: &Job) {
+        if let Some(old_job) = self.jobs.get_mut(&new_job.id) {
+            old_job.pos = new_job.pos;
+            old_job.state = new_job.state;
+        } else {
+            log::warn!("Job {:?} was delted from events!", new_job);
         }
     }
 
@@ -265,7 +256,6 @@ impl EventManager {
         }
     }
 
-    
     // pub fn update(&mut self, grid: &Grid) {
     //     while let Some(event) = self.events.pop_front() {
     //         let Some(handler) = self.handlers.get_mut(&event.id) else {

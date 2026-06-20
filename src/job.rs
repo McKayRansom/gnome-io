@@ -52,16 +52,24 @@ pub mod store;
  * - remove hauling and just have jobs dump into gnome's inventory, and then drop in chest when full/idle?
  * - how are chests going to work in general, what happens when you mine a chest, goes into gnome inventory? (I hate that they keep their items in gnomoria)
  */
-#[derive(Clone, Debug, Serialize, Deserialize)]
+#[derive(Clone, Debug, Serialize, Deserialize, Default)]
 pub struct Job {
     pub id: JobId,
-    pub in_progress: bool,
+    #[serde(default)]
+    pub state: JobState,
     pub pos: Pos,
     #[serde(default)]
     pub steps: Vec<Step>,
     #[serde(default)]
     pub cursor: usize,
     pub category: JobType,
+}
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, Eq, Default)]
+pub enum JobState {
+    #[default]
+    Ready,
+    InProgress,
+    MissingItem(ItemId),
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -238,7 +246,7 @@ impl Step {
 }
 
 // TEMP: In order of priority for now
-#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize, PartialEq, PartialOrd, Default)]
 pub enum JobType {
     // created on-the-fly
     FIGHT,
@@ -262,6 +270,7 @@ pub enum JobType {
     HAUL,
     // created on-the-fly
     DROP,
+    #[default]
     NONE,
 }
 
@@ -310,19 +319,6 @@ pub trait JobActor {
     fn busy(&mut self, kind: Busy, time: Tick);
 }
 
-impl Default for Job {
-    fn default() -> Self {
-        Self {
-            id: 0,
-            in_progress: false,
-            pos: Pos::new(0, 0),
-            steps: Vec::new(),
-            cursor: 0,
-            category: JobType::NONE,
-        }
-    }
-}
-
 // look for jobs that are just there...
 // OPTIMIZE: Cache job.in_progress and/or job prio to tile
 fn job_default_search(
@@ -333,7 +329,8 @@ fn job_default_search(
 ) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
         let job = events.job_get(&job_id).expect("LEAKED JOB");
-        if !job.in_progress && job_type.is_none_or(|job_type| job.category == job_type) {
+        if job.state == JobState::Ready && job_type.is_none_or(|job_type| job.category == job_type)
+        {
             return Some(job.clone());
         }
     }
@@ -639,7 +636,7 @@ impl Job {
                     grid.take(self.pos, Content::Job(self.id));
                     self.pos = pos;
                     grid.create(self.pos, Content::Job(self.id));
-                    let _old_job = game_ctx.events.update_job(self.clone());
+                    game_ctx.events.update_job(self);
 
                     return JobStatus::Active;
                 }
@@ -671,20 +668,21 @@ impl Job {
      * This can be called with either an existing job or a new job (it will be created)
      */
     pub fn accept(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        self.in_progress = true;
+        self.state = JobState::InProgress;
         if self.id == 0 {
             self.id = self.clone().create(grid, game_ctx)
         } else {
-            game_ctx.events.job_in_progress(self);
+            game_ctx.events.update_job(self)
         }
     }
 
     /*
      * This will "reset" a job for someone else to pick up, most likely the gnome has been interupted
      */
-    pub fn reset_job(self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    pub fn reset_job(mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         if self.category.should_reset() {
-            game_ctx.events.reset_job(&self.id);
+            self.state = JobState::Ready;
+            game_ctx.events.update_job(&self);
         } else {
             if grid.take(self.pos, Content::Job(self.id)).is_none() {
                 log::warn!(

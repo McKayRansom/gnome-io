@@ -18,7 +18,7 @@ use crate::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
-    job::JobManager,
+    job::{JobManager, JobState},
     text::{draw_text, draw_text_screen_centered},
     tile::{Content, ContentItem, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
 };
@@ -151,11 +151,12 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                         &ctx.camera.to_screen_rect(pos.into()),
                         // &pos,
                         if let Some(job) = game_ctx.events.job_get(job) {
-                            if job.in_progress {
-                                Color::new(0., 0.6, 0.0, 1.0)
+                            match job.state {
+                                JobState::InProgress => Color::new(0., 0.6, 0.0, 1.0),
                                 // Color::from_rgba(81, 255, 149, 255)
-                            } else {
-                                Color::new(0.6, 0.6, 0., 1.0)
+                                JobState::Ready => Color::new(0.6, 0.6, 0., 1.0),
+                                JobState::MissingItem(_) => Color::new(0.6, 0.0, 0.0, 1.0),
+                                // JobState::Wait
                                 // Color::from_rgba(250, 227, 51, 255)
                             }
                         } else {
