@@ -3,7 +3,7 @@ use crate::{
     grid::{Grid, Pos},
 };
 
-use super::{Job, JobManager};
+use super::Job;
 
 const BUILD_TIME: Tick = 30;
 
@@ -29,11 +29,14 @@ pub fn build(grid: &mut Grid, pos: Pos, block_name: &str, game_ctx: &mut GameCtx
         .map(|item_id| (*item_id, game_ctx.items.get_info(item_id).unwrap().flags))
         .collect();
 
-    JobManager::create_job(
-        grid,
-        &mut game_ctx.events,
-        Job::build(pos, BUILD_TIME, (id, block_info.flags), requires, super::JobType::BUILD),
-    );
+    Job::build(
+        pos,
+        BUILD_TIME,
+        (id, block_info.flags),
+        requires,
+        super::JobType::BUILD,
+    )
+    .create(grid, game_ctx);
 
     None
 }

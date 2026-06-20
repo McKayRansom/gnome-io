@@ -160,7 +160,7 @@ impl Labor {
                             GnomeProfession::NONE
                         },
                         &mut game.grid,
-                        &mut game.game_ctx.events,
+                        &mut game.game_ctx,
                     );
                 }
             }

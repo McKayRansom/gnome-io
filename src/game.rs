@@ -166,12 +166,18 @@ impl Game {
     }
 
     pub fn fight(&mut self, pos: Pos, fight_action: crate::job::fight::FightAction) {
-        fight::fight(&mut self.grid, pos, fight_action, &mut self.game_ctx, &mut self.entities);
+        fight::fight(
+            &mut self.grid,
+            pos,
+            fight_action,
+            &mut self.game_ctx,
+            &mut self.entities,
+        );
     }
 
     pub fn cancel(&mut self, pos: Pos) {
         self.job_manager
-            .cancel_job(pos, &mut self.grid, &mut self.game_ctx);
+            .request_job_cancel(pos, &mut self.grid, &mut self.game_ctx);
     }
 }
 

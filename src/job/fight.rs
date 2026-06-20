@@ -1,4 +1,4 @@
-use crate::{entity::{Entities, Entity, goblin::GOBLIN_FACTION}, game::GameCtx, grid::{Grid, Pos}, job::{Job, JobManager}};
+use crate::{entity::{Entities, Entity, goblin::GOBLIN_FACTION}, game::GameCtx, grid::{Grid, Pos}, job::Job};
 
 
 #[derive(Clone, Copy)]
@@ -13,7 +13,7 @@ pub fn fight(grid: &mut Grid, pos: Pos, action: FightAction, game_ctx: &mut Game
     let job = match action {
         // TODO: WatchManager that resets the watch forever until canceled...
         FightAction::Watch => {
-            JobManager::create_job(grid, &mut game_ctx.events, Job::watch(pos));
+            Job::watch(pos).create(grid, game_ctx);
             return;
         },
         FightAction::Attack => Job::fight(pos, (GOBLIN_FACTION, 0)),

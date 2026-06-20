@@ -3,14 +3,13 @@
 
 use crate::{
     entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
-    event::EventManager,
     game::{GameCtx, Tick, time::hours},
     grid::{
         Grid, Pos,
         path::{JobSearchFn, PathOutcome},
     },
-    item::{self, ItemId, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobManager, JobStatus},
+    item::{self, ItemInfoFlags},
+    job::{self, Busy, Job, JobActor, JobStatus},
     tile::{Content, ContentItem},
 };
 
@@ -116,7 +115,7 @@ impl Gnome {
         &mut self,
         profession: GnomeProfession,
         grid: &mut Grid,
-        events: &mut EventManager,
+        game_ctx: &mut GameCtx,
     ) {
         if self.profession == profession {
             return;
@@ -145,16 +144,15 @@ impl Gnome {
                     job::JobType::NONE => true,
                 };
             if should_cancel {
-                self.cancel_job(grid, events);
+                self.cancel_job(grid, game_ctx);
             }
         }
     }
 
-    fn cancel_job(&mut self, grid: &mut Grid, events: &mut EventManager) {
-        if let Some(job) = &self.job {
+    fn cancel_job(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if let Some(job) = self.job.take() {
             log::info!("Canceling job {:?}", job.category);
-            JobManager::reset_job(grid, events, job);
-            self.job = None;
+            job.reset_job(grid, game_ctx);
             // wake from sleep and cancel most jobs...
             if !self.base.moving() {
                 self.base.timer = self.base.timer % DEFAULT_SPEED;
@@ -163,7 +161,7 @@ impl Gnome {
     }
 
     pub(crate) fn set_muster(&mut self, exists: bool, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        self.cancel_job(grid, &mut game_ctx.events);
+        self.cancel_job(grid, game_ctx);
 
         self.mustered = exists
     }
@@ -173,8 +171,8 @@ impl Gnome {
         if self.profession != GnomeProfession::FIGHTING {
             return;
         }
-        self.cancel_job(grid, &mut game_ctx.events);
-        JobManager::accept_job(grid, &mut game_ctx.events, &mut job);
+        self.cancel_job(grid, game_ctx);
+        job.accept(grid, game_ctx);
         self.job = Some(job);
     }
 
@@ -191,7 +189,7 @@ impl Gnome {
         self.delayed_action.take()
     }
 
-    fn find_job(&self, grid: &mut Grid, game_ctx: &mut GameCtx) -> Option<Job> {
+    fn find_job(&self, grid: &Grid, game_ctx: &GameCtx) -> Option<Job> {
         let mut searches: Vec<JobSearchFn> = Vec::new();
         searches.push(job::job_idle_search);
         if !self.mustered {
@@ -237,7 +235,7 @@ impl Gnome {
             }
         }
 
-        grid.find_job(&self.base, &mut game_ctx.events, &searches)
+        grid.find_job(&self.base, &game_ctx.events, &searches)
     }
 }
 
@@ -281,8 +279,9 @@ impl JobActor for Gnome {
                     self.base.health += 1;
                 }
             }
-            Busy::Fight => {
+            Busy::Fight(target) => {
                 self.status = GnomeStatus::FIGHTING;
+                self.delayed_action = Some(EntityAction::Attack(target));
                 if self
                     .base
                     .equipment
@@ -305,9 +304,6 @@ impl JobActor for Gnome {
                 }
             }
         }
-    }
-    fn attack(&mut self, target: EntityId) {
-        self.delayed_action = Some(EntityAction::Attack(target));
     }
 
     fn aquire(&mut self, grid: &mut Grid, item: ContentItem) -> job::AquireOutcome {
@@ -428,7 +424,7 @@ impl EntityBehaviour for Gnome {
         // find a new job before we update job
         if self.job.is_none() {
             if let Some(mut job) = self.find_job(grid, game_ctx) {
-                JobManager::accept_job(grid, &mut game_ctx.events, &mut job);
+                job.accept(grid, game_ctx);
                 self.job = Some(job);
             }
         }

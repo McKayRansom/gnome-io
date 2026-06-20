@@ -347,6 +347,7 @@ impl Entities {
         self.entities.get(&entity)
     }
 
+    #[allow(unused)]
     pub fn values(&self) -> std::collections::hash_map::Values<'_, u32, Entity> {
         self.entities.values()
     }

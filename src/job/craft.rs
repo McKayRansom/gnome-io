@@ -4,7 +4,7 @@ use crate::{
     block::BlockId,
     event::{
         CRAFT_EVENT_ID, Event,
-        Events::{self, CraftFinishedEvent},
+        Events::{self, CraftFinishedEvent}, JobId,
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
@@ -13,7 +13,7 @@ use crate::{
     tile::Content,
 };
 
-use super::{Job, JobManager};
+use super::Job;
 
 pub const CRAFTING_TIME: Tick = game::time::hours(1);
 pub const FURNACE_TIME: Tick = game::time::days(1);
@@ -24,7 +24,7 @@ pub fn craft(
     workshop_block_id: BlockId,
     item_id: ItemId,
     game_ctx: &mut GameCtx,
-) -> Option<()> {
+) -> Option<JobId> {
     let item_info = game_ctx.items.get_info(&item_id)?;
     let recipe = item_info.recipe.as_ref()?;
 
@@ -41,9 +41,7 @@ pub fn craft(
 
     let workshop_active_block = game_ctx.blocks.get_content(&307).unwrap();
 
-    JobManager::create_job(
-        grid,
-        &mut game_ctx.events,
+    Some(
         Job::craft(
             pos,
             CRAFTING_TIME,
@@ -56,9 +54,9 @@ pub fn craft(
                 pos,
                 value: CraftFinishedEvent(workshop_block_id, item_id),
             },
-        ),
-    );
-    None
+        )
+        .create(grid, game_ctx),
+    )
 }
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -188,7 +186,7 @@ impl CraftManager {
                                 game_ctx.events.job_get(&job).unwrap().category == JobType::CRAFT
                             })
                         {
-                            grid.cancel_job(event.pos, &mut game_ctx.events);
+                            grid.request_job_cancel(event.pos, &mut game_ctx.events);
                         }
                     }
                 }

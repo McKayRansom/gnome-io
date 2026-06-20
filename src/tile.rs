@@ -200,6 +200,7 @@ impl Tile {
         self.block_flags
     }
 
+    #[allow(unused)]
     pub fn item_flags(&self) -> ItemInfoFlags {
         self.item_flags
     }

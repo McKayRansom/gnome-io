@@ -26,6 +26,7 @@ const DEFAULT_STOCK: Stock = Stock {
 };
 
 impl Stocks {
+    #[allow(unused)]
     pub fn total(&self, item: ItemId) -> usize {
         self.stocks.get(&item).copied().unwrap_or_default().total()
     }
@@ -47,26 +48,26 @@ impl Stocks {
         self.stocks.get(&item).unwrap_or(&DEFAULT_STOCK)
     }
 
-    pub fn reserve(&mut self, item: ItemId) {
-        let stock = self.stocks.entry(item).or_insert(Stock::default());
-        stock.reserved += 1;
-        if stock.available == 0 {
-            log::error!("Tried to reserve item {} which is not available!", item);
-        }
-        stock.available = stock.available.saturating_sub(1);
-    }
+    // pub fn reserve(&mut self, item: ItemId) {
+    //     let stock = self.stocks.entry(item).or_insert(Stock::default());
+    //     stock.reserved += 1;
+    //     if stock.available == 0 {
+    //         log::error!("Tried to reserve item {} which is not available!", item);
+    //     }
+    //     stock.available = stock.available.saturating_sub(1);
+    // }
 
-    pub(crate) fn unreserve(&mut self, item: ItemId) {
-        if let Some(stock) = self.stocks.get_mut(&item) {
-            if stock.reserved == 0 {
-                log::error!("Map stock mismatch for item {}", item);
-            }
-            stock.reserved = stock.reserved.saturating_sub(1);
-            stock.available += 1;
-        } else {
-            log::error!("Tried to remove from non-existant stock for item: {}", item);
-        }
-    }
+    // pub(crate) fn unreserve(&mut self, item: ItemId) {
+    //     if let Some(stock) = self.stocks.get_mut(&item) {
+    //         if stock.reserved == 0 {
+    //             log::error!("Map stock mismatch for item {}", item);
+    //         }
+    //         stock.reserved = stock.reserved.saturating_sub(1);
+    //         stock.available += 1;
+    //     } else {
+    //         log::error!("Tried to remove from non-existant stock for item: {}", item);
+    //     }
+    // }
 
     pub fn remove(&mut self, item: ItemId) {
         if let Some(stock) = self.stocks.get_mut(&item) {

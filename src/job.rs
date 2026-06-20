@@ -68,12 +68,10 @@ pub struct Job {
 enum Flow {
     // Run next step immediatly
     Next,
-    // Go to position, will re-enter same step constantly currently/depending on pathfinding
-    Walk(Vec<Pos>),
     // For following entities
-    JobMoved(Vec<Pos>),
+    JobMoved(Pos),
     // For waiting/other tasks
-    Busy(Busy, Tick),
+    Busy,
     // Signal the job to abort immediatly, job cannot be completed
     Fail,
     // repeat the same step
@@ -144,7 +142,10 @@ impl Step {
                     assert_eq!(reached_pos, *pos);
                     Flow::Next
                 }
-                PathOutcome::Path(path) => Flow::Walk(path),
+                PathOutcome::Path(path) => {
+                    actor.walk(path);
+                    Flow::Repeat
+                }
                 PathOutcome::NoPath => {
                     log::warn!("Job at {:?} is unreachable", pos);
                     Flow::Fail
@@ -159,12 +160,16 @@ impl Step {
                     PathOutcome::Reached(pos) => {
                         // TODO: This doesn't seem quite right...
                         if pos != job_pos {
-                            Flow::JobMoved(vec![pos])
+                            Flow::JobMoved(pos)
                         } else {
                             Flow::Next
                         }
                     }
-                    PathOutcome::Path(path) => Flow::JobMoved(path),
+                    PathOutcome::Path(path) => {
+                        let new_pos = path.last().unwrap().clone();
+                        actor.walk(path);
+                        Flow::JobMoved(new_pos)
+                    }
                     PathOutcome::NoPath => {
                         log::warn!("Entity {:?} is unreachable", target_entity);
                         Flow::Fail
@@ -172,7 +177,10 @@ impl Step {
                 }
             }
 
-            Step::Work(busy, time) => Flow::Busy(*busy, *time),
+            Step::Work(busy, time) => {
+                actor.busy(*busy, *time);
+                Flow::Busy
+            }
             Step::Consume(requires) => {
                 let inventory = actor.inventory();
                 // could also just make mut, but this is safer
@@ -218,8 +226,8 @@ impl Step {
                     log::warn!("Unable to attack {:?} at {:?}", target, job_pos);
                     return Flow::Fail;
                 };
-                actor.attack(entity.1);
-                Flow::Busy(Busy::Fight, 0)
+                actor.busy(Busy::Fight(entity.1), 0);
+                Flow::Busy
             }
             Step::PushTime((time, event)) => {
                 game_ctx.events.push_timer(*time, event.clone());
@@ -276,7 +284,7 @@ pub enum Busy {
     Eat,
     Sleep,
     Birth,
-    Fight,
+    Fight(EntityId),
     Mine,
 }
 
@@ -300,7 +308,6 @@ pub trait JobActor {
     fn equipment(&mut self) -> &mut Vec<ContentItem>;
     fn walk(&mut self, path: Vec<Pos>);
     fn busy(&mut self, kind: Busy, time: Tick);
-    fn attack(&mut self, target: EntityId);
 }
 
 impl Default for Job {
@@ -628,22 +635,15 @@ impl Job {
             match step.run(self.pos, actor, grid, game_ctx) {
                 Flow::Next => self.cursor += 1,
                 Flow::Repeat => return JobStatus::Active,
-                Flow::Walk(path) => {
-                    actor.walk(path);
-                    return JobStatus::Active;
-                    // cursor unchanged, repeat this step
-                }
-                Flow::JobMoved(path) => {
+                Flow::JobMoved(pos) => {
                     grid.take(self.pos, Content::Job(self.id));
-                    self.pos = *path.last().unwrap();
+                    self.pos = pos;
                     grid.create(self.pos, Content::Job(self.id));
                     let _old_job = game_ctx.events.update_job(self.clone());
 
-                    actor.walk(path);
                     return JobStatus::Active;
                 }
-                Flow::Busy(k, t) => {
-                    actor.busy(k, t);
+                Flow::Busy => {
                     self.cursor += 1;
                     return JobStatus::Active;
                 }
@@ -652,6 +652,47 @@ impl Job {
                     return JobStatus::Failed;
                 }
             }
+        }
+    }
+
+    /*
+     * Officially creates a new job on the grid that can be picked up
+     */
+    pub fn create(self, grid: &mut Grid, game_ctx: &mut GameCtx) -> JobId {
+        log::debug!("Creating new job {:?}", &self);
+        let pos = self.pos;
+        let id = game_ctx.events.add_job(self);
+        grid.create(pos, Content::Job(id));
+        id
+    }
+
+    /*
+     * For gnomes to officially accept a job so it is not taken by someone else
+     * This can be called with either an existing job or a new job (it will be created)
+     */
+    pub fn accept(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        self.in_progress = true;
+        if self.id == 0 {
+            self.id = self.clone().create(grid, game_ctx)
+        } else {
+            game_ctx.events.job_in_progress(self);
+        }
+    }
+
+    /*
+     * This will "reset" a job for someone else to pick up, most likely the gnome has been interupted
+     */
+    pub fn reset_job(self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if self.category.should_reset() {
+            game_ctx.events.reset_job(&self.id);
+        } else {
+            if grid.take(self.pos, Content::Job(self.id)).is_none() {
+                log::warn!(
+                    "Failed to reset job, was it removed from grid? job: {:?}",
+                    self
+                );
+            }
+            game_ctx.events.cancel_job(&self.id);
         }
     }
 
@@ -691,38 +732,8 @@ impl JobManager {
         // self.raid_manager.update(game_ctx, grid);
     }
 
-    pub fn create_job(grid: &mut Grid, events: &mut EventManager, job: Job) {
-        log::debug!("Creating new job at {:?}", job);
-        let pos = job.pos;
-        let id = events.add_job(job);
-        grid.create(pos, Content::Job(id));
-    }
-
-    pub fn accept_job(grid: &mut Grid, events: &mut EventManager, job: &mut Job) {
-        job.in_progress = true;
-        if job.id == 0 {
-            job.id = events.add_job(job.clone());
-            grid.create(job.pos, Content::Job(job.id));
-        }
-        events.job_in_progress(job);
-    }
-
-    pub fn cancel_job(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    pub fn request_job_cancel(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
         self.farm_manager.cancel_farm(pos);
-        grid.cancel_job(pos, &mut game_ctx.events);
-    }
-
-    pub fn reset_job(grid: &mut Grid, events: &mut EventManager, job: &Job) {
-        if job.category.should_reset() {
-            events.reset_job(&job.id);
-        } else {
-            if grid.take(job.pos, Content::Job(job.id)).is_none() {
-                log::warn!(
-                    "Failed to reset job, was it removed from grid? job: {:?}",
-                    job
-                );
-            }
-            events.cancel_job(&job.id);
-        }
+        grid.request_job_cancel(pos, &mut game_ctx.events);
     }
 }

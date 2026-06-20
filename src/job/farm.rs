@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockId, BlockInfoFlags},
-    event::{Events, FARM_EVENT_ID, GROWTH_EVENT},
+    event::{Events, FARM_EVENT_ID, GROWTH_EVENT, JobId},
     game::{
         GameCtx, Tick,
         time::{Season, hours},
@@ -11,7 +11,7 @@ use crate::{
     grid::{Grid, Pos},
 };
 
-use super::{Job, JobManager};
+use super::Job;
 
 // const GROWTH_SEASON_DELAY_TIME: Tick = 2 * TICKS_PER_HOUR * HOURS_PER_DAY as Tick;
 
@@ -34,9 +34,7 @@ impl FarmManager {
 
         while let Some(event) = game_ctx.events.pop_event(FARM_EVENT_ID) {
             if let Some(farm_block) = self.farm_pos.get(&event.pos) {
-                if let Some(job) = Self::tile_changed(game_ctx, grid, &event.pos, *farm_block) {
-                    JobManager::create_job(grid, &mut game_ctx.events, job);
-                }
+                Self::tile_changed(game_ctx, grid, &event.pos, *farm_block);
             }
         }
 
@@ -44,9 +42,7 @@ impl FarmManager {
         if game_ctx.time.season_start(Season::Spring) {
             // replant all
             for (pos, farm_block) in self.farm_pos.iter() {
-                if let Some(job) = Self::tile_changed(game_ctx, grid, pos, *farm_block) {
-                    JobManager::create_job(grid, &mut game_ctx.events, job);
-                }
+                Self::tile_changed(game_ctx, grid, pos, *farm_block);
             }
         }
     }
@@ -73,9 +69,7 @@ impl FarmManager {
         // TEMP: For now, always assume wheat
         let wheat_0_id = game_ctx.blocks.get_id("wheat_0").unwrap();
         self.farm_pos.insert(pos, wheat_0_id);
-        if let Some(job) = Self::tile_changed(game_ctx, grid, &pos, wheat_0_id) {
-            JobManager::create_job(grid, &mut game_ctx.events, job);
-        }
+        Self::tile_changed(game_ctx, grid, &pos, wheat_0_id);
     }
 
     pub fn cancel_farm(&mut self, pos: Pos) {
@@ -85,10 +79,10 @@ impl FarmManager {
     fn tile_changed(
         // &mut self,
         game_ctx: &mut GameCtx,
-        grid: &Grid,
+        grid: &mut Grid,
         pos: &Pos,
         farm_block_id: BlockId,
-    ) -> Option<Job> {
+    ) -> Option<JobId> {
         // must be non-solid and have solid beneath (for now)
         // if grid
         //     .get_tile(*pos + dirs::DOWN)
@@ -111,7 +105,7 @@ impl FarmManager {
 
         if block_info.is_some_and(|info| info.growth.is_none_or(|growth| growth.1 == BLOCK_NONE)) {
             // harvest
-            Some(Job::mine(*pos, HARVEST_TIME, super::JobType::FARM))
+            Some(Job::mine(*pos, HARVEST_TIME, super::JobType::FARM).create(grid, game_ctx))
 
         // till
         } else if block_info.is_none() && game_ctx.time.season == Season::Spring {
@@ -121,13 +115,16 @@ impl FarmManager {
                 .map(|item_id| (*item_id, game_ctx.items.get_info(item_id).unwrap().flags))
                 .collect();
 
-            Some(Job::build(
-                *pos,
-                TILL_TIME,
-                (farm_block_id, farm_block_info.flags),
-                requires,
-                super::JobType::FARM,
-            ))
+            Some(
+                Job::build(
+                    *pos,
+                    TILL_TIME,
+                    (farm_block_id, farm_block_info.flags),
+                    requires,
+                    super::JobType::FARM,
+                )
+                .create(grid, game_ctx),
+            )
         } else {
             None
         }

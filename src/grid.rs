@@ -271,7 +271,8 @@ impl Grid {
         }
     }
 
-    pub fn cancel_job(&mut self, pos: Pos, events: &mut EventManager) {
+    // This will remove jobs from the grid, most likely the job will check if it's been canceled soon-ish
+    pub fn request_job_cancel(&mut self, pos: Pos, events: &mut EventManager) {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
         tile.contents.retain(|content| {
             if let Content::Job(job_id) = content {
