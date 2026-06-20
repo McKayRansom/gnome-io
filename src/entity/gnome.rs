@@ -2,15 +2,10 @@
 // use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
-    game::{GameCtx, Tick, time::hours},
-    grid::{
+    entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction}, event::Events, game::{GameCtx, Tick, time::hours}, grid::{
         Grid, Pos,
         path::{JobSearchFn, PathOutcome},
-    },
-    item::{self, ItemInfoFlags},
-    job::{self, Busy, Job, JobActor, JobStatus},
-    tile::{Content, ContentItem},
+    }, item::{self, ItemInfoFlags}, job::{self, Busy, Job, JobActor, JobStatus}, tile::{Content, ContentItem}
 };
 
 /*
@@ -121,7 +116,11 @@ impl Gnome {
             return;
         }
         self.profession = profession;
-        grid.dump_items(self.base.pos, &mut self.base.equipment);
+        grid.dump_items(
+            self.base.pos,
+            &mut self.base.equipment,
+            &mut game_ctx.events,
+        );
         // cancel job???
         if let Some(job) = &self.job {
             let should_cancel = profession != GnomeProfession::NONE
@@ -306,7 +305,12 @@ impl JobActor for Gnome {
         }
     }
 
-    fn aquire(&mut self, grid: &mut Grid, item: ContentItem) -> job::AquireOutcome {
+    fn aquire(
+        &mut self,
+        grid: &mut Grid,
+        item: ContentItem,
+        events: &mut Events,
+    ) -> job::AquireOutcome {
         match grid.find_content(self.base.pos, Content::Item(item), self.base.faction) {
             PathOutcome::Reached(pos) => {
                 if let Some(item) = grid.take(pos, Content::Item(item)) {
@@ -329,6 +333,7 @@ impl JobActor for Gnome {
                         *reserve_pos,
                         Content::Item(item),
                         Content::ReservedItem(item),
+                        events,
                     )
                     .unwrap();
                 let Content::Item(item) = reserve_content else {
@@ -363,11 +368,17 @@ impl EntityBehaviour for Gnome {
                 game_ctx.items.get_id("gnome_dead").unwrap(),
                 ItemInfoFlags::default(),
             )),
+            &mut game_ctx.events,
         );
         if let Some((pos, item)) = self.reserved_item.take() {
-            grid.swap(pos, Content::ReservedItem(item), Content::Item(item));
+            grid.swap(
+                pos,
+                Content::ReservedItem(item),
+                Content::Item(item),
+                &mut game_ctx.events,
+            );
         }
-        self.base.die(grid);
+        self.base.die(grid, &mut game_ctx.events);
     }
 
     fn update(
@@ -418,7 +429,12 @@ impl EntityBehaviour for Gnome {
         }
 
         if let Some((pos, item)) = self.reserved_item.take() {
-            grid.swap(pos, Content::ReservedItem(item), Content::Item(item));
+            grid.swap(
+                pos,
+                Content::ReservedItem(item),
+                Content::Item(item),
+                &mut game_ctx.events,
+            );
         }
 
         // find a new job before we update job

@@ -7,7 +7,7 @@ use crate::{
         gnome::Gnome,
         goblin::{GOBLIN_FACTION, Goblin},
     },
-    event::{Event, Events, FACTION_EXIST_EVENT},
+    event::{Event, EventTypes, Events, FACTION_EXIST_EVENT},
     game::{
         GameCtx, Tick,
         time::{days, hours},
@@ -158,11 +158,11 @@ impl Default for BaseEntity {
 }
 
 impl BaseEntity {
-    pub fn die(&mut self, grid: &mut Grid) {
+    pub fn die(&mut self, grid: &mut Grid, events: &mut Events) {
         grid.entity_exit(self.pos, (self.faction, self.id));
         // MUST drop items to not screw up stocks
-        grid.dump_items(self.pos, &mut self.items);
-        grid.dump_items(self.pos, &mut self.equipment);
+        grid.dump_items(self.pos, &mut self.items, events);
+        grid.dump_items(self.pos, &mut self.equipment, events);
     }
 
     pub fn attacked(&mut self) {
@@ -292,7 +292,7 @@ impl Entities {
                 game_ctx.events.push_event(Event {
                     id: FACTION_EXIST_EVENT,
                     pos: (0, 0).into(), // could be changed...
-                    value: Events::FactionExistsEvent(*faction, false),
+                    value: EventTypes::FactionExistsEvent(*faction, false),
                 });
             }
         }
@@ -301,7 +301,7 @@ impl Entities {
                 game_ctx.events.push_event(Event {
                     id: FACTION_EXIST_EVENT,
                     pos: (0, 0).into(), // could be changed...
-                    value: Events::FactionExistsEvent(*faction, true),
+                    value: EventTypes::FactionExistsEvent(*faction, true),
                 });
             }
         }

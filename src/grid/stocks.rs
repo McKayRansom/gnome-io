@@ -1,6 +1,8 @@
 use rustc_hash::FxHashMap;
 
-use crate::{entity::Entities, grid::Grid, item::ItemId, tile::Content};
+use crate::{
+    entity::Entities, event::Events, grid::Grid, item::ItemId, tile::Content,
+};
 
 #[derive(Default)]
 pub struct Stocks {
@@ -37,11 +39,16 @@ impl Stocks {
             .unwrap_or_default()
             .available
     }
-    pub fn add(&mut self, item: ItemId) {
-        self.stocks
+    pub fn add(&mut self, item: ItemId, events: &mut Events) {
+        let avail = &mut self
+            .stocks
             .entry(item)
             .or_insert(Stock::default())
-            .available += 1;
+            .available;
+        *avail += 1;
+        if *avail == 1 {
+            events.item_appears(item);
+        }
     }
 
     pub fn get(&self, item: ItemId) -> &Stock {
@@ -91,7 +98,11 @@ pub fn stocks_verify(grid: &mut Grid, _entities: &Entities) {
         for x in 0..grid.size.x {
             for content in grid.get_tile((x, y).into()).unwrap().iter_content() {
                 if let Content::Item(item) = content {
-                    new_stocks.add(item.0);
+                    new_stocks
+                        .stocks
+                        .entry(item.0)
+                        .or_insert(Stock::default())
+                        .available += 1;
                 }
             }
         }

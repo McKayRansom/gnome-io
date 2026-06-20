@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::{Entities, Entity, gnome::GNOME_FACTION, goblin::GOBLIN_FACTION}, event::{Events, FACTION_EXIST_EVENT}, game::{GameCtx, time::Season}, grid::Grid
+    entity::{Entities, Entity, gnome::GNOME_FACTION, goblin::GOBLIN_FACTION}, event::{EventTypes, FACTION_EXIST_EVENT}, game::{GameCtx, time::Season}, grid::Grid
 };
 
 #[derive(Default, Debug, Serialize, Deserialize)]
@@ -20,7 +20,7 @@ impl RaidManager {
 
         // muster here for now???
         if let Some(event) = game_ctx.events.peek_event(FACTION_EXIST_EVENT) {
-            if let Events::FactionExistsEvent(faction, exists) = event.value {
+            if let EventTypes::FactionExistsEvent(faction, exists) = event.value {
                 if faction == GOBLIN_FACTION {
                     for entity in entities.values_mut() {
                         if let Entity::Gnome(gnome) = entity {

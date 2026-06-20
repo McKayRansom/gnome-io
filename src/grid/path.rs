@@ -1,6 +1,6 @@
 use crate::{
     entity::{BaseEntity, Faction},
-    event::EventManager,
+    event::Events,
     grid::{Grid, Pos},
     job::Job,
     tile::{Content, Tile},
@@ -12,7 +12,7 @@ pub enum PathOutcome {
     NoPath,
 }
 
-pub type JobSearchFn = fn(Pos, &Tile, &EventManager) -> Option<Job>;
+pub type JobSearchFn = fn(Pos, &Tile, &Events) -> Option<Job>;
 
 // Grid pathfinding function
 impl Grid {
@@ -89,7 +89,7 @@ impl Grid {
     pub fn find_job(
         &self,
         entity: &BaseEntity,
-        events: &EventManager,
+        events: &Events,
         searches: &[JobSearchFn],
     ) -> Option<Job> {
         let mut found_job: Option<Job> = None;

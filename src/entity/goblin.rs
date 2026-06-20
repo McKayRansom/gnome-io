@@ -99,8 +99,9 @@ impl EntityBehaviour for Goblin {
                 game_ctx.items.get_id("goblin_dead").unwrap(),
                 ItemInfoFlags::default(),
             )),
+            &mut game_ctx.events,
         );
-        self.base.die(grid);
+        self.base.die(grid, &mut game_ctx.events);
     }
 
     fn attacked(&mut self) {

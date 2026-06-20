@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use crate::{
     block::{BLOCK_NONE, BlockInfoFlags},
     entity::{EntityId, Faction, goblin::GOBLIN_FACTION},
-    event::{Event, EventManager, JobId, raid::RaidManager, snow::SnowManager},
+    event::{Event, Events, JobId, raid::RaidManager, snow::SnowManager},
     game::{
         GameCtx, Tick,
         time::{days, hours},
@@ -80,6 +80,8 @@ enum Flow {
     JobMoved(Pos),
     // For waiting/other tasks
     Busy,
+    // Queue to be tried again later
+    MissingItem(ItemId),
     // Signal the job to abort immediatly, job cannot be completed
     Fail,
     // repeat the same step
@@ -120,13 +122,14 @@ impl Step {
             Step::Acquire(required_item) => {
                 // TODO: still broken if we require more than one of an item...
                 for item in required_item {
+                    assert!(item.0 > 0, "Not implemented");
                     if actor.inventory().contains(item) {
                         continue;
                     }
-                    match actor.aquire(grid, *item) {
+                    match actor.aquire(grid, *item, &mut game_ctx.events) {
                         AquireOutcome::Found(item) => actor.inventory().push(item),
                         AquireOutcome::Pathing => return Flow::Repeat,
-                        AquireOutcome::NotFound => return Flow::Fail,
+                        AquireOutcome::NotFound => return Flow::MissingItem(item.0),
                     }
                 }
                 Flow::Next
@@ -136,7 +139,7 @@ impl Step {
                     if actor.equipment().contains(item) {
                         continue;
                     }
-                    match actor.aquire(grid, *item) {
+                    match actor.aquire(grid, *item, &mut game_ctx.events) {
                         AquireOutcome::Found(item) => actor.equipment().push(item),
                         AquireOutcome::Pathing => return Flow::Repeat,
                         AquireOutcome::NotFound => { /* Equipment is optional! */ }
@@ -208,7 +211,9 @@ impl Step {
             }
             Step::Produce(content) => {
                 match content {
-                    Content::Item(item) => grid.create(job_pos, Content::Item(*item)),
+                    Content::Item(item) => {
+                        grid.create(job_pos, Content::Item(*item), &mut game_ctx.events)
+                    }
                     Content::Block(block) => grid.place_block(job_pos, block.0, game_ctx),
                     _ => log::warn!("Produce {:?} not implemented!", content),
                 };
@@ -219,7 +224,7 @@ impl Step {
                 Flow::Next
             }
             Step::StoreCarried => {
-                grid.store_items(job_pos, actor.inventory());
+                grid.store_items(job_pos, actor.inventory(), &mut game_ctx.events);
                 Flow::Next
             }
             Step::Attack(target) => {
@@ -312,7 +317,7 @@ pub enum AquireOutcome {
 pub trait JobActor {
     fn pos(&self) -> Pos;
     fn faction(&self) -> Faction;
-    fn aquire(&mut self, grid: &mut Grid, item: ContentItem) -> AquireOutcome;
+    fn aquire(&mut self, grid: &mut Grid, item: ContentItem, events: &mut Events) -> AquireOutcome;
     fn inventory(&mut self) -> &mut Vec<ContentItem>;
     fn equipment(&mut self) -> &mut Vec<ContentItem>;
     fn walk(&mut self, path: Vec<Pos>);
@@ -324,7 +329,7 @@ pub trait JobActor {
 fn job_default_search(
     _pos: Pos,
     tile: &Tile,
-    events: &EventManager,
+    events: &Events,
     job_type: Option<JobType>,
 ) -> Option<Job> {
     if let Some(job_id) = tile.get_job() {
@@ -337,23 +342,23 @@ fn job_default_search(
     None
 }
 
-pub fn job_any_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_any_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, None)
 }
-pub fn job_mine_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_mine_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, Some(JobType::MINE))
 }
-pub fn job_build_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_build_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, Some(JobType::BUILD))
 }
-pub fn job_craft_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_craft_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, Some(JobType::CRAFT))
 }
-pub fn job_farm_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_farm_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, Some(JobType::FARM))
 }
 
-pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if !tile.block_flags().contains(BlockInfoFlags::STORAGE)
         && tile.has_job() == false
         && tile.has_items() == true
@@ -365,7 +370,7 @@ pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     }
 }
 
-pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::STORAGE)
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
@@ -376,7 +381,7 @@ pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Op
     None
 }
 
-pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::STORAGE)
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
@@ -387,15 +392,15 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     None
 }
 
-pub fn job_eat_search_grain(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_eat_search_grain(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_eat_search(pos, tile, events, 201)
 }
 
-pub fn job_eat_search_bread(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_eat_search_bread(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_eat_search(pos, tile, events, 300)
 }
 
-pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager, item: ItemId) -> Option<Job> {
+pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &Events, item: ItemId) -> Option<Job> {
     // do we do table or nah...
     if tile.contains(&Content::Item((item, ItemInfoFlags::default()))) {
         // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
@@ -405,7 +410,7 @@ pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &EventManager, item: ItemI
     }
 }
 
-pub fn job_sleep_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_sleep_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
         && !tile.has_job()
         && !tile.has_entity()
@@ -416,7 +421,7 @@ pub fn job_sleep_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option
     }
 }
 
-pub fn job_idle_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_idle_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
         Some(Job::idle(pos))
     } else {
@@ -424,14 +429,14 @@ pub fn job_idle_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<
     }
 }
 
-pub fn job_fight_search(pos: Pos, tile: &Tile, events: &EventManager) -> Option<Job> {
+pub fn job_fight_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
     job_default_search(pos, tile, events, Some(JobType::FIGHT)).or_else(|| {
         tile.find(&Content::Entity((GOBLIN_FACTION, 0)))
             .map(|_goblin| Job::fight(pos, (GOBLIN_FACTION, 0)))
     })
 }
 
-pub fn job_child_search(pos: Pos, tile: &Tile, _events: &EventManager) -> Option<Job> {
+pub fn job_child_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     // just have a kid for now?
     if tile.block_flags().contains(BlockInfoFlags::SLEEPABLE)
         && !tile.has_job()
@@ -635,7 +640,7 @@ impl Job {
                 Flow::JobMoved(pos) => {
                     grid.take(self.pos, Content::Job(self.id));
                     self.pos = pos;
-                    grid.create(self.pos, Content::Job(self.id));
+                    grid.create(self.pos, Content::Job(self.id), &mut game_ctx.events);
                     game_ctx.events.update_job(self);
 
                     return JobStatus::Active;
@@ -646,6 +651,10 @@ impl Job {
                 }
                 Flow::Fail => {
                     self.fail(grid, game_ctx);
+                    return JobStatus::Failed;
+                }
+                Flow::MissingItem(item) => {
+                    self.missing_item(item, grid, game_ctx);
                     return JobStatus::Failed;
                 }
             }
@@ -659,7 +668,7 @@ impl Job {
         log::debug!("Creating new job {:?}", &self);
         let pos = self.pos;
         let id = game_ctx.events.add_job(self);
-        grid.create(pos, Content::Job(id));
+        grid.create(pos, Content::Job(id), &mut game_ctx.events);
         id
     }
 
@@ -682,6 +691,21 @@ impl Job {
     pub fn reset_job(mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
         if self.category.should_reset() {
             self.state = JobState::Ready;
+            game_ctx.events.update_job(&self);
+        } else {
+            if grid.take(self.pos, Content::Job(self.id)).is_none() {
+                log::warn!(
+                    "Failed to reset job, was it removed from grid? job: {:?}",
+                    self
+                );
+            }
+            game_ctx.events.cancel_job(&self.id);
+        }
+    }
+
+    pub fn missing_item(&mut self, item: ItemId, grid: &mut Grid, game_ctx: &mut GameCtx) {
+        if self.category.should_reset() {
+            self.state = JobState::MissingItem(item);
             game_ctx.events.update_job(&self);
         } else {
             if grid.take(self.pos, Content::Job(self.id)).is_none() {

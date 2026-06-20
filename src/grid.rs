@@ -1,7 +1,7 @@
 use crate::{
     block::{BLOCK_NONE, BlockId, BlockInfoFlags},
     entity::{EntityId, Faction},
-    event::EventManager,
+    event::Events,
     game::GameCtx,
     grid::stocks::Stocks,
     item::{self},
@@ -143,7 +143,7 @@ impl Grid {
                                 .expect("Tried to drop invalid item"),
                         ));
                         // Fixup stocks because we are bypassing grid.create()
-                        self.stocks.add(*item_id);
+                        self.stocks.add(*item_id, &mut game_ctx.events);
                     }
                 }
             }
@@ -220,14 +220,14 @@ impl Grid {
         Some((end, is_slow))
     }
 
-    pub fn create(&mut self, pos: Pos, content: Content) {
+    pub fn create(&mut self, pos: Pos, content: Content, events: &mut Events) {
         let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) else {
             log::warn!("Tried to add content at invalid pos: {:?}", pos);
             return;
         };
         tile.add(content);
         if let Content::Item(item) = content {
-            self.stocks.add(item.0);
+            self.stocks.add(item.0, events);
         }
     }
 
@@ -244,6 +244,7 @@ impl Grid {
         pos: Pos,
         old_content: Content,
         new_content: Content,
+        events: &mut Events,
     ) -> Option<Content> {
         for content in Self::cell_get_tile_mut(&mut self.cells, pos)?
             .contents
@@ -254,7 +255,7 @@ impl Grid {
                     self.stocks.remove(item.0);
                 }
                 if let Content::Item(item) = new_content {
-                    self.stocks.add(item.0);
+                    self.stocks.add(item.0, events);
                 }
                 let old_actual = *content;
                 *content = new_content;
@@ -272,7 +273,7 @@ impl Grid {
     }
 
     // This will remove jobs from the grid, most likely the job will check if it's been canceled soon-ish
-    pub fn request_job_cancel(&mut self, pos: Pos, events: &mut EventManager) {
+    pub fn request_job_cancel(&mut self, pos: Pos, events: &mut Events) {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
         tile.contents.retain(|content| {
             if let Content::Job(job_id) = content {
@@ -312,12 +313,12 @@ impl Grid {
 
     // NOTE: Unsafe, directly modifies tile, and bypasses stocks
     // This version will always dump items
-    pub fn dump_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
+    pub fn dump_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>, events: &mut Events) {
         if let Some(tile) = Self::cell_get_tile_mut(&mut self.cells, pos) {
             for item in items.iter() {
                 tile.contents.push(Content::Item(*item));
                 log::debug!("Dumping {:?}", item);
-                self.stocks.add(item.0);
+                self.stocks.add(item.0, events);
             }
             items.clear();
             tile.modified();
@@ -326,7 +327,7 @@ impl Grid {
 
     // NOTE: Unsafe, directly modifies tile, and bypasses stocks
     // this version will only store items if there is room
-    pub fn store_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>) {
+    pub fn store_items(&mut self, pos: Pos, items: &mut Vec<ContentItem>, events: &mut Events) {
         if items.is_empty() {
             return;
         }
@@ -341,7 +342,7 @@ impl Grid {
                     chest_space += 1;
                     tile.contents.push(Content::Item(*item));
                     log::debug!("Storing {:?}", item);
-                    self.stocks.add(item.0);
+                    self.stocks.add(item.0, events);
                     false
                 } else {
                     true

@@ -10,7 +10,7 @@ use crate::{
     game::{Tick, time::GameTimeEvent},
     grid::Pos,
     item::ItemId,
-    job::Job,
+    job::{Job, JobState},
 };
 
 pub mod raid;
@@ -19,7 +19,7 @@ pub mod snow;
 pub type EventId = u32;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
-pub enum Events {
+pub enum EventTypes {
     FactionExistsEvent(Faction, bool),
     GameTimeEvent(GameTimeEvent),
     BlockUpdateEvent(BlockId, BlockId),
@@ -31,7 +31,7 @@ pub enum Events {
 pub struct Event {
     pub id: EventId,
     pub pos: Pos,
-    pub value: Events,
+    pub value: EventTypes,
 }
 
 // #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -68,7 +68,7 @@ pub type JobId = u32;
 pub type EventNames = FxHashMap<String, EventId>;
 
 #[derive(Serialize, Deserialize)]
-pub struct EventManager {
+pub struct Events {
     #[serde(skip_deserializing, skip_serializing)]
     pub event_names: EventNames,
 
@@ -85,7 +85,7 @@ pub struct EventManager {
     job_id: JobId,
 }
 
-impl Default for EventManager {
+impl Default for Events {
     fn default() -> Self {
         Self {
             event_names: EventNames::default(),
@@ -105,7 +105,7 @@ pub const GAMEPLAY_EVENT: EventId = 2;
 pub const CRAFT_EVENT_ID: EventId = 300;
 pub const FARM_EVENT_ID: EventId = 200;
 
-impl EventManager {
+impl Events {
     pub fn load(&mut self) {
         // TEMP: BECAUSE I AM TOO LAZY TO DO events.ron right now for 2 events
         self.reg_event("faction_exist", FACTION_EXIST_EVENT);
@@ -134,7 +134,7 @@ impl EventManager {
             self.push_event(Event {
                 id: event,
                 pos,
-                value: Events::BlockUpdateEvent(old_block_id, block_id),
+                value: EventTypes::BlockUpdateEvent(old_block_id, block_id),
             });
         }
         // Technically, this could be handled by the above event and an arg or manager that re-emits the event...
@@ -147,7 +147,7 @@ impl EventManager {
                     Event {
                         id: GROWTH_EVENT,
                         pos,
-                        value: Events::BlockUpdateEvent(block_id, new_block),
+                        value: EventTypes::BlockUpdateEvent(block_id, new_block),
                     },
                 );
             }
@@ -166,8 +166,16 @@ impl EventManager {
             self.push_event(Event {
                 id: mine_event,
                 pos,
-                value: Events::BlockUpdateEvent(block_id, new_block_id),
+                value: EventTypes::BlockUpdateEvent(block_id, new_block_id),
             });
+        }
+    }
+
+    pub fn item_appears(&mut self, item: ItemId) {
+        for job in self.jobs.values_mut() {
+            if job.state == JobState::MissingItem(item) {
+                job.state = JobState::Ready;
+            }
         }
     }
 

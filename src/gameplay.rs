@@ -15,7 +15,7 @@ use crate::{
     draw::{draw_game, draw_tile_outline},
     entity::{gnome::GNOME_FACTION, goblin::GOBLIN_FACTION},
     event::{
-        Events::{self},
+        EventTypes::{self},
         FACTION_EXIST_EVENT, GAME_TIME_EVENT, GAMEPLAY_EVENT,
     },
     game::{Game, GameSpeed, time::GameTimeEvent},
@@ -203,7 +203,7 @@ impl Gameplay {
         if self.popup.is_none() {
             if let Some(event) = self.game.game_ctx.events.pop_event(GAMEPLAY_EVENT) {
                 match event.value {
-                    Events::GameTimeEvent(evt) => match evt {
+                    EventTypes::GameTimeEvent(evt) => match evt {
                         GameTimeEvent::YearEnd => {
                             self.popup = Some(Popup::new(format!(
                                 "You survived Year {}!",
@@ -211,7 +211,7 @@ impl Gameplay {
                             )));
                         }
                     },
-                    Events::FactionExistsEvent(faction, exists)
+                    EventTypes::FactionExistsEvent(faction, exists)
                         if faction == GNOME_FACTION && exists == false =>
                     {
                         self.popup = Some(Popup::new(format!(
@@ -219,7 +219,7 @@ impl Gameplay {
                             self.game.game_ctx.time.season, self.game.game_ctx.time.year
                         )));
                     }
-                    Events::FactionExistsEvent(faction, exists)
+                    EventTypes::FactionExistsEvent(faction, exists)
                         if faction == GOBLIN_FACTION && exists == true =>
                     {
                         self.popup = Some(Popup::new(format!("Goblins have been spotted!!")))

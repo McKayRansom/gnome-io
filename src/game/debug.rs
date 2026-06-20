@@ -71,7 +71,7 @@ impl Game {
                             return None;
                         };
                         for _ in 0..amount {
-                            self.grid.create(pos, Content::Item(item));
+                            self.grid.create(pos, Content::Item(item), &mut self.game_ctx.events);
                         }
                     }
                     _ => {

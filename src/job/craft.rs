@@ -4,7 +4,8 @@ use crate::{
     block::BlockId,
     event::{
         CRAFT_EVENT_ID, Event,
-        Events::{self, CraftFinishedEvent}, JobId,
+        EventTypes::{self, CraftFinishedEvent},
+        JobId,
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
@@ -168,7 +169,7 @@ impl CraftManager {
 
         while let Some(event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             match event.value {
-                Events::BlockUpdateEvent(_old, new) => {
+                EventTypes::BlockUpdateEvent(_old, new) => {
                     log::debug!("Craft update event at {:?}", event.pos);
 
                     if self.workshop_block_ids.contains(&new)
@@ -190,13 +191,14 @@ impl CraftManager {
                         }
                     }
                 }
-                Events::CraftFinishedEvent(block_id, item_id) => {
+                EventTypes::CraftFinishedEvent(block_id, item_id) => {
                     // this will trigger it again???
                     grid.place_block(event.pos, block_id, game_ctx);
 
                     grid.create(
                         event.pos,
                         Content::Item(game_ctx.items.get_content(&item_id).unwrap()),
+                        &mut game_ctx.events,
                     );
                 }
                 event => {

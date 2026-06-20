@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::{
     block::{BLOCK_NONE, BlockId, BlockInfoFlags},
-    event::{Events, FARM_EVENT_ID, GROWTH_EVENT, JobId},
+    event::{EventTypes, FARM_EVENT_ID, GROWTH_EVENT, JobId},
     game::{
         GameCtx, Tick,
         time::{Season, hours},
@@ -49,7 +49,7 @@ impl FarmManager {
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         while let Some(event) = game_ctx.events.pop_event(GROWTH_EVENT) {
-            let Events::BlockUpdateEvent(_old, new) = event.value else {
+            let EventTypes::BlockUpdateEvent(_old, new) = event.value else {
                 log::warn!("Invalid event pushed to GROWTH_EVENT queue");
                 continue;
             };

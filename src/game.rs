@@ -3,7 +3,7 @@ use quad_lib::storage::{LoadResult, SaveResult, Storage};
 use crate::{
     block::Blocks,
     entity::Entities,
-    event::{EventManager, raid::RaidManager},
+    event::{Events, raid::RaidManager},
     grid::{Grid, Pos, stocks::stocks_verify},
     item::Items,
     job::{JobManager, build, fight, mine::mine},
@@ -36,7 +36,7 @@ pub struct GameCtx {
     pub time: time::GameTime,
     pub blocks: Blocks,
     pub items: Items,
-    pub events: EventManager,
+    pub events: Events,
     #[serde(skip)]
     pub debug: debug::DebugVars,
 }
@@ -118,6 +118,7 @@ impl Game {
                     .get_content_name(name)
                     .expect("Unknown item in game gen!"),
             ),
+            &mut self.game_ctx.events,
         );
     }
 
