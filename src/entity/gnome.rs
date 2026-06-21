@@ -2,10 +2,16 @@
 // use serde::{Deserialize, Serialize};
 
 use crate::{
-    entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction}, event::Events, game::{GameCtx, Tick, time::hours}, grid::{
+    entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
+    event::Events,
+    game::{GameCtx, Tick, time::hours},
+    grid::{
         Grid, Pos,
-        path::{JobSearchFn, PathOutcome},
-    }, item::{self, ItemInfoFlags}, job::{self, Busy, Job, JobActor, JobStatus}, tile::{Content, ContentItem}
+        path::{PathOutcome},
+    },
+    item::{self, ItemInfoFlags},
+    job::{self, Busy, Job, JobActor, JobStatus, JobType, Search},
+    tile::{Content, ContentItem},
 };
 
 /*
@@ -189,47 +195,47 @@ impl Gnome {
     }
 
     fn find_job(&self, grid: &Grid, game_ctx: &GameCtx) -> Option<Job> {
-        let mut searches: Vec<JobSearchFn> = Vec::new();
-        searches.push(job::job_idle_search);
+        let mut searches: Vec<Search> = Vec::new();
+        searches.push(Search::Idle);
         if !self.mustered {
             if self.base.is_tired() {
-                searches.push(job::job_sleep_search);
+                searches.push(Search::Sleep);
             }
             if self.base.is_hungry() {
                 if grid.stocks.available(300) > 0 {
-                    searches.push(job::job_eat_search_bread);
+                    searches.push(Search::Eat(300));
                 } else if grid.stocks.available(201) > 0 {
-                    searches.push(job::job_eat_search_grain);
+                    searches.push(Search::Eat(201));
                 }
             }
             if self.base.items.len() >= item::ITEM_CARRY_MAX {
-                searches.push(job::job_drop_full_search);
+                searches.push(Search::Drop(job::JobType::HAULFULL));
             } else if self.base.items.len() > 0 {
-                searches.push(job::job_drop_search);
+                searches.push(Search::Drop(job::JobType::HAUL));
             }
             if self.base.items.len() < item::ITEM_CARRY_MAX {
-                searches.push(job::job_haul_search);
+                searches.push(Search::Haul);
             }
 
             // let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
 
             // if !skip_search {
             searches.push(match self.profession {
-                GnomeProfession::NONE => job::job_any_search,
-                GnomeProfession::CRAFTING => job::job_craft_search,
-                GnomeProfession::BUILDING => job::job_build_search,
-                GnomeProfession::MINING => job::job_mine_search,
-                GnomeProfession::FARMING => job::job_farm_search,
-                GnomeProfession::FIGHTING => job::job_fight_search,
-                GnomeProfession::CHILDING => job::job_child_search,
+                GnomeProfession::NONE => Search::Job(None),
+                GnomeProfession::CRAFTING => Search::Job(Some(JobType::CRAFT)),
+                GnomeProfession::BUILDING => Search::Job(Some(JobType::BUILD)),
+                GnomeProfession::MINING => Search::Job(Some(JobType::BUILD)),
+                GnomeProfession::FARMING => Search::Job(Some(JobType::FARM)),
+                GnomeProfession::FIGHTING => Search::Fight,
+                GnomeProfession::CHILDING => Search::Child,
             });
             // }
         } else {
             // mustered jobs
             if self.profession == GnomeProfession::FIGHTING {
                 searches.push(
-                    job::job_fight_search, // } else {
-                                           // job::job_idle_search
+                    Search::Fight, // } else {
+                                   // job::job_idle_search
                 );
             }
         }

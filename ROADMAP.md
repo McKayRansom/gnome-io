@@ -106,16 +106,10 @@ Thoughts2:
   - add standing orders to UI
   - Fix UI activation method
   - Fix crafting UI in general
-- Add more things to do in winter...
-  - Job queue system
-  - Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
+- [x] Job queue system
+- [x] Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
 - Food:
-  - Fix duplicate eat jobs on the same tile
-    - Option 1: Just mark tile as having JOB: Only 1 gnome can pull from a tile at a time (ex: if all bread was in 1 spot they would eat something else...)
-      - For CRAFT/BUILD Jobs this will not happen, but we could easily enough have them mark it
-    - Option 2: Mark in global stocks:
-      - Food jobs are looking for ANY ItemType::FOOD, so that makes things difficult
-      - We could change food jobs to look for the specific item that they found??
+  - [x] Fix duplicate eat jobs on the same tile
   - Add bread back in? It's hard to grow enough crops... (make cheaper in terms of coal?)
   - Show days until starvation
   - Add food value, so bread/stew can be worth it

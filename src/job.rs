@@ -324,6 +324,34 @@ pub trait JobActor {
     fn busy(&mut self, kind: Busy, time: Tick);
 }
 
+#[derive(Clone, Copy, Debug)]
+pub enum Search {
+    Job(Option<JobType>),  // any/mine/build/craft/farm collapse into this
+    Haul,
+    Drop(JobType),         // HAUL vs HAULFULL
+    Eat(ItemId),           // <-- one variant, every food
+    Sleep,
+    Idle,
+    Fight,
+    Child,
+}
+
+impl Search {
+    pub fn run(self, pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
+        match self {
+            Search::Job(ty)  => job_default_search(pos, tile, events, ty),
+            Search::Haul     => job_haul_search(pos, tile, events),
+            Search::Drop(ty) => job_drop_search(pos, tile, events, ty),
+            Search::Eat(item)=> job_eat_search(pos, tile, events, item),
+            Search::Sleep    => job_sleep_search(pos, tile, events),
+            Search::Idle     => job_idle_search(pos, tile, events),
+            Search::Fight    => job_fight_search(pos, tile, events),
+            Search::Child    => job_child_search(pos, tile, events),
+        }
+    }
+}
+
+
 // look for jobs that are just there...
 // OPTIMIZE: Cache job.in_progress and/or job prio to tile
 fn job_default_search(
@@ -342,22 +370,6 @@ fn job_default_search(
     None
 }
 
-pub fn job_any_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_default_search(pos, tile, events, None)
-}
-pub fn job_mine_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_default_search(pos, tile, events, Some(JobType::MINE))
-}
-pub fn job_build_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_default_search(pos, tile, events, Some(JobType::BUILD))
-}
-pub fn job_craft_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_default_search(pos, tile, events, Some(JobType::CRAFT))
-}
-pub fn job_farm_search(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_default_search(pos, tile, events, Some(JobType::FARM))
-}
-
 pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     if !tile.block_flags().contains(BlockInfoFlags::STORAGE)
         && tile.has_job() == false
@@ -370,34 +382,15 @@ pub fn job_haul_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
     }
 }
 
-pub fn job_drop_full_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
+pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &Events, ty: JobType) -> Option<Job> {
     if tile.block_flags().contains(BlockInfoFlags::STORAGE)
         // && entity.items.len() > 0
         && tile.item_count() < item::ITEM_STORE_MAX
     {
         log::debug!("Creating drop-off job");
-        return Some(Job::drop(pos, JobType::HAULFULL));
+        return Some(Job::drop(pos, ty));
     }
     None
-}
-
-pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &Events) -> Option<Job> {
-    if tile.block_flags().contains(BlockInfoFlags::STORAGE)
-        // && entity.items.len() > 0
-        && tile.item_count() < item::ITEM_STORE_MAX
-    {
-        log::debug!("Creating drop-off job");
-        return Some(Job::drop(pos, JobType::HAUL));
-    }
-    None
-}
-
-pub fn job_eat_search_grain(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_eat_search(pos, tile, events, 201)
-}
-
-pub fn job_eat_search_bread(pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
-    job_eat_search(pos, tile, events, 300)
 }
 
 pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &Events, item: ItemId) -> Option<Job> {

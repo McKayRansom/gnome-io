@@ -3,6 +3,9 @@
 Speculative content & faction ideas — captured so they don't get lost, not scheduled.
 Pull into the Roadmap only once the core survival loop is playable.
 
+## Major refactors
+Move game_ctx into grid??
+
 ## Entity ideas
 We have built a very flexible entity system, could do some cool things
 - Livestock: simple entity that eats plants and walks around randomly (needs enclosure)

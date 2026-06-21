@@ -2,8 +2,8 @@ use crate::{
     entity::{BaseEntity, Faction},
     event::Events,
     grid::{Grid, Pos},
-    job::Job,
-    tile::{Content, Tile},
+    job::{Job, Search},
+    tile::Content,
 };
 
 pub enum PathOutcome {
@@ -11,8 +11,6 @@ pub enum PathOutcome {
     Path(Vec<Pos>),
     NoPath,
 }
-
-pub type JobSearchFn = fn(Pos, &Tile, &Events) -> Option<Job>;
 
 // Grid pathfinding function
 impl Grid {
@@ -90,7 +88,7 @@ impl Grid {
         &self,
         entity: &BaseEntity,
         events: &Events,
-        searches: &[JobSearchFn],
+        searches: &[Search],
     ) -> Option<Job> {
         let mut found_job: Option<Job> = None;
         // we will continue past the first job we find, to see if we find a better one...
@@ -118,7 +116,7 @@ impl Grid {
         }) {
             if let Some(tile) = self.get_tile(pos) {
                 for search in searches {
-                    if let Some(new_job) = search(pos, tile, events) {
+                    if let Some(new_job) = search.run(pos, tile, events) {
                         if found_job
                             .as_ref()
                             .is_none_or(|job| new_job.is_higher_priority(&job))
