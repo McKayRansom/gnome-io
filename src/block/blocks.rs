@@ -188,6 +188,10 @@ impl Blocks {
         Some((*block_id, self.infos.get(block_id)?.flags))
     }
 
+    pub fn get_content_name(&self, name: &str) -> Option<ContentBlock> {
+        self.get_content(&self.get_id(name)?)
+    }
+
     pub async fn load(&mut self, items: &Items, events: &EventNames) {
         let ron_str = load_file("assets/data/blocks.ron")
             .await

@@ -53,7 +53,7 @@ async fn main() {
     {
         // Initialize logging, and log the "info" level for this crate only, unless
         // the environment contains `RUST_LOG`.
-        let env = env_logger::Env::new().default_filter_or("info");
+        let env = env_logger::Env::new().default_filter_or("debug");
         env_logger::Builder::from_env(env)
             .format_module_path(false)
             .format_source_path(true)

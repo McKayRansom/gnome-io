@@ -16,7 +16,7 @@
     "coal": (
         id: 102,
         flags: ("SOLID"),
-        drops: [(1.0, "coal_item")],
+        drops: [(1.0, "coal_item"), (1.0, "coal_item")],
     ),
     "snow_block": (
         id: 103,
@@ -132,7 +132,7 @@
     // Would be cool if they remembered the name
     "gravestone": (
         id: 306,
-        requires: ["dead_gnome"],
+        requires: ["gnome_dead"],
     ),
     // NOTE: We could switch to drawing this and managing this in craft_manager instead of as a block growth...
     "furnace_active": (

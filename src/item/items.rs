@@ -28,9 +28,17 @@ struct ItemInfoSave {
     #[serde(default)]
     sprite: String,
     #[serde(default)]
-    recipe: Option<(String, Vec<String>)>,
+    recipe: Option<RecipeSave>,
     #[serde(default)]
     flags: ItemInfoFlags,
+}
+
+#[derive(Debug, Clone, Deserialize)]
+pub struct RecipeSave {
+    workshop: String,
+    requires: Vec<String>,
+    #[serde(default)]
+    quantity: u8,
 }
 
 impl ItemInfoSave {
@@ -43,23 +51,23 @@ impl ItemInfoSave {
                 self.sprite.clone()
             },
             flags: self.flags,
-            recipe: self.recipe.as_ref().map(|(block_at, ingredients)| {
-                (
-                    block_at.clone(),
-                    ingredients
-                        .iter()
-                        .map(|item_name| {
-                            *ids.get(item_name).unwrap_or_else(|| {
-                                log::error!(
-                                    "Could not find ingredient '{}' for item '{}'",
-                                    item_name,
-                                    name
-                                );
-                                &ITEM_NONE
-                            })
+            recipe: self.recipe.as_ref().map(|recipe_save| Recipe {
+                workshop: recipe_save.workshop.clone(),
+                requires: recipe_save
+                    .requires
+                    .iter()
+                    .map(|item_name| {
+                        *ids.get(item_name).unwrap_or_else(|| {
+                            log::error!(
+                                "Could not find ingredient '{}' for item '{}'",
+                                item_name,
+                                name
+                            );
+                            &ITEM_NONE
                         })
-                        .collect::<Vec<ItemId>>(),
-                )
+                    })
+                    .collect::<Vec<ItemId>>(),
+                quantity: recipe_save.quantity.max(1),
             }),
         }
     }

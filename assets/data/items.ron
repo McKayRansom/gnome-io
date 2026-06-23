@@ -22,22 +22,26 @@
     "grain": (
         id: 201,
         flags: ("FOOD"),
+        food_value: 1,
     ),
 
     // man-made
     "bread": (
         id: 300,
         flags: ("FOOD"),
+        food_value: 2,
         // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
-        recipe: Some(("furnace", ["grain", "coal_item"])),
+        // TODO: FIx quantity
+        // TODO: Fix furnace_active hardcoded...
+        recipe: Some((workshop: "furnace", requires: ["grain", "coal_item"], quantity: 2)),
     ),
     "sword": (
         id: 301,
-        recipe: Some(("furnace", ["ore_item", "coal_item"])),
+        recipe: Some((workshop: "furnace", requires: ["ore_item", "coal_item"])),
     ),
     "picaxe": (
         id: 302,
-        recipe: Some(("furnace", ["ore_item", "coal_item"])),
+        recipe: Some((workshop: "furnace", requires: ["ore_item", "coal_item"])),
     ),
 
     // other

@@ -246,10 +246,8 @@ impl Grid {
         new_content: Content,
         events: &mut Events,
     ) -> Option<Content> {
-        for content in Self::cell_get_tile_mut(&mut self.cells, pos)?
-            .contents
-            .iter_mut()
-        {
+        let tile = Self::cell_get_tile_mut(&mut self.cells, pos)?;
+        for content in tile.contents.iter_mut() {
             if *content == old_content {
                 if let Content::Item(item) = content {
                     self.stocks.remove(item.0);
@@ -259,6 +257,8 @@ impl Grid {
                 }
                 let old_actual = *content;
                 *content = new_content;
+
+                tile.modified();
 
                 return Some(old_actual);
             }
@@ -350,5 +350,43 @@ impl Grid {
             });
             tile.modified();
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::item::ItemInfoFlags;
+
+    use super::*;
+
+    #[test]
+    fn swap() {
+        let mut grid = Grid::new((16, 16).into());
+        let mut events = Events::default();
+
+        let content = Content::Item((123, ItemInfoFlags::default()));
+        let new_content = Content::ReservedItem((123, ItemInfoFlags::default()));
+        grid.create((1, 1).into(), content, &mut events);
+
+        assert_eq!(
+            grid.get_tile((1, 1).into()).unwrap().contains(&content),
+            true
+        );
+        assert_eq!(
+            grid.get_tile((1, 1).into()).unwrap().contains(&new_content),
+            false
+        );
+
+        let old_content = grid.swap((1, 1).into(), content, new_content, &mut events);
+
+        assert_eq!(old_content, Some(content));
+        assert_eq!(
+            grid.get_tile((1, 1).into()).unwrap().contains(&content),
+            false
+        );
+        assert_eq!(
+            grid.get_tile((1, 1).into()).unwrap().contains(&new_content),
+            true
+        );
     }
 }

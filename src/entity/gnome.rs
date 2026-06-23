@@ -5,10 +5,7 @@ use crate::{
     entity::{BaseEntity, DEFAULT_SPEED, EntityAction, EntityBehaviour, EntityId, Faction},
     event::Events,
     game::{GameCtx, Tick, time::hours},
-    grid::{
-        Grid, Pos,
-        path::{PathOutcome},
-    },
+    grid::{Grid, Pos, path::PathOutcome},
     item::{self, ItemInfoFlags},
     job::{self, Busy, Job, JobActor, JobStatus, JobType, Search},
     tile::{Content, ContentItem},
@@ -203,9 +200,9 @@ impl Gnome {
             }
             if self.base.is_hungry() {
                 if grid.stocks.available(300) > 0 {
-                    searches.push(Search::Eat(300));
+                    searches.push(Search::Eat(300, 2));
                 } else if grid.stocks.available(201) > 0 {
-                    searches.push(Search::Eat(201));
+                    searches.push(Search::Eat(201, 1));
                 }
             }
             if self.base.items.len() >= item::ITEM_CARRY_MAX {
@@ -270,9 +267,9 @@ impl JobActor for Gnome {
                 self.profession = GnomeProfession::NONE; // auto-cancel??
             }
             Busy::Wait => self.base.timer = time,
-            Busy::Eat => {
+            Busy::Eat(food_value) => {
                 self.status = GnomeStatus::EATING;
-                self.base.food += super::FOOD_RESTORED;
+                self.base.food += super::FOOD_RESTORED * food_value as u16;
                 self.base.timer = super::FOOD_EAT_TIME;
             }
             Busy::Sleep => {
@@ -346,12 +343,23 @@ impl JobActor for Gnome {
                     log::error!("Failed to reserve content, find_content bug? ");
                     return job::AquireOutcome::NotFound;
                 };
+
+                log::debug!(
+                    "RES ALOC gid: {} pos: {:?}, item: {:?}",
+                    // game_ctx.time.tick_off,
+                    self.base.id,
+                    reserve_pos,
+                    item
+                );
                 self.reserved_item = Some((*reserve_pos, item));
                 self.path = path;
 
                 job::AquireOutcome::Pathing
             }
             PathOutcome::NoPath => {
+                if self.reserved_item.is_some() {
+                    log::warn!("Had reserved item: {:?}", self.reserved_item);
+                }
                 log::warn!("Unable to find {:?} for job", item);
                 job::AquireOutcome::NotFound
             }
@@ -435,6 +443,13 @@ impl EntityBehaviour for Gnome {
         }
 
         if let Some((pos, item)) = self.reserved_item.take() {
+            log::debug!(
+                "[{}] RES FREE gid: {} pos: {:?}, item: {:?}",
+                game_ctx.time.tick_off,
+                self.base.id,
+                pos,
+                item
+            );
             grid.swap(
                 pos,
                 Content::ReservedItem(item),

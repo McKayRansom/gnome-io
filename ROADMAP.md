@@ -62,7 +62,7 @@ Focus on survival: The player has to allocate resources to:
   - [x] Soldier muster
   - [x] Add soldier orders: Defend/Attack for now...
 - [x] Fix coal chokepoint...
-- [ ] Fix job dependencies??
+- [x] Fix job dependencies??
 - [x] Make jobs longer
 
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
@@ -72,20 +72,20 @@ Thoughts:
   - Add job queue system, and adjacent jobs completing could add back to the queue
 - Would be nice to prioritize a specific job...
   - Could be time to finally add a job priority u8, only issue is UI
-- Slow down plant growth
+- [x] Slow down plant growth
   - Def not really a challenge to get everything planted in spring like I was intending...
   - Should make it so you have to plant in spring to be harvestable by winter?
   - Farms would need to not replant outside of spring, and trigger mass replanting spring 1st
-- fix FARM jobs!! (need to change jobtype to not be build...)
-- change build to queued if nothing in stock? (could fire event for item existing now...)
-- make all jobs take slightly longer?
+- [x] fix FARM jobs!! (need to change jobtype to not be build...)
+- [x] change build to queued if nothing in stock? (could fire event for item existing now...)
+- [x] make all jobs take slightly longer?
   - Really like the all-hands-on-deck to finish planting/harvest in time
 - increase starting pop?
   - If we're expected to actually use jobs initially then yeah
 - some info on standing orders and if grain or coal is too low...
   - Will need Crafting UI (Item orders, mins, status)
   - could be top left with items or click on craft at top or bot left (click on icons to change instead)
-- need a way to fight more effectively... (lock the doors and gather the gnomes???)
+- [x] need a way to fight more effectively... (lock the doors and gather the gnomes???)
   - We need bell to wake everyone up
   - Ignore other jobs when fighting
   - For the love of god don't go sleep!

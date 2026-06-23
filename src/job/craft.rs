@@ -9,7 +9,7 @@ use crate::{
     },
     game::{self, GameCtx, Tick},
     grid::{Grid, Pos},
-    item::{ItemId, Recipe},
+    item::{ItemId, ItemInfoFlags, Recipe},
     job::JobType,
     tile::Content,
 };
@@ -30,16 +30,12 @@ pub fn craft(
     let recipe = item_info.recipe.as_ref()?;
 
     let requires = recipe
-        .1
+        .requires
         .iter()
-        .map(|item_id| {
-            game_ctx
-                .items
-                .get_content(item_id)
-                .expect("Invalid Item Id")
-        })
+        .map(|item_id| (*item_id, ItemInfoFlags::default()))
         .collect();
 
+    // TODO: FIX THIS!
     let workshop_active_block = game_ctx.blocks.get_content(&307).unwrap();
 
     Some(
@@ -47,7 +43,6 @@ pub fn craft(
             pos,
             CRAFTING_TIME,
             FURNACE_TIME,
-            // (item_id, item_info.flags),
             requires,
             workshop_active_block,
             Event {
@@ -64,7 +59,7 @@ pub fn craft(
 pub struct CraftOrder {
     item: ItemId,
     count: usize,
-    // TODO: in-progress...
+    in_progress: Vec<JobId>,
     standing: bool,
 }
 
@@ -75,14 +70,16 @@ enum CraftOrderUpdate {
 }
 
 impl CraftOrder {
-    fn update(&self, grid: &Grid) -> CraftOrderUpdate {
+    fn update(&mut self, grid: &Grid) -> CraftOrderUpdate {
         if self.standing {
-            if grid.stocks.available(self.item) < self.count {
+            if grid.stocks.available(self.item) + self.in_progress.len() < self.count {
                 CraftOrderUpdate::CRAFT
             } else {
                 CraftOrderUpdate::NONE
             }
         } else if self.count > 0 {
+            // in_progress handled here??
+            self.count -= 1;
             CraftOrderUpdate::CRAFT
         } else {
             CraftOrderUpdate::FINISHED
@@ -121,6 +118,7 @@ impl CraftManager {
             CraftOrder {
                 item: item,
                 count: 1,
+                in_progress: Vec::new(),
                 standing: false,
             },
         );
@@ -128,36 +126,43 @@ impl CraftManager {
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         // spawn at the first one for now...
-        self.orders.retain(|order| {
+        self.orders.retain_mut(|order| {
             match order.update(grid) {
                 CraftOrderUpdate::CRAFT => {
                     // lookup recipe
-                    let (workshop, requires) = game_ctx
+                    let recipe = game_ctx
                         .items
                         .get_info(&order.item)
-                        .expect("Standing order for unknown item")
+                        .expect("order for unknown item")
                         .recipe
                         .as_ref()
-                        .expect("Standing order for uncraftable item");
+                        .expect("order for uncraftable item");
 
                     let workshop_block_id = game_ctx
                         .blocks
-                        .get_id(workshop)
+                        .get_id(&recipe.workshop)
                         .expect("Recipe has invalid workshop name!");
 
                     // for now, until we implement minimums don't take all there is
-                    if requires
+                    if recipe
+                        .requires
                         .iter()
                         .any(|item| grid.stocks.available(*item) < order.count / 2)
                     {
                         // wish we could log here...
-                        return false;
+                        return true;
                     }
 
                     // TODO: Only search for workshops with our ID
-                    if let Some(pos) = self.workshop_pos.first() {
+                    // NOTE: This only works because when the furnace is activated it is removed from self.workshop_pos...
+                    for pos in self.workshop_pos.iter() {
                         if grid.get_tile(*pos).unwrap().get_job().is_none() {
-                            craft(grid, *pos, workshop_block_id, order.item, game_ctx);
+                            if let Some(job_id) =
+                                craft(grid, *pos, workshop_block_id, order.item, game_ctx)
+                            {
+                                order.in_progress.push(job_id);
+                            }
+                            break;
                         }
                     }
                     true

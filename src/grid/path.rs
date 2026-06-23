@@ -6,6 +6,7 @@ use crate::{
     tile::Content,
 };
 
+#[derive(Debug, PartialEq, Eq)]
 pub enum PathOutcome {
     Reached(Pos),
     Path(Vec<Pos>),
@@ -31,6 +32,7 @@ impl Grid {
         content: Option<Content>,
         faction: Faction,
     ) -> PathOutcome {
+        log::debug!("find_path {:?} {:?} {:?}", start, end, content);
         if let Some(mut path) = pathfinding::prelude::bfs(
             &start,
             |pos| {
@@ -136,5 +138,29 @@ impl Grid {
         }
 
         found_job
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::item::ItemInfoFlags;
+
+    use super::*;
+
+    #[test]
+    fn find_content() {
+        let mut grid = Grid::new((16, 16).into());
+        let mut events = Events::default();
+        let content = Content::Item((123, ItemInfoFlags::default()));
+        grid.create((1, 1).into(), content, &mut events);
+
+        let path = grid.find_content((0, 0).into(), content, 1);
+        assert_eq!(path, PathOutcome::Path(vec![(1, 0).into(), (1, 1).into()]));
+
+        let path = grid.find_content((1, 0).into(), content, 1);
+        assert_eq!(path, PathOutcome::Path(vec![(1, 1).into()]));
+
+        let path = grid.find_content((1, 1).into(), content, 1);
+        assert_eq!(path, PathOutcome::Reached((1, 1).into()));
     }
 }

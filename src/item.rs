@@ -14,7 +14,6 @@ pub const ITEM_PICAXE: ItemId = 302;
 pub const ITEM_CARRY_MAX: usize = 4;
 pub const ITEM_STORE_MAX: usize = 16;
 
-pub type Recipe = (String, Vec<ItemId>);
 
 #[derive(Debug, PartialEq, Eq)]
 pub struct ItemInfo {
@@ -22,6 +21,13 @@ pub struct ItemInfo {
     pub sprite: String,
     pub recipe: Option<Recipe>,
     pub flags: ItemInfoFlags,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Recipe {
+    pub workshop: String,
+    pub requires: Vec<ItemId>,
+    pub quantity: u8,
 }
 
 bitflags! {

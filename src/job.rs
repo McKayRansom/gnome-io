@@ -119,22 +119,41 @@ impl Step {
         game_ctx: &mut GameCtx,
     ) -> Flow {
         match self {
-            Step::Acquire(required_item) => {
-                // TODO: still broken if we require more than one of an item...
-                for item in required_item {
-                    assert!(item.0 > 0, "Not implemented");
-                    if actor.inventory().contains(item) {
-                        continue;
-                    }
-                    match actor.aquire(grid, *item, &mut game_ctx.events) {
-                        AquireOutcome::Found(item) => actor.inventory().push(item),
-                        AquireOutcome::Pathing => return Flow::Repeat,
-                        AquireOutcome::NotFound => return Flow::MissingItem(item.0),
+            Step::Acquire(required) => {
+                // NOTE: this would be made eaiser if required specified a count...
+
+                // Figure out which requirements aren't yet covered, honoring multiplicity.
+                let mut needed = required.clone();
+                for inv_item in actor.inventory().iter() {
+                    if let Some(idx) = needed
+                        .iter()
+                        .position(|req| Content::Item(*inv_item) == Content::Item(*req))
+                    {
+                        needed.swap_remove(idx); // one inventory item satisfies one requirement
                     }
                 }
-                Flow::Next
+
+                // Acquire the next still-missing item (one per pass; aquire paths/reserves).
+                let Some(item) = needed.first() else {
+                    log::debug!("Step::Aquire: Found all items");
+                    return Flow::Next; // everything satisfied
+                };
+                assert!(
+                    item.0 > 0,
+                    "Item flags aquire is broken due to item reservation logic"
+                );
+                match actor.aquire(grid, *item, &mut game_ctx.events) {
+                    AquireOutcome::Found(found) => {
+                        actor.inventory().push(found);
+                        log::debug!("Step::Aquire: Found item {:?}", found);
+                        Flow::Repeat // re-run to pick up the remaining `needed`
+                    }
+                    AquireOutcome::Pathing => Flow::Repeat,
+                    AquireOutcome::NotFound => Flow::MissingItem(item.0),
+                }
             }
             Step::Equip(required_item) => {
+                // NOTE: This does not support multiple of the same item, does it need to?
                 for item in required_item {
                     if actor.equipment().contains(item) {
                         continue;
@@ -295,7 +314,7 @@ impl JobType {
 #[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum Busy {
     Wait,
-    Eat,
+    Eat(u8),
     Sleep,
     Birth,
     Fight(EntityId),
@@ -326,10 +345,10 @@ pub trait JobActor {
 
 #[derive(Clone, Copy, Debug)]
 pub enum Search {
-    Job(Option<JobType>),  // any/mine/build/craft/farm collapse into this
+    Job(Option<JobType>), // any/mine/build/craft/farm collapse into this
     Haul,
-    Drop(JobType),         // HAUL vs HAULFULL
-    Eat(ItemId),           // <-- one variant, every food
+    Drop(JobType), // HAUL vs HAULFULL
+    Eat(ItemId, u8),
     Sleep,
     Idle,
     Fight,
@@ -339,18 +358,17 @@ pub enum Search {
 impl Search {
     pub fn run(self, pos: Pos, tile: &Tile, events: &Events) -> Option<Job> {
         match self {
-            Search::Job(ty)  => job_default_search(pos, tile, events, ty),
-            Search::Haul     => job_haul_search(pos, tile, events),
+            Search::Job(ty) => job_default_search(pos, tile, events, ty),
+            Search::Haul => job_haul_search(pos, tile, events),
             Search::Drop(ty) => job_drop_search(pos, tile, events, ty),
-            Search::Eat(item)=> job_eat_search(pos, tile, events, item),
-            Search::Sleep    => job_sleep_search(pos, tile, events),
-            Search::Idle     => job_idle_search(pos, tile, events),
-            Search::Fight    => job_fight_search(pos, tile, events),
-            Search::Child    => job_child_search(pos, tile, events),
+            Search::Eat(item, food_value) => job_eat_search(pos, tile, events, item, food_value),
+            Search::Sleep => job_sleep_search(pos, tile, events),
+            Search::Idle => job_idle_search(pos, tile, events),
+            Search::Fight => job_fight_search(pos, tile, events),
+            Search::Child => job_child_search(pos, tile, events),
         }
     }
 }
-
 
 // look for jobs that are just there...
 // OPTIMIZE: Cache job.in_progress and/or job prio to tile
@@ -393,11 +411,11 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &Events, ty: JobType) -> 
     None
 }
 
-pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &Events, item: ItemId) -> Option<Job> {
+pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &Events, item: ItemId, food_value: u8) -> Option<Job> {
     // do we do table or nah...
     if tile.contains(&Content::Item((item, ItemInfoFlags::default()))) {
         // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
-        Some(Job::eat(pos, item))
+        Some(Job::eat(pos, item, food_value))
     } else {
         None
     }
@@ -448,9 +466,9 @@ impl Job {
             category: JobType::CHILD,
             steps: vec![
                 // eat so we have lots of food
-                Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
-                Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
-                Step::Work(Busy::Eat, 0),
+                // Step::Acquire(vec![(0, ItemInfoFlags::FOOD)]),
+                // Step::Consume(vec![(0, ItemInfoFlags::FOOD)]),
+                // Step::Work(Busy::Eat, 0),
                 // go to bed
                 Step::Goto(pos),
                 // wait (not sleep) (if we pass out it's fine I guess)
@@ -516,7 +534,7 @@ impl Job {
     }
 
     // NOTE: The eat job will not change highlighted position if the food there is consumed and we have to find a new food...
-    pub fn eat(pos: Pos, item: ItemId) -> Self {
+    pub fn eat(pos: Pos, item: ItemId, food_value: u8) -> Self {
         Job {
             pos,
             category: JobType::EAT,
@@ -524,7 +542,7 @@ impl Job {
                 Step::Acquire(vec![(item, ItemInfoFlags::FOOD)]),
                 // Step::Goto(pos),
                 Step::Consume(vec![(item, ItemInfoFlags::FOOD)]),
-                Step::Work(Busy::Eat, 0),
+                Step::Work(Busy::Eat(food_value), 0),
             ],
             ..Default::default()
         }
