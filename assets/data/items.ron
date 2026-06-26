@@ -35,6 +35,15 @@
         // TODO: Fix furnace_active hardcoded...
         recipe: Some((workshop: "furnace", requires: ["grain", "coal_item"], quantity: 2)),
     ),
+    "goblin_meat": (
+        id: 303,
+        flags: ("FOOD"),
+        food_value: 3,
+        // NOTE: the "furnace" block here will have to be looked-up actively which should be fine
+        // TODO: FIx quantity
+        // TODO: Fix furnace_active hardcoded...
+        recipe: Some((workshop: "furnace", requires: ["goblin_dead", "coal_item"], quantity: 2)),
+    ),
     "sword": (
         id: 301,
         recipe: Some((workshop: "furnace", requires: ["ore_item", "coal_item"])),

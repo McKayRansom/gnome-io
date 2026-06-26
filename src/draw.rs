@@ -303,7 +303,12 @@ fn draw_managers(manager: &JobManager, _grid: &Grid, _game_ctx: &GameCtx, ctx: &
     // NOTE: We could switch to drawing furnace_active here...
     for pos in manager.craft_manager.workshop_pos.iter() {
         let rect: Rect = ctx.camera.to_screen_rect((*pos).into()).into();
-        ctx.tileset.draw_tile("farm_pos", &rect, colors::WHITE);
+        ctx.tileset.draw_tile_rot(
+            "farm_pos",
+            colors::WHITE,
+            &rect,
+            dirs::to_radians(dirs::DOWN),
+        );
     }
 }
 

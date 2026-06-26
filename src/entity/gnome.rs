@@ -199,7 +199,9 @@ impl Gnome {
                 searches.push(Search::Sleep);
             }
             if self.base.is_hungry() {
-                if grid.stocks.available(300) > 0 {
+                if grid.stocks.available(303) > 0 {
+                    searches.push(Search::Eat(303, 3));
+                } else if grid.stocks.available(300) > 0 {
                     searches.push(Search::Eat(300, 2));
                 } else if grid.stocks.available(201) > 0 {
                     searches.push(Search::Eat(201, 1));

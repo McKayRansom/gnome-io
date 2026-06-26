@@ -107,6 +107,7 @@ Thoughts2:
   - Fix UI activation method
   - Fix crafting UI in general
 - [x] Job queue system
+  - [ ] Fix queued plant jobs at end of spring...
 - [x] Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
 - Food:
   - [x] Fix duplicate eat jobs on the same tile
