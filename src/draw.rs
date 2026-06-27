@@ -10,23 +10,23 @@ use crate::{
     context::Context,
     entity::{
         self, BaseEntity, Entities, Entity, HIDDEN_FACTION,
-        gnome::{Gnome, GnomeStatus},
+        gnome::{GNOME_FACTION, Gnome, GnomeStatus},
         goblin::Goblin,
     },
-    game::{Game, GameCtx},
+    game::{Game, GameCtx, time::print_days_nice},
     grid::{
         Grid, Pos,
         pos::{PIXEL_SIZE, dirs},
     },
     job::{JobManager, JobState},
-    text::{draw_text, draw_text_screen_centered},
-    tile::{Content, ContentItem, TileBiome}, // tileset::{GRID_CELL_SIZE, PIXEL_SIZE, Sprite, pos_to_rect, sprites},
+    text::draw_text,
+    tile::{Content, ContentItem, TileBiome},
 };
 
 pub fn draw_game(game: &Game, ctx: &Context) {
     draw_tiles(&game.grid, &game.game_ctx, ctx, &game.entities);
     draw_managers(&game.job_manager, &game.grid, &game.game_ctx, ctx);
-    draw_stocks(&game.grid, &game.game_ctx, ctx);
+    draw_stocks(game, ctx);
     draw_status(game, ctx);
 }
 
@@ -312,44 +312,57 @@ fn draw_managers(manager: &JobManager, _grid: &Grid, _game_ctx: &GameCtx, ctx: &
     }
 }
 
-fn draw_stocks(grid: &Grid, game_ctx: &GameCtx, ctx: &Context) {
+fn draw_stocks(game: &Game, ctx: &Context) {
     // this really shouldn't be random order but here we are
     let mut pos = vec2(10., 20.);
+    let time = &game.game_ctx.time;
     draw_text(
         ctx,
-        "Stocks:",
+        format!("Day {} of {:?} Year {}", time.day, time.season, time.year).as_str(),
+        // ctx.screen_size.x - 200.,
         pos.x,
         pos.y,
         crate::text::Size::Small,
         colors::WHITE,
     );
     pos.y += 30.;
-    for (item, stock) in grid.stocks.iter() {
-        draw_text(
-            ctx,
-            format!(
-                "{}: {}",
-                game_ctx.items.get_info(item).unwrap().name,
-                stock.total()
-            )
-            .as_str(),
-            pos.x,
-            pos.y,
-            crate::text::Size::Small,
-            colors::WHITE,
-        );
-        pos.y += 26.;
-    }
-}
-
-fn draw_status(game: &Game, ctx: &Context) {
-    let time = &game.game_ctx.time;
-    draw_text_screen_centered(
+    let population = game.entities.population(GNOME_FACTION);
+    draw_text(
         ctx,
-        format!("Day {} of {:?} Year {}", time.day, time.season, time.year).as_str(),
-        // ctx.screen_size.x - 200.,
-        25.,
+        format!("Population: {}", population).as_str(),
+        pos.x,
+        pos.y,
         crate::text::Size::Small,
         colors::WHITE,
     );
+    pos.y += 30.;
+    let total_food = game.grid.stocks.total_food(&game.game_ctx);
+    draw_text(
+        ctx,
+        format!("Food: {}", print_days_nice(total_food / population.max(1))).as_str(),
+        pos.x,
+        pos.y,
+        crate::text::Size::Small,
+        colors::WHITE,
+    );
+
+    // pos.y += 30.;
+    // for (item, stock) in grid.stocks.iter() {
+    //     draw_text(
+    //         ctx,
+    //         format!(
+    //             "{}: {}",
+    //             game_ctx.items.get_info(item).unwrap().name,
+    //             stock.total()
+    //         )
+    //         .as_str(),
+    //         pos.x,
+    //         pos.y,
+    //         crate::text::Size::Small,
+    //         colors::WHITE,
+    //     );
+    //     pos.y += 26.;
+    // }
 }
+
+fn draw_status(game: &Game, ctx: &Context) {}

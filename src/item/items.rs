@@ -31,6 +31,8 @@ struct ItemInfoSave {
     recipe: Option<RecipeSave>,
     #[serde(default)]
     flags: ItemInfoFlags,
+    #[serde(default)]
+    food_value: u8,
 }
 
 #[derive(Debug, Clone, Deserialize)]
@@ -69,6 +71,7 @@ impl ItemInfoSave {
                     .collect::<Vec<ItemId>>(),
                 quantity: recipe_save.quantity.max(1),
             }),
+            food_value: self.food_value,
         }
     }
 }

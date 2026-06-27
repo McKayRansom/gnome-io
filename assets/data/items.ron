@@ -13,7 +13,7 @@
     "coal_item": (
         id: 102,
         sprite: "coal_item",
-        recipe: Some((workshop: "furnace", requires: ["wood")),
+        recipe: Some((workshop: "furnace", requires: ["wood"])),
     ),
 
     // plants

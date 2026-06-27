@@ -1,6 +1,6 @@
 // use super::Tick;
 
-use std::str::FromStr;
+use std::{fmt::format, str::FromStr};
 
 use serde::{Deserialize, Serialize};
 
@@ -71,6 +71,22 @@ pub struct GameTime {
 #[derive(Clone, Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub enum GameTimeEvent {
     YearEnd,
+}
+
+pub fn print_days_nice(days: usize) -> String {
+    let seasons = days / DAYS_PER_SEASON as usize;
+    let years = (seasons as usize) / 4;
+    let seasons = seasons % 4;
+    let days = days % DAYS_PER_SEASON as usize;
+    if years > 1 {
+        format!("{} years", years)
+    } else if years > 0 {
+        format!("{} year {} seasons", years, seasons)
+    } else if seasons > 0 {
+        format!("{} seasons {} days", seasons, days)
+    } else {
+        format!("{} days", days)
+    }
 }
 
 impl GameTime {

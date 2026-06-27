@@ -1,7 +1,7 @@
 use rustc_hash::FxHashMap;
 
 use crate::{
-    entity::Entities, event::Events, grid::Grid, item::ItemId, tile::Content,
+    entity::Entities, event::Events, game::GameCtx, grid::Grid, item::ItemId, tile::Content,
 };
 
 #[derive(Default)]
@@ -75,6 +75,17 @@ impl Stocks {
     //         log::error!("Tried to remove from non-existant stock for item: {}", item);
     //     }
     // }
+
+    // Not sure if this belongs here, but it does kina fit...
+    pub fn total_food(&self, game_ctx: &GameCtx) -> usize {
+        game_ctx.items.iter().fold(0, |acc, (id, item)| {
+            if item.food() {
+                acc + self.available(*id) * item.food_value as usize
+            } else {
+                acc
+            }
+        })
+    }
 
     pub fn remove(&mut self, item: ItemId) {
         if let Some(stock) = self.stocks.get_mut(&item) {

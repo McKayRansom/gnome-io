@@ -21,6 +21,7 @@ pub struct ItemInfo {
     pub sprite: String,
     pub recipe: Option<Recipe>,
     pub flags: ItemInfoFlags,
+    pub food_value: u8,
 }
 
 #[derive(Debug, PartialEq, Eq)]

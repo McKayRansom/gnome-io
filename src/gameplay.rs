@@ -445,7 +445,6 @@ impl Gameplay {
                 .titlebar(false)
                 .movable(false)
                 .ui(&mut root_ui(), |ui| {
-                    // show recipes instead
                     for (item_id, item) in self.game.game_ctx.items.iter() {
                         if let Some(recipe) = &item.recipe {
                             if ui.button(None, format!("{:?}", item.name).as_str()) {
