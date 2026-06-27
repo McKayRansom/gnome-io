@@ -45,6 +45,12 @@ impl FarmManager {
                 Self::tile_changed(game_ctx, grid, pos, *farm_block);
             }
         }
+        // summer: too late! cancel planting jobs...
+        else if game_ctx.time.season_start(Season::Summer) {
+            for pos in self.farm_pos.keys() {
+                grid.remove_jobs(*pos, &mut game_ctx.events, Some(super::JobType::FARM));
+            }
+        }
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {

@@ -5,6 +5,7 @@ use crate::{
     game::GameCtx,
     grid::stocks::Stocks,
     item::{self},
+    job::JobType,
     tile::{Content, ContentItem, Tile},
 };
 
@@ -273,10 +274,14 @@ impl Grid {
     }
 
     // This will remove jobs from the grid, most likely the job will check if it's been canceled soon-ish
-    pub fn request_job_cancel(&mut self, pos: Pos, events: &mut Events) {
+    // NOTE: Could refactor to generic retail_content(FN)
+    pub fn remove_jobs(&mut self, pos: Pos, events: &mut Events, filter: Option<JobType>) {
         let tile = Self::cell_get_tile_mut(&mut self.cells, pos).unwrap();
         tile.contents.retain(|content| {
-            if let Content::Job(job_id) = content {
+            let Content::Job(job_id) = content else {
+                return true;
+            };
+            if filter.is_none_or(|filter| events.job_get(job_id).unwrap().category == filter) {
                 events.cancel_job(job_id);
                 false
             } else {

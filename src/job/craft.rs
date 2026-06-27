@@ -184,16 +184,7 @@ impl CraftManager {
                     } else if self.workshop_block_ids.contains(&_old) {
                         self.workshop_pos.retain(|pos| pos != &event.pos);
 
-                        if grid
-                            .get_tile(event.pos)
-                            .unwrap()
-                            .get_job()
-                            .is_some_and(|job| {
-                                game_ctx.events.job_get(&job).unwrap().category == JobType::CRAFT
-                            })
-                        {
-                            grid.request_job_cancel(event.pos, &mut game_ctx.events);
-                        }
+                        grid.remove_jobs(event.pos, &mut game_ctx.events, Some(JobType::CRAFT));
                     }
                 }
                 EventTypes::CraftFinishedEvent(block_id, item_id) => {

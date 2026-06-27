@@ -68,14 +68,14 @@ Focus on survival: The player has to allocate resources to:
 - [x] Sidetrack Job Step refactor (it's really cool tho...)
 
 Thoughts:
-- Fix farms over none? Would be nice to queue
-  - Add job queue system, and adjacent jobs completing could add back to the queue
+- [x] Fix farms over none? Would be nice to queue
+  - [x] Add job queue system, and adjacent jobs completing could add back to the queue
 - Would be nice to prioritize a specific job...
   - Could be time to finally add a job priority u8, only issue is UI
 - [x] Slow down plant growth
-  - Def not really a challenge to get everything planted in spring like I was intending...
-  - Should make it so you have to plant in spring to be harvestable by winter?
-  - Farms would need to not replant outside of spring, and trigger mass replanting spring 1st
+  - [x] Def not really a challenge to get everything planted in spring like I was intending...
+  - [x] Should make it so you have to plant in spring to be harvestable by winter?
+  - [x] Farms would need to not replant outside of spring, and trigger mass replanting spring 1st
 - [x] fix FARM jobs!! (need to change jobtype to not be build...)
 - [x] change build to queued if nothing in stock? (could fire event for item existing now...)
 - [x] make all jobs take slightly longer?
@@ -150,6 +150,7 @@ Planned items, unplanned go in ICEBOX.md. Roughly in priority order:
 
 ## Explore future direction
 - Gnome skill exploration/gnome details/actual childing/nursing
+  - Gnomes could wear hats depending on their profession
 - faction exploration
 - multiplayer exploration
 - mod exploration

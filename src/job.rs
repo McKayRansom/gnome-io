@@ -411,7 +411,13 @@ pub fn job_drop_search(pos: Pos, tile: &Tile, _events: &Events, ty: JobType) -> 
     None
 }
 
-pub fn job_eat_search(pos: Pos, tile: &Tile, _events: &Events, item: ItemId, food_value: u8) -> Option<Job> {
+pub fn job_eat_search(
+    pos: Pos,
+    tile: &Tile,
+    _events: &Events,
+    item: ItemId,
+    food_value: u8,
+) -> Option<Job> {
     // do we do table or nah...
     if tile.contains(&Content::Item((item, ItemInfoFlags::default()))) {
         // if tile.block_flags().contains(BlockInfoFlags::TABLE) && !tile.has_job() && !tile.has_entity() {
@@ -767,6 +773,6 @@ impl JobManager {
 
     pub fn request_job_cancel(&mut self, pos: Pos, grid: &mut Grid, game_ctx: &mut GameCtx) {
         self.farm_manager.cancel_farm(pos);
-        grid.request_job_cancel(pos, &mut game_ctx.events);
+        grid.remove_jobs(pos, &mut game_ctx.events, None);
     }
 }
