@@ -122,7 +122,7 @@ impl Game {
             max: 1.0,
             min: 0.0,
         };
-        let tree_id = self.game_ctx.blocks.get_id("wheat_3").unwrap();
+        let tree_id = self.game_ctx.blocks.get_id("tree_4").unwrap();
 
         // trees
         for x in 0..size.x {

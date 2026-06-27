@@ -92,6 +92,7 @@
     "tree_4": (
         id: 209,
         mine_event: Some("farm"),
+        drops: [(1.0, "wood"), (1.0, "wood")],
         // drops: [(1.0, "seed")],
     ),
 

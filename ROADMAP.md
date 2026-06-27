@@ -107,14 +107,14 @@ Thoughts2:
   - Fix UI activation method
   - Fix crafting UI in general
 - [x] Job queue system
-  - [ ] Fix queued plant jobs at end of spring...
+  - [x] Fix queued plant jobs at end of spring...
 - [x] Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
 - Food:
   - [x] Fix duplicate eat jobs on the same tile
-  - Add bread back in? It's hard to grow enough crops... (make cheaper in terms of coal?)
+  - [x] Add bread back in? It's hard to grow enough crops... (make cheaper in terms of coal?)
   - Show days until starvation
-  - Add food value, so bread/stew can be worth it
-  - (Goblin stew!!)
+  - [x] Add food value, so bread/stew can be worth it
+  - [x] (Goblin stew!!)
 - fighting:
   - Add armor
   - Add running when injured (add injury in general)
