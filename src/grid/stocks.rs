@@ -14,6 +14,10 @@ pub struct Stock {
     available: usize,
     reserved: usize,
     // could add inventories/equiped if desired
+
+    // user-set values
+    // minimum: usize,
+    pub pinned: bool,
 }
 
 impl Stock {
@@ -25,6 +29,7 @@ impl Stock {
 const DEFAULT_STOCK: Stock = Stock {
     available: 0,
     reserved: 0,
+    pinned: false,
 };
 
 impl Stocks {
@@ -39,6 +44,9 @@ impl Stocks {
             .unwrap_or_default()
             .available
     }
+    pub fn pinned(&self, item: ItemId) -> bool {
+        self.stocks.get(&item).copied().unwrap_or_default().pinned
+    }
     pub fn add(&mut self, item: ItemId, events: &mut Events) {
         let avail = &mut self
             .stocks
@@ -49,6 +57,9 @@ impl Stocks {
         if *avail == 1 {
             events.item_appears(item);
         }
+    }
+    pub fn pin(&mut self, item: ItemId, pinned: bool) {
+        self.stocks.entry(item).or_insert(Stock::default()).pinned = pinned;
     }
 
     pub fn get(&self, item: ItemId) -> &Stock {

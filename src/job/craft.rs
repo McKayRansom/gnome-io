@@ -1,3 +1,4 @@
+use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 
 use crate::{
@@ -58,32 +59,34 @@ pub fn craft(
 #[derive(Default, Debug, Serialize, Deserialize)]
 pub struct CraftOrder {
     item: ItemId,
-    count: usize,
+    one_time: usize,
     in_progress: Vec<JobId>,
-    standing: bool,
+    standing: usize,
 }
 
 enum CraftOrderUpdate {
     CRAFT,
-    NONE,
+    // NONE,
     FINISHED,
 }
 
 impl CraftOrder {
-    fn update(&mut self, grid: &Grid) -> CraftOrderUpdate {
-        if self.standing {
-            if grid.stocks.available(self.item) + self.in_progress.len() < self.count {
-                CraftOrderUpdate::CRAFT
-            } else {
-                CraftOrderUpdate::NONE
+    fn update(&mut self, grid: &Grid, game_ctx: &GameCtx) -> CraftOrderUpdate {
+        // TODO: job finished event!
+        self.in_progress
+            .retain(|job_id| game_ctx.events.job_get(job_id).is_some());
+        if self.standing > 0 {
+            if grid.stocks.available(self.item) + self.in_progress.len() < self.standing {
+                return CraftOrderUpdate::CRAFT;
             }
-        } else if self.count > 0 {
-            // in_progress handled here??
-            self.count -= 1;
-            CraftOrderUpdate::CRAFT
-        } else {
-            CraftOrderUpdate::FINISHED
         }
+        if self.one_time > 0 {
+            // in_progress handled here??
+            self.one_time -= 1;
+            return CraftOrderUpdate::CRAFT;
+        }
+
+        CraftOrderUpdate::FINISHED
     }
 }
 
@@ -92,7 +95,7 @@ pub struct CraftManager {
     // TODO:HASHMAP??
     pub workshop_pos: Vec<Pos>,
     #[serde(skip_deserializing, skip_serializing)]
-    orders: Vec<CraftOrder>,
+    orders: FxHashMap<ItemId, CraftOrder>,
     #[serde(skip_deserializing, skip_serializing)]
     workshop_block_ids: Vec<BlockId>,
 }
@@ -112,22 +115,41 @@ impl CraftManager {
             .push(game_ctx.blocks.get_id("furnace").unwrap())
     }
 
-    pub fn order(&mut self, item: ItemId, _recipe: &Recipe, _game_ctx: &GameCtx) {
-        self.orders.insert(
-            0,
-            CraftOrder {
-                item: item,
-                count: 1,
-                in_progress: Vec::new(),
-                standing: false,
-            },
-        );
+    pub fn get(&self, standing: bool, item: ItemId, _recipe: &Recipe) -> usize {
+        let Some(order) = self.orders.get(&item) else {
+            return 0;
+        };
+        if standing {
+            order.standing
+        } else {
+            order.in_progress.len() + order.one_time
+        }
+    }
+
+    pub fn order(&mut self, standing: bool, item: ItemId, _recipe: &Recipe) {
+        let order = self.orders.entry(item).or_default();
+        order.item = item;
+        if standing {
+            order.standing += 1;
+        } else {
+            order.one_time += 1;
+        }
+    }
+
+    pub fn cancel(&mut self, standing: bool, item: ItemId, _recipe: &Recipe) {
+        let order = self.orders.entry(item).or_default();
+        order.item = item;
+        if standing {
+            order.standing = order.standing.saturating_sub(1);
+        } else {
+            order.one_time = order.one_time.saturating_sub(1);
+        }
     }
 
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         // spawn at the first one for now...
-        self.orders.retain_mut(|order| {
-            match order.update(grid) {
+        for (_item, order) in self.orders.iter_mut() {
+            match order.update(grid, game_ctx) {
                 CraftOrderUpdate::CRAFT => {
                     // lookup recipe
                     let recipe = game_ctx
@@ -143,14 +165,14 @@ impl CraftManager {
                         .get_id(&recipe.workshop)
                         .expect("Recipe has invalid workshop name!");
 
-                    // for now, until we implement minimums don't take all there is
+                    // TODO: Implement minimums...
                     if recipe
                         .requires
                         .iter()
-                        .any(|item| grid.stocks.available(*item) < order.count / 2)
+                        .any(|item| grid.stocks.available(*item) == 0)
                     {
                         // wish we could log here...
-                        return true;
+                        continue;
                     }
 
                     // TODO: Only search for workshops with our ID
@@ -165,12 +187,12 @@ impl CraftManager {
                             break;
                         }
                     }
-                    true
+                    // true
                 }
-                CraftOrderUpdate::FINISHED => false,
-                CraftOrderUpdate::NONE => true,
+                CraftOrderUpdate::FINISHED => {} //false,
+                                                 // CraftOrderUpdate::NONE => {}     //true,
             }
-        });
+        }
 
         while let Some(event) = game_ctx.events.pop_event(CRAFT_EVENT_ID) {
             match event.value {

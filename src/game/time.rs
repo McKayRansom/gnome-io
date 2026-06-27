@@ -1,6 +1,6 @@
 // use super::Tick;
 
-use std::{fmt::format, str::FromStr};
+use std::str::FromStr;
 
 use serde::{Deserialize, Serialize};
 

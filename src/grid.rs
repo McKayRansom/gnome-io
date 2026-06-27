@@ -161,7 +161,7 @@ impl Grid {
                 log::error!("Tried to place invalid block_id: {}", block_id);
             }
         }
-        log::debug!("Setting {:?} to {:?}", tile, block_id);
+        // log::debug!("Setting {:?} to {:?}", tile, block_id);
 
         //update is_walkable for pos and adjacents
         self.update_walkable(pos);

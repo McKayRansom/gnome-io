@@ -346,23 +346,26 @@ fn draw_stocks(game: &Game, ctx: &Context) {
         colors::WHITE,
     );
 
-    // pos.y += 30.;
-    // for (item, stock) in grid.stocks.iter() {
-    //     draw_text(
-    //         ctx,
-    //         format!(
-    //             "{}: {}",
-    //             game_ctx.items.get_info(item).unwrap().name,
-    //             stock.total()
-    //         )
-    //         .as_str(),
-    //         pos.x,
-    //         pos.y,
-    //         crate::text::Size::Small,
-    //         colors::WHITE,
-    //     );
-    //     pos.y += 26.;
-    // }
+    pos.y += 30.;
+    for (item, stock) in game.grid.stocks.iter() {
+        if !stock.pinned {
+            continue;
+        }
+        draw_text(
+            ctx,
+            format!(
+                "{}: {}",
+                game.game_ctx.items.get_info(item).unwrap().name,
+                stock.total()
+            )
+            .as_str(),
+            pos.x,
+            pos.y,
+            crate::text::Size::Small,
+            colors::WHITE,
+        );
+        pos.y += 26.;
+    }
 }
 
-fn draw_status(game: &Game, ctx: &Context) {}
+fn draw_status(_game: &Game, _ctx: &Context) {}

@@ -212,22 +212,25 @@ impl Gnome {
             } else if self.base.items.len() > 0 {
                 searches.push(Search::Drop(job::JobType::HAUL));
             }
-            if self.base.items.len() < item::ITEM_CARRY_MAX {
-                searches.push(Search::Haul);
+
+            if !self.base.is_injured() {
+                if self.base.items.len() < item::ITEM_CARRY_MAX {
+                    searches.push(Search::Haul);
+                }
+
+                // let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
+
+                // if !skip_search {
+                searches.push(match self.profession {
+                    GnomeProfession::NONE => Search::Job(None),
+                    GnomeProfession::CRAFTING => Search::Job(Some(JobType::CRAFT)),
+                    GnomeProfession::BUILDING => Search::Job(Some(JobType::BUILD)),
+                    GnomeProfession::MINING => Search::Job(Some(JobType::BUILD)),
+                    GnomeProfession::FARMING => Search::Job(Some(JobType::FARM)),
+                    GnomeProfession::FIGHTING => Search::Fight,
+                    GnomeProfession::CHILDING => Search::Child,
+                });
             }
-
-            // let skip_search = self.base.items.len() >= item::ITEM_CARRY_MAX;
-
-            // if !skip_search {
-            searches.push(match self.profession {
-                GnomeProfession::NONE => Search::Job(None),
-                GnomeProfession::CRAFTING => Search::Job(Some(JobType::CRAFT)),
-                GnomeProfession::BUILDING => Search::Job(Some(JobType::BUILD)),
-                GnomeProfession::MINING => Search::Job(Some(JobType::BUILD)),
-                GnomeProfession::FARMING => Search::Job(Some(JobType::FARM)),
-                GnomeProfession::FIGHTING => Search::Fight,
-                GnomeProfession::CHILDING => Search::Child,
-            });
             // }
         } else {
             // mustered jobs

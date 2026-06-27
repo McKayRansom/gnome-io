@@ -6,7 +6,10 @@ use macroquad::{
     },
     math::{Rect, Vec2, vec2},
     time::get_time,
-    ui::{hash, root_ui, widgets::Window},
+    ui::{
+        hash, root_ui,
+        widgets::{Button, Label, Window},
+    },
 };
 
 use crate::{
@@ -34,7 +37,6 @@ pub enum GameAction {
     Mine,
     Build,
     Farm,
-    Craft,
     Fight,
     Cancel,
 }
@@ -55,6 +57,11 @@ enum PauseMenuSelect {
     // Restart,
 }
 
+enum GameMenuSelect {
+    Craft,
+    Stocks,
+}
+
 pub struct Gameplay {
     game: Game,
     mouse_down_pos: Option<Pos>,
@@ -67,7 +74,7 @@ pub struct Gameplay {
     pause_menu: Menu<PauseMenuSelect>,
     console: DebugConsole,
     labor: Labor,
-    craft_menu: bool,
+    game_menu: Option<GameMenuSelect>,
 }
 
 pub enum GameEvent {
@@ -104,7 +111,6 @@ impl Gameplay {
                     ToolbarItem::new(GameAction::Mine, "Mine stuff", '1', "mine".into()),
                     ToolbarItem::new(GameAction::Build, "Build stuff", '2', "build".into()),
                     ToolbarItem::new(GameAction::Farm, "Farm stuff", '3', "farm".into()),
-                    ToolbarItem::new(GameAction::Craft, "Craft stuff", '4', "craft_table".into()),
                     ToolbarItem::new(GameAction::Fight, "Fight stuff", '4', "fight".into()),
                     ToolbarItem::new(GameAction::Cancel, "Cancel stuff", '5', "cancel".into()),
                 ],
@@ -156,7 +162,7 @@ impl Gameplay {
             ]),
             console: DebugConsole::new(),
             labor: Labor::default(),
-            craft_menu: false,
+            game_menu: None,
         }
     }
 
@@ -439,20 +445,161 @@ impl Gameplay {
             }
         }
 
-        if self.craft_menu {
-            let size = Vec2::new(200., 200.);
-            Window::new(hash!(), size, size)
+        // top-of-screen menu options
+        {
+            let size = Vec2::new(ctx.screen_size.x / 2.0, 50.0);
+            Window::new(
+                hash!(),
+                Vec2::new(ctx.screen_size.x / 2.0 - size.x / 2.0, 0.0),
+                size,
+            )
+            .titlebar(false)
+            .movable(false)
+            .ui(&mut root_ui(), |ui| {
+                let mut pos: Vec2 = Vec2::new(0.0, -20.0);
+                const BUTTON_SIZE: Vec2 = Vec2::new(75.0, 35.0);
+                if Button::new("Stocks").position(pos).size(BUTTON_SIZE).ui(ui) {
+                    self.game_menu = Some(GameMenuSelect::Stocks)
+                }
+                pos += Vec2::new(BUTTON_SIZE.x + 10.0, 0.0);
+                if Button::new("Craft").position(pos).size(BUTTON_SIZE).ui(ui) {
+                    self.game_menu = Some(GameMenuSelect::Craft)
+                }
+                pos += Vec2::new(BUTTON_SIZE.x + 10.0, 0.0);
+                if Button::new("None").position(pos).size(BUTTON_SIZE).ui(ui) {
+                    self.game_menu = None;
+                }
+            });
+        }
+
+        if let Some(game_menu) = &self.game_menu {
+            Window::new(hash!(), ctx.screen_size / 4.0, ctx.screen_size / 2.0)
                 .titlebar(false)
                 .movable(false)
                 .ui(&mut root_ui(), |ui| {
-                    for (item_id, item) in self.game.game_ctx.items.iter() {
-                        if let Some(recipe) = &item.recipe {
-                            if ui.button(None, format!("{:?}", item.name).as_str()) {
-                                self.game.job_manager.craft_manager.order(
-                                    *item_id,
-                                    recipe,
-                                    &self.game.game_ctx,
-                                );
+                    let mut pos = Vec2::new(0.0, 0.0);
+
+                    const SPACE_1: Vec2 = Vec2::new(200.0, 0.0);
+                    const SPACE_2: Vec2 = Vec2::new(200.0, 0.0);
+                    const SPACE_3: Vec2 = Vec2::new(100.0, 0.0);
+
+                    const BUTTON_SIZE: Vec2 = Vec2::new(35.0, 35.0);
+                    const BUTTON_SPACING: Vec2 = Vec2::new(50.0, 0.0);
+
+                    match game_menu {
+                        GameMenuSelect::Craft => {
+                            Label::new("Recipe").position(pos).ui(ui);
+                            Label::new("Once").position(pos + SPACE_1).ui(ui);
+                            Label::new("Standing")
+                                .position(pos + SPACE_1 + SPACE_2)
+                                .ui(ui);
+
+                            pos.y += 50.0;
+
+                            for (item_id, item) in self.game.game_ctx.items.iter() {
+                                if let Some(recipe) = &item.recipe {
+                                    // if {
+
+                                    let this = &mut *ui;
+                                    let label = format!("{:}", item.name);
+                                    // one-time
+                                    Label::new(&label).position(pos).ui(this);
+                                    if Button::new("+")
+                                        .position(pos + SPACE_1)
+                                        .size(BUTTON_SIZE)
+                                        .ui(this)
+                                    {
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .order(false, *item_id, recipe);
+                                    }
+                                    Label::new(format!(
+                                        "{}",
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .get(false, *item_id, recipe)
+                                    ))
+                                    .position(pos + SPACE_1 + BUTTON_SPACING)
+                                    .ui(this);
+
+                                    if Button::new("-")
+                                        .position(pos + SPACE_1 + BUTTON_SPACING * 1.5)
+                                        .size(BUTTON_SIZE)
+                                        .ui(this)
+                                    {
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .cancel(false, *item_id, recipe);
+                                    }
+                                    // standing
+                                    Label::new(&label).position(pos).ui(this);
+                                    if Button::new("+")
+                                        .position(pos + SPACE_1 + SPACE_2)
+                                        .size(BUTTON_SIZE)
+                                        .ui(this)
+                                    {
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .order(true, *item_id, recipe);
+                                    }
+                                    Label::new(format!(
+                                        "{}",
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .get(true, *item_id, recipe)
+                                    ))
+                                    .position(pos + SPACE_1 + SPACE_2 + BUTTON_SPACING)
+                                    .ui(this);
+                                    if Button::new("-")
+                                        .position(pos + SPACE_1 + SPACE_2 + BUTTON_SPACING * 1.5)
+                                        .size(BUTTON_SIZE)
+                                        .ui(this)
+                                    {
+                                        self.game
+                                            .job_manager
+                                            .craft_manager
+                                            .cancel(true, *item_id, recipe);
+                                    }
+                                    pos.y += 50.0;
+                                }
+                            }
+                        }
+                        GameMenuSelect::Stocks => {
+                            Label::new("Item").position(pos).ui(ui);
+                            Label::new("Available").position(pos + SPACE_1).ui(ui);
+                            Label::new("Pin").position(pos + SPACE_1 + SPACE_2).ui(ui);
+                            // Label::new("Minimum")
+                            //     .position(pos + SPACE_1 + SPACE_2)
+                            //     .ui(ui);
+
+                            pos.y += 50.0;
+
+                            for (item_id, item) in self.game.game_ctx.items.iter() {
+                                // Item
+                                Label::new(format!("{:}", item.name)).position(pos).ui(ui);
+                                // Available
+                                Label::new(format!(
+                                    "{}",
+                                    self.game.grid.stocks.available(*item_id)
+                                ))
+                                .position(pos + SPACE_1)
+                                .ui(ui);
+
+                                // Pin
+                                let is_pinned = self.game.grid.stocks.pinned(*item_id);
+                                if Button::new(if is_pinned { "o" } else { "x" })
+                                    .position(pos + SPACE_1 + SPACE_2)
+                                    .size(BUTTON_SIZE)
+                                    .ui(ui)
+                                {
+                                    self.game.grid.stocks.pin(*item_id, !is_pinned);
+                                }
+                                pos.y += 50.0;
                             }
                         }
                     }
@@ -486,7 +633,6 @@ impl Gameplay {
                                     }
                                 }
                                 GameAction::Farm => self.game.farm(pos),
-                                GameAction::Craft => self.craft_menu = !self.craft_menu,
                                 GameAction::Fight => {
                                     if let Some(fight_action) = self.fight_toolbar.get_selected() {
                                         self.game.fight(pos, *fight_action)
