@@ -481,7 +481,7 @@ impl Gameplay {
 
                     const SPACE_1: Vec2 = Vec2::new(200.0, 0.0);
                     const SPACE_2: Vec2 = Vec2::new(200.0, 0.0);
-                    const SPACE_3: Vec2 = Vec2::new(100.0, 0.0);
+                    // const SPACE_3: Vec2 = Vec2::new(100.0, 0.0);
 
                     const BUTTON_SIZE: Vec2 = Vec2::new(35.0, 35.0);
                     const BUTTON_SPACING: Vec2 = Vec2::new(50.0, 0.0);

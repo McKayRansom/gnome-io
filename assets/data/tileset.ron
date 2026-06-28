@@ -22,7 +22,7 @@
         "chest",
     ],
     [
-        "picaxe",
+        "stone_dark",
         "stone_floor",
         "wood",
         "tree_0",
@@ -51,7 +51,7 @@
         "fight",
         "stone_item",
         "ore_item",
-        "sword",
+        "",
         "_",
         "metal",
         "grain",
@@ -94,4 +94,9 @@
         "goblin",
         "goblin_dead",
     ],
+    // tools
+    [
+        "picaxe",
+        "sword",
+    ]
 ])

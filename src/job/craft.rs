@@ -52,7 +52,7 @@ pub fn craft(
                 value: CraftFinishedEvent(workshop_block_id, item_id),
             },
         )
-        .create(grid, game_ctx),
+        .create(grid, &mut game_ctx.events),
     )
 }
 

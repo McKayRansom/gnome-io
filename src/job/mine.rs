@@ -5,7 +5,7 @@ use crate::{
 
 use super::Job;
 
-const MINE_TIME: u16 = 60;
+pub const MINE_TIME: u16 = 60;
 
 pub fn mine(grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) -> Option<()> {
     // verify block exists
@@ -15,7 +15,7 @@ pub fn mine(grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) -> Option<()> {
 
     // we could take longer to mine based on block hardness here...
 
-    Job::mine(pos, MINE_TIME, super::JobType::MINE).create(grid, game_ctx);
+    Job::mine(pos, MINE_TIME, super::JobType::MINE).create(grid, &mut game_ctx.events);
 
     Some(())
 }

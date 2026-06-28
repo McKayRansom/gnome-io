@@ -86,6 +86,53 @@ impl Grid {
         }
     }
 
+    pub fn find_path_or_destroy(&self, start: Pos, end: Content, faction: Faction) -> PathOutcome {
+        // log::debug!("find_path or destroy {:?} {:?} {:?}", start, end, content);
+        if let Some((mut path, _cost)) = pathfinding::prelude::dijkstra(
+            &start,
+            |pos| {
+                // check adjacent walls
+                if let Some(tile) = self.get_tile(*pos) {
+                    let cost = if tile.is_passable(faction) { 1 } else { 10 };
+                    Some([
+                        (Pos::new(pos.x + 1, pos.y), cost),
+                        (Pos::new(pos.x - 1, pos.y), cost),
+                        (Pos::new(pos.x, pos.y + 1), cost),
+                        (Pos::new(pos.x, pos.y - 1), cost),
+                    ])
+                    .into_iter()
+                    .flatten()
+                } else {
+                    None.into_iter().flatten()
+                }
+            },
+            |pos| {
+                // if let Some(content) = content {
+                // self.get_tile(*pos)
+                // .is_some_and(|tile| tile.contains(&content))
+                // } else if is_passable {
+                // pos == &end
+                // } else {
+                // always attack
+                self.get_tile(*pos).is_some_and(|tile| tile.contains(&end))
+                //     // pos.diff(end) <= 1
+                // }
+            },
+        ) {
+            if path.len() <= 1 {
+                // We are at the destination already
+                PathOutcome::Reached(*path.last().unwrap())
+            } else {
+                // TODO: I hate this but it does seem to be needed or else the first time the entity tries to move it will be to the current pos
+                // this can clearly also be handled there, but why should it?
+                assert_eq!(path.remove(0), start);
+                PathOutcome::Path(path)
+            }
+        } else {
+            PathOutcome::NoPath
+        }
+    }
+
     pub fn find_job(
         &self,
         entity: &BaseEntity,

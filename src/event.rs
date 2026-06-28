@@ -103,6 +103,7 @@ pub const GAME_TIME_EVENT: EventId = 123;
 pub const FACTION_EXIST_EVENT: EventId = 22;
 pub const GAMEPLAY_EVENT: EventId = 2;
 pub const CRAFT_EVENT_ID: EventId = 300;
+pub const BUILD_EVENT_ID: EventId = 301;
 pub const FARM_EVENT_ID: EventId = 200;
 
 impl Events {
@@ -112,6 +113,7 @@ impl Events {
         self.reg_event("time", GAME_TIME_EVENT);
         self.reg_event("farm", FARM_EVENT_ID);
         self.reg_event("craft", CRAFT_EVENT_ID);
+        self.reg_event("build", BUILD_EVENT_ID);
         self.reg_event("growth", GROWTH_EVENT);
         self.reg_event("gameplay", GAMEPLAY_EVENT);
     }

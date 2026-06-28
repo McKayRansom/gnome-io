@@ -4,7 +4,7 @@
     // natural
     "stone": (
         id: 100,
-        sprite: "stone_floor",
+        sprite: "stone_dark",
         flags: ("SOLID"),
         requires: ["stone"],
     ),

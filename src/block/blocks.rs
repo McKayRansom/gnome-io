@@ -176,6 +176,10 @@ impl Blocks {
         }
     }
 
+    pub fn add_name(&mut self, block_name: String, id: BlockId) {
+        self.ids.insert(block_name, id);
+    }
+
     pub fn get_info(&self, block_id: &BlockId) -> Option<&BlockInfo> {
         self.infos.get(block_id)
     }

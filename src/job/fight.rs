@@ -1,5 +1,9 @@
-use crate::{entity::{Entities, Entity, goblin::GOBLIN_FACTION}, game::GameCtx, grid::{Grid, Pos}, job::Job};
-
+use crate::{
+    entity::{Entities, Entity, goblin::GOBLIN_FACTION},
+    game::GameCtx,
+    grid::{Grid, Pos},
+    job::Job,
+};
 
 #[derive(Clone, Copy)]
 pub enum FightAction {
@@ -8,14 +12,19 @@ pub enum FightAction {
     Defend,
 }
 
-pub fn fight(grid: &mut Grid, pos: Pos, action: FightAction, game_ctx: &mut GameCtx, entities: &mut Entities) {
-    
+pub fn fight(
+    grid: &mut Grid,
+    pos: Pos,
+    action: FightAction,
+    game_ctx: &mut GameCtx,
+    entities: &mut Entities,
+) {
     let job = match action {
         // TODO: WatchManager that resets the watch forever until canceled...
         FightAction::Watch => {
-            Job::watch(pos).create(grid, game_ctx);
+            Job::watch(pos).create(grid, &mut game_ctx.events);
             return;
-        },
+        }
         FightAction::Attack => Job::fight(pos, (GOBLIN_FACTION, 0)),
         FightAction::Defend => Job::defend(pos),
     };

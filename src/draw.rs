@@ -11,7 +11,7 @@ use crate::{
     entity::{
         self, BaseEntity, Entities, Entity, HIDDEN_FACTION,
         gnome::{GNOME_FACTION, Gnome, GnomeStatus},
-        goblin::Goblin,
+        goblin::{Goblin, GoblinStatus},
     },
     game::{Game, GameCtx, time::print_days_nice},
     grid::{
@@ -101,7 +101,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                     // jank
                     ctx.tileset.draw_tile(
                         &if non_solid_dirs.len() == 0 && !game_ctx.debug.draw_hidden {
-                            "stone_floor"
+                            "stone_dark"
                         } else {
                             &block.sprite
                         },
@@ -156,6 +156,7 @@ fn draw_tiles(grid: &Grid, game_ctx: &GameCtx, ctx: &Context, entities: &Entitie
                                 // Color::from_rgba(81, 255, 149, 255)
                                 JobState::Ready => Color::new(0.6, 0.6, 0., 1.0),
                                 JobState::MissingItem(_) => Color::new(0.6, 0.0, 0.0, 1.0),
+                                JobState::BuildQueued => Color::new(0.0, 0.0, 0.6, 1.0),
                                 // JobState::Wait
                                 // Color::from_rgba(250, 227, 51, 255)
                             }
@@ -203,7 +204,7 @@ fn draw_goblin(game_ctx: &GameCtx, ctx: &Context, goblin: &Goblin) {
     ctx.tileset
         .draw_tile_ex("goblin", colors::WHITE, &dest, flip);
 
-    if goblin.fighting {
+    if goblin.status == GoblinStatus::Fighting {
         ctx.tileset.draw_tile("fight", &item_start, colors::WHITE)
     }
 }

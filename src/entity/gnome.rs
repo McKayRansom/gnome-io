@@ -146,15 +146,15 @@ impl Gnome {
                     job::JobType::NONE => true,
                 };
             if should_cancel {
-                self.cancel_job(grid, game_ctx);
+                self.cancel_job(grid, &mut game_ctx.events);
             }
         }
     }
 
-    fn cancel_job(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    fn cancel_job(&mut self, grid: &mut Grid, events: &mut Events) {
         if let Some(job) = self.job.take() {
             log::info!("Canceling job {:?}", job.category);
-            job.reset_job(grid, game_ctx);
+            job.reset_job(grid, events);
             // wake from sleep and cancel most jobs...
             if !self.base.moving() {
                 self.base.timer = self.base.timer % DEFAULT_SPEED;
@@ -162,8 +162,8 @@ impl Gnome {
         }
     }
 
-    pub(crate) fn set_muster(&mut self, exists: bool, grid: &mut Grid, game_ctx: &mut GameCtx) {
-        self.cancel_job(grid, game_ctx);
+    pub(crate) fn set_muster(&mut self, exists: bool, grid: &mut Grid, events: &mut Events) {
+        self.cancel_job(grid, events);
 
         self.mustered = exists
     }
@@ -173,8 +173,8 @@ impl Gnome {
         if self.profession != GnomeProfession::FIGHTING {
             return;
         }
-        self.cancel_job(grid, game_ctx);
-        job.accept(grid, game_ctx);
+        self.cancel_job(grid, &mut game_ctx.events);
+        job.accept(grid, &mut game_ctx.events);
         self.job = Some(job);
     }
 
@@ -466,7 +466,7 @@ impl EntityBehaviour for Gnome {
         // find a new job before we update job
         if self.job.is_none() {
             if let Some(mut job) = self.find_job(grid, game_ctx) {
-                job.accept(grid, game_ctx);
+                job.accept(grid, &mut game_ctx.events);
                 self.job = Some(job);
             }
         }

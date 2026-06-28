@@ -83,18 +83,18 @@ Thoughts:
 - increase starting pop?
   - If we're expected to actually use jobs initially then yeah
 - some info on standing orders and if grain or coal is too low...
-  - Will need Crafting UI (Item orders, mins, status)
+  - [x] Will need Crafting UI (Item orders, mins, status)
   - could be top left with items or click on craft at top or bot left (click on icons to change instead)
 - [x] need a way to fight more effectively... (lock the doors and gather the gnomes???)
-  - We need bell to wake everyone up
-  - Ignore other jobs when fighting
-  - For the love of god don't go sleep!
+  - [x] We need bell to wake everyone up
+  - [x] Ignore other jobs when fighting
+  - [x] For the love of god don't go sleep!
 - holy f we need so much coal!
-  - A: Add more coal
-  - B: Add trees/wood
-  - C: 2/1 or 3/1 grain/coal
-  - D: Don't need coal to eat...
-- Reward for defeating the goblins???
+  - [x] A: Add more coal
+  - [x] B: Add trees/wood
+  - [ ] C: 2/1 or 3/1 grain/coal
+  - [x] D: Don't need coal to eat...
+- [x] Reward for defeating the goblins???
 - mining is too slow and far away???
 - Some kind of darkness is needed, doesn't feel like underground
 
@@ -102,17 +102,17 @@ Thoughts2:
 - Will need to revisit prioritizing local jobs, that does make some sense...
 - Fix crafting...
   - add minimums
-  - fix craft job actually finishing
-  - add standing orders to UI
-  - Fix UI activation method
-  - Fix crafting UI in general
+  - [x] fix craft job actually finishing
+  - [x] add standing orders to UI
+  - [x] Fix UI activation method
+  - [x] Fix crafting UI in general
 - [x] Job queue system
   - [x] Fix queued plant jobs at end of spring...
 - [x] Stocks should actually just be on the map, so a job should always be able to find an item if it's in stocks...
 - Food:
   - [x] Fix duplicate eat jobs on the same tile
   - [x] Add bread back in? It's hard to grow enough crops... (make cheaper in terms of coal?)
-  - Show days until starvation
+  - [x] Show days until starvation
   - [x] Add food value, so bread/stew can be worth it
   - [x] (Goblin stew!!)
 - fighting:

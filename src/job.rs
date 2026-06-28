@@ -70,6 +70,7 @@ pub enum JobState {
     Ready,
     InProgress,
     MissingItem(ItemId),
+    BuildQueued,
 }
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -108,6 +109,7 @@ pub enum Step {
     StoreCarried,
     Attack(ContentEntity),
     PushTime((Tick, Event)),
+    PushEvent(Event),
 }
 
 impl Step {
@@ -263,6 +265,10 @@ impl Step {
             }
             Step::PushTime((time, event)) => {
                 game_ctx.events.push_timer(*time, event.clone());
+                Flow::Next
+            }
+            Step::PushEvent(event) => {
+                game_ctx.events.push_event(event.clone());
                 Flow::Next
             }
         }
@@ -635,6 +641,8 @@ impl Job {
     // TEMP: Eventually we will need a method to change priorities
     pub fn is_higher_priority(&self, other: &Job) -> bool {
         self.category < other.category
+        // exception for build job: always build further away first
+            || (self.category == JobType::BUILD && self.pos.diff(other.pos) == 1)
     }
 
     pub fn update(
@@ -671,7 +679,7 @@ impl Job {
                     return JobStatus::Failed;
                 }
                 Flow::MissingItem(item) => {
-                    self.missing_item(item, grid, game_ctx);
+                    self.missing_item(item, grid, &mut game_ctx.events);
                     return JobStatus::Failed;
                 }
             }
@@ -681,11 +689,11 @@ impl Job {
     /*
      * Officially creates a new job on the grid that can be picked up
      */
-    pub fn create(self, grid: &mut Grid, game_ctx: &mut GameCtx) -> JobId {
+    pub fn create(self, grid: &mut Grid, events: &mut Events) -> JobId {
         log::debug!("Creating new job {:?}", &self);
         let pos = self.pos;
-        let id = game_ctx.events.add_job(self);
-        grid.create(pos, Content::Job(id), &mut game_ctx.events);
+        let id = events.add_job(self);
+        grid.create(pos, Content::Job(id), events);
         id
     }
 
@@ -693,22 +701,22 @@ impl Job {
      * For gnomes to officially accept a job so it is not taken by someone else
      * This can be called with either an existing job or a new job (it will be created)
      */
-    pub fn accept(&mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    pub fn accept(&mut self, grid: &mut Grid, events: &mut Events) {
         self.state = JobState::InProgress;
         if self.id == 0 {
-            self.id = self.clone().create(grid, game_ctx)
+            self.id = self.clone().create(grid, events)
         } else {
-            game_ctx.events.update_job(self)
+            events.update_job(self)
         }
     }
 
     /*
      * This will "reset" a job for someone else to pick up, most likely the gnome has been interupted
      */
-    pub fn reset_job(mut self, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    pub fn reset_job(mut self, grid: &mut Grid, events: &mut Events) {
         if self.category.should_reset() {
             self.state = JobState::Ready;
-            game_ctx.events.update_job(&self);
+            events.update_job(&self);
         } else {
             if grid.take(self.pos, Content::Job(self.id)).is_none() {
                 log::warn!(
@@ -716,14 +724,14 @@ impl Job {
                     self
                 );
             }
-            game_ctx.events.cancel_job(&self.id);
+            events.cancel_job(&self.id);
         }
     }
 
-    pub fn missing_item(&mut self, item: ItemId, grid: &mut Grid, game_ctx: &mut GameCtx) {
+    pub fn missing_item(&mut self, item: ItemId, grid: &mut Grid, events: &mut Events) {
         if self.category.should_reset() {
             self.state = JobState::MissingItem(item);
-            game_ctx.events.update_job(&self);
+            events.update_job(&self);
         } else {
             if grid.take(self.pos, Content::Job(self.id)).is_none() {
                 log::warn!(
@@ -731,7 +739,7 @@ impl Job {
                     self
                 );
             }
-            game_ctx.events.cancel_job(&self.id);
+            events.cancel_job(&self.id);
         }
     }
 
@@ -768,6 +776,7 @@ impl JobManager {
         self.farm_manager.update(game_ctx, grid);
         self.craft_manager.update(game_ctx, grid);
         self.snow_manager.update(game_ctx, grid);
+        build::update(grid, game_ctx);
         // self.raid_manager.update(game_ctx, grid);
     }
 

@@ -111,7 +111,10 @@ impl FarmManager {
 
         if block_info.is_some_and(|info| info.growth.is_none_or(|growth| growth.1 == BLOCK_NONE)) {
             // harvest
-            Some(Job::mine(*pos, HARVEST_TIME, super::JobType::FARM).create(grid, game_ctx))
+            Some(
+                Job::mine(*pos, HARVEST_TIME, super::JobType::FARM)
+                    .create(grid, &mut game_ctx.events),
+            )
 
         // till
         } else if block_info.is_none() && game_ctx.time.season == Season::Spring {
@@ -129,7 +132,7 @@ impl FarmManager {
                     requires,
                     super::JobType::FARM,
                 )
-                .create(grid, game_ctx),
+                .create(grid, &mut game_ctx.events),
             )
         } else {
             None
