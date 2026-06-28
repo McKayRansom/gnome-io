@@ -156,10 +156,10 @@ impl Game {
         mine(&mut self.grid, pos, &mut self.game_ctx);
     }
 
-    pub fn farm(&mut self, pos: Pos) {
+    pub fn farm(&mut self, pos: Pos, block_name: &str) {
         self.job_manager
             .farm_manager
-            .new_farm(&mut self.grid, pos, &mut self.game_ctx);
+            .new_farm(&mut self.grid, pos, block_name, &mut self.game_ctx);
     }
 
     pub fn build(&mut self, pos: Pos, block_name: &str) {

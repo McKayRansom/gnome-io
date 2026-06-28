@@ -71,11 +71,16 @@ impl FarmManager {
         }
     }
 
-    pub fn new_farm(&mut self, grid: &mut Grid, pos: Pos, game_ctx: &mut GameCtx) {
-        // TEMP: For now, always assume wheat
-        let wheat_0_id = game_ctx.blocks.get_id("wheat_0").unwrap();
-        self.farm_pos.insert(pos, wheat_0_id);
-        Self::tile_changed(game_ctx, grid, &pos, wheat_0_id);
+    pub fn new_farm(
+        &mut self,
+        grid: &mut Grid,
+        pos: Pos,
+        block_name: &str,
+        game_ctx: &mut GameCtx,
+    ) {
+        let block_id = game_ctx.blocks.get_id(block_name).unwrap();
+        self.farm_pos.insert(pos, block_id);
+        Self::tile_changed(game_ctx, grid, &pos, block_id);
     }
 
     pub fn cancel_farm(&mut self, pos: Pos) {
@@ -109,6 +114,7 @@ impl FarmManager {
         let block = tile.get_block().unwrap_or(0);
         let block_info = game_ctx.blocks.get_info(&block);
 
+        // TODO: Let's just store some kind of parent in the block info so this can be correct...
         if block_info.is_some_and(|info| info.growth.is_none_or(|growth| growth.1 == BLOCK_NONE)) {
             // harvest
             Some(

@@ -59,41 +59,44 @@
         id: 205,
         drops: [(1.0, "grain"), (1.0, "grain"), (0.2, "grain")],
         // so that we die in winter...
-        // growth: Some((days: 2, into: "NONE")),
+        // growth: Some((days: 2, into: "wheat_dead")),
         mine_event: Some("farm"),
     ),
-    // "wheat_dead"
+    // "wheat_dead": (
+    //     id: 206,
+    //     drops: [],
+    //     mine_event: Some("farm"),
+    // ),
 
     "tree_0": (
-        id: 206,
-        // requires: ["seed"],
+        id: 210,
+        requires: ["wood"],
         growth: Some((days: 4, into: "tree_1")),
         mine_event: Some("farm"),
-        // drops: [(1.0, "seed")],
+        drops: [(1.0, "wood")],
     ),
     "tree_1": (
-        id: 207,
+        id: 211,
         growth: Some((days: 4, into: "tree_2")),
         mine_event: Some("farm"),
-        // drops: [(1.0, "seed")],
+        drops: [(1.0, "wood")],
     ),
     "tree_2": (
-        id: 208,
+        id: 212,
         growth: Some((days: 4, into: "tree_3")),
         mine_event: Some("farm"),
-        // drops: [(1.0, "seed")],
+        drops: [(1.0, "wood")],
     ),
     "tree_3": (
-        id: 208,
+        id: 213,
         growth: Some((days: 4, into: "tree_4")),
         mine_event: Some("farm"),
-        // drops: [(1.0, "seed")],
+        drops: [(1.0, "wood")],
     ),
     "tree_4": (
-        id: 209,
+        id: 214,
         mine_event: Some("farm"),
         drops: [(1.0, "wood"), (1.0, "wood")],
-        // drops: [(1.0, "seed")],
     ),
 
 

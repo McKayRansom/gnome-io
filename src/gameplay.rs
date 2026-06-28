@@ -68,6 +68,7 @@ pub struct Gameplay {
     draw_details_pos: Option<Pos>,
     action_toolbar: Toolbar<GameAction>,
     build_toolbar: Toolbar<&'static str>,
+    farm_toolbar: Toolbar<&'static str>,
     fight_toolbar: Toolbar<FightAction>,
     time_select: Toolbar<TimeSelect>,
     popup: Option<Popup>,
@@ -127,6 +128,13 @@ impl Gameplay {
                     ToolbarItem::new("furnace", "Furnace", '5', "furnace".into()),
                     ToolbarItem::new("bed", "Bed", '6', "bed".into()),
                     ToolbarItem::new("gravestone", "grave", '7', "gravestone".into()),
+                ],
+            ),
+            farm_toolbar: Toolbar::new(
+                crate::ui::toolbar::ToolbarType::Horizontal,
+                vec![
+                    ToolbarItem::new("wheat_0", "Wheat Farm", '1', "wheat_0".into()),
+                    ToolbarItem::new("tree_0", "Tree farm", '2', "tree_0".into()),
                 ],
             ),
             fight_toolbar: Toolbar::new(
@@ -330,6 +338,14 @@ impl Gameplay {
             Some(GameAction::Fight) => {
                 ctx.key_pressed = game_action_key;
                 self.fight_toolbar.draw(
+                    ctx,
+                    ctx.screen_size.x / 2.0,
+                    ctx.screen_size.y - TOOLBAR_SPACE * 2.,
+                );
+            }
+            Some(GameAction::Farm) => {
+                ctx.key_pressed = game_action_key;
+                self.farm_toolbar.draw(
                     ctx,
                     ctx.screen_size.x / 2.0,
                     ctx.screen_size.y - TOOLBAR_SPACE * 2.,
@@ -632,7 +648,11 @@ impl Gameplay {
                                         self.game.build(pos, block_name)
                                     }
                                 }
-                                GameAction::Farm => self.game.farm(pos),
+                                GameAction::Farm => {
+                                    if let Some(block_name) = self.farm_toolbar.get_selected() {
+                                        self.game.farm(pos, block_name)
+                                    }
+                                }
                                 GameAction::Fight => {
                                     if let Some(fight_action) = self.fight_toolbar.get_selected() {
                                         self.game.fight(pos, *fight_action)
