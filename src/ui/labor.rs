@@ -11,6 +11,7 @@ use crate::{
     context::Context,
     entity::{Entity, EntityId, gnome::GnomeProfession},
     game::Game,
+    job::JobType,
     text::{draw_text, measure_text},
 };
 
@@ -112,7 +113,10 @@ impl Labor {
                 if let Entity::Gnome(gnome) = game.entities.get(*enttiy).unwrap() {
                     if gnome.get_profession() == proffesion {
                         ctx.tileset.draw_tile(
-                            if gnome.has_job() {
+                            if gnome
+                                .get_job()
+                                .is_some_and(|job| job.category != JobType::NONE)
+                            {
                                 "labor_full"
                             } else {
                                 "labor_empty"

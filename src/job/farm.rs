@@ -6,7 +6,7 @@ use crate::{
     event::{EventTypes, FARM_EVENT_ID, GROWTH_EVENT, JobId},
     game::{
         GameCtx, Tick,
-        time::{Season, hours},
+        time::{DAYS_PER_SEASON, Season, days, hours},
     },
     grid::{Grid, Pos},
 };
@@ -46,11 +46,11 @@ impl FarmManager {
             }
         }
         // summer: too late! cancel planting jobs...
-        else if game_ctx.time.season_start(Season::Summer) {
-            for pos in self.farm_pos.keys() {
-                grid.remove_jobs(*pos, &mut game_ctx.events, Some(super::JobType::FARM));
-            }
-        }
+        // else if game_ctx.time.season_start(Season::Summer) {
+        //     for pos in self.farm_pos.keys() {
+        //         grid.remove_jobs(*pos, &mut game_ctx.events, Some(super::JobType::FARM));
+        //     }
+        // }
     }
 
     pub fn update_growth(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
@@ -61,8 +61,8 @@ impl FarmManager {
             };
             log::debug!("Growth {} -> {}", _old, new);
             if game_ctx.time.season == Season::Winter {
-                // plant dies for now...
-                // grid.destroy_block(event.pos, game_ctx);
+                // requeue event for now
+                game_ctx.events.push_timer(days(DAYS_PER_SEASON), event);
             } else {
                 // NOTE: This may start new timers/trigger new events if nescesary
                 // Including the farm update event
@@ -123,7 +123,9 @@ impl FarmManager {
             )
 
         // till
-        } else if block_info.is_none() && game_ctx.time.season == Season::Spring {
+        } else if block_info.is_none()
+        /* && game_ctx.time.season != Season::Winter */
+        {
             let requires = farm_block_info
                 .requires
                 .iter()

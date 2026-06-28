@@ -775,7 +775,7 @@ impl JobManager {
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         self.farm_manager.update(game_ctx, grid);
         self.craft_manager.update(game_ctx, grid);
-        self.snow_manager.update(game_ctx, grid);
+        // self.snow_manager.update(game_ctx, grid);
         build::update(grid, game_ctx);
         // self.raid_manager.update(game_ctx, grid);
     }

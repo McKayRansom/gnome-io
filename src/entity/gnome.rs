@@ -105,8 +105,8 @@ impl Gnome {
         self.profession
     }
 
-    pub(crate) fn has_job(&self) -> bool {
-        self.job.is_some()
+    pub(crate) fn get_job(&self) -> Option<&Job> {
+        self.job.as_ref()
     }
 
     pub fn set_profession(
@@ -225,7 +225,7 @@ impl Gnome {
                     GnomeProfession::NONE => Search::Job(None),
                     GnomeProfession::CRAFTING => Search::Job(Some(JobType::CRAFT)),
                     GnomeProfession::BUILDING => Search::Job(Some(JobType::BUILD)),
-                    GnomeProfession::MINING => Search::Job(Some(JobType::BUILD)),
+                    GnomeProfession::MINING => Search::Job(Some(JobType::MINE)),
                     GnomeProfession::FARMING => Search::Job(Some(JobType::FARM)),
                     GnomeProfession::FIGHTING => Search::Fight,
                     GnomeProfession::CHILDING => Search::Child,
@@ -234,7 +234,7 @@ impl Gnome {
             // }
         } else {
             // mustered jobs
-            if self.profession == GnomeProfession::FIGHTING {
+            if self.profession == GnomeProfession::FIGHTING && !self.base.is_injured() {
                 searches.push(
                     Search::Fight, // } else {
                                    // job::job_idle_search

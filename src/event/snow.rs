@@ -21,6 +21,7 @@ const SNOW_FALL_TIME: Tick = 50;
 const SNOW_BLOCK_ID: BlockId = 103;
 
 impl SnowManager {
+    #[allow(unused)]
     pub fn update(&mut self, game_ctx: &mut GameCtx, grid: &mut Grid) {
         if game_ctx.time.season == Season::Winter {
             // spawn some snow
